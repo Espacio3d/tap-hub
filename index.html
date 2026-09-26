@@ -1,0 +1,806 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tap Hub</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Work+Sans:wght@400;500;600&family=Poppins:wght@500;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@500;600;700&family=Bebas+Neue&family=Fraunces:wght@600;700&family=Quicksand:wght@500;600;700&family=Oswald:wght@500;600;700&family=Abril+Fatface&family=DM+Serif+Display&family=Righteous&family=Pacifico&family=Caveat:wght@600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style id="app-style">
+  :root{
+    --bg:#F6F5F2;
+    --surface:#FFFFFF;
+    --surface-edge:#E6E3DB;
+    --text:#181C1B;
+    --text-dim:#666F6C;
+    --accent-default:#0E7A5F;
+    --accent-ink:#FFFFFF;
+    --danger:#C24A3B;
+    --chip-bg:#EFEDE6;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#121615;
+      --surface:#1C2120;
+      --surface-edge:#2B3230;
+      --text:#EEF1EF;
+      --text-dim:#9AA5A1;
+      --accent-default:#2FD1A4;
+      --accent-ink:#0B1413;
+      --danger:#E17A6B;
+      --chip-bg:#242B29;
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#121615;
+    --surface:#1C2120;
+    --surface-edge:#2B3230;
+    --text:#EEF1EF;
+    --text-dim:#9AA5A1;
+    --accent-default:#2FD1A4;
+    --accent-ink:#0B1413;
+    --danger:#E17A6B;
+    --chip-bg:#242B29;
+    color-scheme:dark;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:"Work Sans",-apple-system,BlinkMacSystemFont,sans-serif;
+    padding-inline:16px;
+    padding-block:28px;
+  }
+  h1,h2,h3{ font-family:"Outfit",-apple-system,sans-serif; text-wrap:balance; margin:0; }
+  button{ font-family:inherit; }
+  input,select{ font-family:inherit; }
+  img{ max-width:100%; }
+
+  #app{ max-width:480px; margin:0 auto; display:flex; flex-direction:column; gap:20px; }
+
+  /* ---- shared bits ---- */
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    border:none; border-radius:12px; padding:12px 18px;
+    font-size:15px; font-weight:600; cursor:pointer;
+    font-family:"Outfit",sans-serif;
+  }
+  .btn-primary{ background:var(--accent, var(--accent-default)); color:var(--accent-ink); }
+  .btn-ghost{ background:var(--chip-bg); color:var(--text); }
+  .btn-danger{ background:transparent; color:var(--danger); }
+  .btn-sm{ padding:8px 12px; font-size:13px; border-radius:9px; }
+  .btn:active{ transform:translateY(1px); }
+  .icon{ width:18px; height:18px; flex:0 0 auto; }
+  .icon path, .icon circle, .icon rect{ stroke:currentColor; }
+
+  /* ================= ADMIN ================= */
+  .admin-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .admin-header p{ color:var(--text-dim); font-size:14px; margin:4px 0 0; }
+
+  .client-card{
+    background:var(--surface); border:1px solid var(--surface-edge); border-radius:16px;
+    padding:16px; display:flex; align-items:center; gap:12px;
+  }
+  .client-avatar{
+    width:44px; height:44px; border-radius:12px; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center;
+    font-size:20px; font-weight:700; font-family:"Outfit",sans-serif;
+    overflow:hidden;
+  }
+  .client-meta{ flex:1; min-width:0; }
+  .client-meta .name{ font-weight:600; font-size:15px; }
+  .client-meta .slug{ color:var(--text-dim); font-size:13px; font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .client-actions{ display:flex; gap:6px; flex:0 0 auto; }
+
+  .empty{
+    text-align:center; color:var(--text-dim); font-size:14px;
+    padding-block:32px; border:1px dashed var(--surface-edge); border-radius:16px;
+  }
+
+  /* ---- form ---- */
+  .form-card{
+    background:var(--surface); border:1px solid var(--surface-edge); border-radius:16px;
+    padding:20px; display:flex; flex-direction:column; gap:16px;
+  }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field label{ font-size:13px; font-weight:600; color:var(--text-dim); }
+  .field input[type="text"], .field input[type="url"]{
+    background:var(--bg); border:1px solid var(--surface-edge); border-radius:10px;
+    padding:10px 12px; font-size:15px; color:var(--text);
+  }
+  .row2{ display:flex; gap:12px; }
+  .row2 .field{ flex:1; min-width:0; }
+  .color-field{ display:flex; align-items:center; gap:10px; }
+  .color-field input[type="color"]{
+    width:40px; height:40px; border-radius:10px; border:1px solid var(--surface-edge); padding:2px; background:var(--bg);
+  }
+
+  .buttons-editor{ display:flex; flex-direction:column; gap:10px; }
+  .button-row{
+    display:flex; flex-direction:column; gap:6px;
+    background:var(--bg); border:1px solid var(--surface-edge); border-radius:12px; padding:8px;
+  }
+  .button-row-main{ display:flex; gap:8px; align-items:center; }
+  .button-row-icon-upload{
+    display:flex; align-items:center; gap:8px; padding-left:38px;
+    font-size:12px; color:var(--text-dim);
+  }
+  .button-row-icon-upload input[type="file"]{
+    font-size:11px; background:none; border:none; padding:0; color:var(--text-dim); flex:none;
+  }
+  .button-row select{
+    background:var(--surface); border:1px solid var(--surface-edge); border-radius:8px;
+    padding:8px; font-size:13px; color:var(--text); flex:0 0 auto; width:120px;
+  }
+  .button-row input{
+    background:var(--surface); border:1px solid var(--surface-edge); border-radius:8px;
+    padding:8px 10px; font-size:13px; color:var(--text); min-width:0;
+  }
+  .button-row .label-input{ flex:1; }
+  .button-row .url-input{ flex:1.4; }
+  .button-row .row-color{
+    flex:0 0 auto; width:30px; height:30px; padding:2px; border-radius:8px;
+    border:1px solid var(--surface-edge); background:var(--surface);
+  }
+  .row-remove{
+    flex:0 0 auto; width:30px; height:30px; border-radius:8px; border:none;
+    background:transparent; color:var(--danger); font-size:16px; cursor:pointer;
+  }
+  .add-row-btn{ align-self:flex-start; }
+
+  .form-actions{ display:flex; gap:10px; justify-content:flex-end; padding-top:4px; border-top:1px solid var(--surface-edge); }
+
+  .link-box{
+    display:flex; align-items:center; gap:8px; background:var(--chip-bg);
+    border-radius:10px; padding:8px 10px; font-size:12px; font-family:monospace;
+    overflow:hidden;
+  }
+  .link-box span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:var(--text); color:var(--bg); padding:10px 18px; border-radius:999px;
+    font-size:13px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .25s;
+    z-index:50;
+  }
+  .toast.show{ opacity:1; }
+
+  /* ================= PUBLIC HUB ================= */
+  .hub{ display:flex; flex-direction:column; gap:20px; align-items:center; padding-top:8px; font-family:var(--hub-font, inherit); }
+  .hub-avatar{
+    width:76px; height:76px; border-radius:22px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:34px; font-weight:700; color:var(--accent-ink);
+    background:var(--accent, var(--accent-default));
+    overflow:hidden;
+  }
+  .hub h1{ font-size:24px; text-align:center; font-family:var(--hub-font, "Outfit"), -apple-system, sans-serif; }
+  .hub .tagline{ color:var(--text-dim); font-size:14px; text-align:center; margin-top:-8px; }
+  .hub-links{ width:100%; display:flex; flex-direction:column; gap:10px; }
+  .hub-link{
+    display:flex; align-items:center; gap:12px;
+    background:var(--surface); border:1px solid var(--surface-edge); border-radius:14px;
+    padding:15px 16px; text-decoration:none; color:var(--text); font-weight:500; font-size:15px;
+  }
+  .hub-link .icon-badge{
+    width:34px; height:34px; border-radius:10px; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--chip-bg); color:var(--accent, var(--accent-default));
+  }
+  .hub-link .chev{ margin-left:auto; color:var(--text-dim); width:16px; height:16px; }
+  .hub-footer{ color:var(--text-dim); font-size:12px; text-align:center; padding-top:8px; }
+  .hub-footer a{ color:inherit; }
+  .not-found{ text-align:center; padding-block:60px; color:var(--text-dim); }
+
+  .login-footer{ display:flex; justify-content:flex-end; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var ICONS = {
+    menu:      '<path d="M4 5h16M4 12h16M4 19h10" stroke-width="2" stroke-linecap="round"/>',
+    review:    '<path d="M12 3l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1L6.6 19.3l1.3-6-4.6-4.1 6.1-.6z" stroke-width="1.6" stroke-linejoin="round" fill="none"/>',
+    wifi:      '<path d="M3 8.5a17 17 0 0 1 18 0M6.2 12.3a12 12 0 0 1 11.6 0M9.6 16a7 7 0 0 1 4.8 0" stroke-width="2" stroke-linecap="round" fill="none"/><circle cx="12" cy="19.3" r="1.3" fill="currentColor" stroke="none"/>',
+    rewards:   '<path d="M12 21s-7-4.4-9.5-8.8C.7 8.6 2.3 5 6 5c2 0 3.3 1 4 2.2 0-.1 0-.1 0 0C10.7 6 12 5 14 5c3.7 0 5.3 3.6 3.5 7.2C19 16.6 12 21 12 21z" stroke-width="1.6" stroke-linejoin="round" fill="none"/>',
+    app:       '<rect x="7" y="2.5" width="10" height="19" rx="2" stroke-width="1.6" fill="none"/><path d="M11 18.5h2" stroke-width="1.6" stroke-linecap="round"/>',
+    giftcard:  '<rect x="3" y="7" width="18" height="13" rx="2" stroke-width="1.6" fill="none"/><path d="M3 12h18M12 7v13M8.5 7c-1.4 0-2.5-1-2.5-2.2C6 3.6 7 3 8 3.4c1.3.5 2.5 2 3 3.6-1 0-2.5 0-2.5 0zm7 0c1.4 0 2.5-1 2.5-2.2C18 3.6 17 3 16 3.4c-1.3.5-2.5 2-3 3.6 1 0 2.5 0 2.5 0z" stroke-width="1.4" stroke-linejoin="round" fill="none"/>',
+    instagram: '<rect x="3" y="3" width="18" height="18" rx="5" stroke-width="1.6" fill="none"/><circle cx="12" cy="12" r="4" stroke-width="1.6" fill="none"/><circle cx="17.3" cy="6.7" r="1" fill="currentColor" stroke="none"/>',
+    facebook:  '<path d="M14 21v-7h2.5l.5-3H14V9c0-.9.3-1.5 1.7-1.5H17V4.8C16.6 4.7 15.6 4.6 14.5 4.6c-2.4 0-4 1.4-4 4.1V11H8v3h2.5v7z" stroke-width="1.2" stroke-linejoin="round" fill="none"/>',
+    website:   '<circle cx="12" cy="12" r="9" stroke-width="1.6" fill="none"/><path d="M3 12h18M12 3c2.5 2.5 3.8 6 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-6-3.8-9s1.3-6.5 3.8-9z" stroke-width="1.4" fill="none"/>',
+    calendar:  '<rect x="3.5" y="5" width="17" height="16" rx="2" stroke-width="1.6" fill="none"/><path d="M8 3v4M16 3v4M3.5 10h17" stroke-width="1.6" stroke-linecap="round"/>',
+    phone:     '<path d="M6.5 3.5h3l1.3 4.5-2.2 1.7a13 13 0 0 0 5.7 5.7l1.7-2.2 4.5 1.3v3c0 1.2-1 2-2.1 1.9C10.8 19 5 13.2 4.6 5.6 4.5 4.5 5.3 3.5 6.5 3.5z" stroke-width="1.5" stroke-linejoin="round" fill="none"/>',
+    game:      '<rect x="2.5" y="8" width="19" height="9" rx="4" stroke-width="1.6" fill="none"/><path d="M7 10.5v4M5 12.5h4" stroke-width="1.5" stroke-linecap="round"/><circle cx="16" cy="11" r="1" fill="currentColor" stroke="none"/><circle cx="18.2" cy="13.2" r="1" fill="currentColor" stroke="none"/>',
+    offer:     '<path d="M20 12.2 12.6 20l-9-9L4 4l7 .4z" stroke-width="1.6" stroke-linejoin="round" fill="none"/><circle cx="8.3" cy="8.3" r="1.4" stroke-width="1.4" fill="none"/>',
+    whatsapp:  '<path d="M12 3a9 9 0 0 0-7.7 13.6L3 21l4.6-1.2A9 9 0 1 0 12 3z" stroke-width="1.5" fill="none"/><path d="M8.3 8.7c-.2.9.1 2 1.3 3.5s2.5 2.2 3.6 2.3c1 .1 1.6-.5 1.8-1l-1.7-1.1c-.3.3-.7.6-1.1.4-.6-.3-1.6-1.1-2.1-2.1-.2-.4.1-.7.4-1l-.9-1.6c-.5-.1-1.1.1-1.3.6z" fill="currentColor" stroke="none"/>',
+    survey:    '<rect x="4" y="3" width="16" height="18" rx="2" stroke-width="1.6" fill="none"/><path d="M8 8h8M8 12l1.6 1.6L12.5 10M8 16h5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+    support:   '<circle cx="12" cy="12" r="8.5" stroke-width="1.6" fill="none"/><circle cx="12" cy="12" r="3.2" stroke-width="1.5" fill="none"/><path d="M6.2 6.2l3.3 3.3M17.8 6.2l-3.3 3.3M6.2 17.8l3.3-3.3M17.8 17.8l-3.3-3.3" stroke-width="1.4" stroke-linecap="round"/>'
+  };
+  var ICON_LABELS = {
+    menu:"Menú", review:"Reseña", wifi:"WiFi", rewards:"Recompensas", app:"Descargar app",
+    giftcard:"Gift card", instagram:"Instagram", facebook:"Facebook", website:"Sitio web",
+    calendar:"Reservar/Agendar", phone:"Llamar", game:"Juego", offer:"Ofertas", whatsapp:"WhatsApp",
+    survey:"Encuesta", support:"Servicio al cliente"
+  };
+
+  var FONTS = {
+    default:    { label:"Predeterminada", css:null },
+    poppins:    { label:"Poppins", css:"'Poppins',sans-serif" },
+    playfair:   { label:"Playfair Display (elegante)", css:"'Playfair Display',serif" },
+    montserrat: { label:"Montserrat", css:"'Montserrat',sans-serif" },
+    bebas:      { label:"Bebas Neue (grande y bold)", css:"'Bebas Neue',sans-serif" },
+    fraunces:   { label:"Fraunces (con carácter)", css:"'Fraunces',serif" },
+    quicksand:  { label:"Quicksand (redondeada)", css:"'Quicksand',sans-serif" },
+    oswald:     { label:"Oswald (condensada)", css:"'Oswald',sans-serif" },
+    abril:      { label:"Abril Fatface (dramática)", css:"'Abril Fatface',serif" },
+    dmserif:    { label:"DM Serif Display (elegante)", css:"'DM Serif Display',serif" },
+    righteous:  { label:"Righteous (divertida)", css:"'Righteous',sans-serif" },
+    pacifico:   { label:"Pacifico (manuscrita casual)", css:"'Pacifico',cursive" },
+    caveat:     { label:"Caveat (manuscrita)", css:"'Caveat',cursive" }
+  };
+
+  function svgIcon(key, cls){
+    return '<svg class="'+(cls||'icon')+'" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'+(ICONS[key]||ICONS.website)+'</svg>';
+  }
+
+  /* ============================================================
+     DATA LAYER — talks to Supabase (Postgres + Auth). Real security
+     lives in the database's Row Level Security policies (anyone can
+     read, only a logged-in user can write) — this file never has to
+     enforce that itself, it just reflects whatever the DB allows.
+     ============================================================ */
+  var SUPABASE_URL = "https://oifgcicvnrodipjfjkso.supabase.co";
+  var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pZmdjaWN2bnJvZGlwamZqa3NvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyOTQ3OTksImV4cCI6MjEwNTg3MDc5OX0.rkGZ2UQhgqcFns4KpHocYXFbh5o5cgFhOV68OIwyNBQ";
+
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  var Storage = {
+    load: async function(){
+      var res = await sb.from('clients').select('*').order('created_at');
+      if(res.error){ console.error(res.error); toast('No se pudieron cargar los clientes'); return []; }
+      return res.data;
+    },
+    loadOne: async function(slug){
+      var res = await sb.from('clients').select('*').eq('slug', slug).maybeSingle();
+      if(res.error){ console.error(res.error); return null; }
+      return res.data;
+    },
+    upsert: async function(client){
+      var res = await sb.from('clients').upsert(client, {onConflict:'slug'});
+      if(res.error) throw res.error;
+    },
+    remove: async function(slug){
+      var res = await sb.from('clients').delete().eq('slug', slug);
+      if(res.error) throw res.error;
+    },
+    uploadLogo: async function(file, slugHint){
+      var ext = (file.name.split('.').pop() || 'png').toLowerCase();
+      var path = (slugHint || 'logo') + '-' + Date.now() + '.' + ext;
+      var res = await sb.storage.from('logos').upload(path, file, { upsert: true });
+      if(res.error) throw res.error;
+      var pub = sb.storage.from('logos').getPublicUrl(path);
+      return pub.data.publicUrl;
+    },
+    loadPanelSettings: async function(){
+      var res = await sb.from('app_settings').select('*').eq('id', 1).maybeSingle();
+      if(res.error){ console.error(res.error); return { background: '' }; }
+      return res.data || { background: '' };
+    },
+    savePanelSettings: async function(background){
+      var res = await sb.from('app_settings').update({ background: background }).eq('id', 1);
+      if(res.error) throw res.error;
+    }
+  };
+
+  var Auth = {
+    getSession: async function(){
+      var res = await sb.auth.getSession();
+      return res.data.session;
+    },
+    signIn: function(email, password){
+      return sb.auth.signInWithPassword({ email: email, password: password });
+    },
+    signOut: function(){
+      return sb.auth.signOut();
+    }
+  };
+
+  function slugify(s){
+    return (s||'').toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g,'')
+      .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,48) || 'cliente';
+  }
+
+  function uniqueSlug(base, clients, ignoreSlug){
+    var s = slugify(base), n = 2;
+    while(clients.some(function(c){ return c.slug===s && c.slug!==ignoreSlug; })){
+      s = slugify(base)+'-'+n; n++;
+    }
+    return s;
+  }
+
+  function isImageUrl(s){
+    return /^https?:\/\//i.test(s||'');
+  }
+
+  function logoInner(logo){
+    if(isImageUrl(logo)){
+      return '<img src="'+escapeHtml(logo)+'" alt="" style="width:100%;height:100%;object-fit:cover;">';
+    }
+    return escapeHtml(logo||'•');
+  }
+
+  function escapeHtml(s){
+    return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function toast(msg){
+    var t=document.getElementById('toast');
+    t.textContent=msg; t.classList.add('show');
+    clearTimeout(toast._h);
+    toast._h=setTimeout(function(){ t.classList.remove('show'); },1800);
+  }
+
+  function baseUrl(){
+    return location.origin + location.pathname;
+  }
+
+  /* ---------------- ROUTING ---------------- */
+  async function route(){
+    var hash = decodeURIComponent(location.hash.slice(1));
+    if(hash){
+      var c = await Storage.loadOne(hash);
+      if(c){ renderHub(c); } else { renderNotFound(); }
+      return;
+    }
+    var settings = await Storage.loadPanelSettings();
+    var session = await Auth.getSession();
+    if(session){
+      var clients = await Storage.load();
+      renderAdmin(clients, settings);
+    } else {
+      renderLogin(settings);
+    }
+  }
+  window.addEventListener('hashchange', function(){ route(); });
+
+  /* ---------------- LOGIN VIEW ---------------- */
+  function renderLogin(settings){
+    document.documentElement.style.removeProperty('--accent');
+    document.documentElement.style.removeProperty('--hub-font');
+    applyBackground(settings && settings.background);
+    document.getElementById('app').innerHTML =
+      '<div class="admin-header"><div><h1>Tap Hub</h1><p>Inicia sesión para administrar tus clientes</p></div></div>'+
+      '<div class="form-card">'+
+        '<div class="field"><label>Correo</label><input type="text" id="l-email" placeholder="tu@correo.com"></div>'+
+        '<div class="field"><label>Contraseña</label><input type="password" id="l-pass" placeholder="••••••••"></div>'+
+        '<button class="btn btn-primary" id="loginBtn" type="button">Entrar</button>'+
+      '</div>';
+    document.getElementById('loginBtn').onclick = async function(){
+      var email = document.getElementById('l-email').value.trim();
+      var pass = document.getElementById('l-pass').value;
+      if(!email || !pass){ toast('Completa correo y contraseña'); return; }
+      var res = await Auth.signIn(email, pass);
+      if(res.error){ toast('No se pudo entrar: correo o contraseña incorrectos'); return; }
+      route();
+    };
+  }
+
+  /* ---------------- BACKGROUND (shared by hub pages and the admin panel) ---------------- */
+  function applyBackground(background){
+    document.body.style.backgroundImage = '';
+    document.documentElement.style.removeProperty('--bg');
+    if(isImageUrl(background)){
+      document.body.style.backgroundImage = 'url("'+background+'")';
+      document.body.style.backgroundSize = 'cover';
+      document.body.style.backgroundPosition = 'center';
+      document.body.style.backgroundAttachment = 'fixed';
+    } else if(background){
+      document.documentElement.style.setProperty('--bg', background);
+    }
+  }
+
+  /* ---------------- PUBLIC HUB VIEW ---------------- */
+  function renderHub(client){
+    document.documentElement.style.setProperty('--accent', client.accent || '');
+    applyBackground(client.background);
+    var fontDef = FONTS[client.font];
+    if(fontDef && fontDef.css){ document.documentElement.style.setProperty('--hub-font', fontDef.css); }
+    else { document.documentElement.style.removeProperty('--hub-font'); }
+    var app = document.getElementById('app');
+    var linksHtml = (client.buttons||[]).map(function(b){
+      var badgeStyle = b.color ?
+        'background:'+escapeHtml(b.color)+';color:#fff;' :
+        'background:var(--chip-bg);color:var(--accent, var(--accent-default));';
+      var badgeInner = b.iconImage ?
+        '<img src="'+escapeHtml(b.iconImage)+'" alt="" style="width:20px;height:20px;object-fit:contain;border-radius:4px;">' :
+        svgIcon(b.icon);
+      return '<a class="hub-link" href="'+escapeHtml(b.url)+'" target="_blank" rel="noopener">'+
+        '<span class="icon-badge" style="'+badgeStyle+'">'+badgeInner+'</span>'+
+        '<span>'+escapeHtml(b.label)+'</span>'+
+        '<svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
+      '</a>';
+    }).join('');
+    app.innerHTML =
+      '<div class="hub">'+
+        '<div class="hub-avatar">'+logoInner(client.logo)+'</div>'+
+        '<h1>'+escapeHtml(client.name)+'</h1>'+
+        (client.tagline ? '<div class="tagline">'+escapeHtml(client.tagline)+'</div>' : '')+
+        '<div class="hub-links">'+linksHtml+'</div>'+
+        '<div class="hub-footer">Creado con Tap Hub</div>'+
+      '</div>';
+  }
+
+  function renderNotFound(){
+    document.getElementById('app').innerHTML =
+      '<div class="not-found"><h2>Enlace no encontrado</h2><p>Este tag o QR no corresponde a ningún negocio activo.</p></div>';
+  }
+
+  /* ---------------- ADMIN VIEW ---------------- */
+  function renderAdmin(clients, settings){
+    document.documentElement.style.removeProperty('--accent');
+    document.documentElement.style.removeProperty('--hub-font');
+    applyBackground(settings && settings.background);
+    var app = document.getElementById('app');
+    var cardsHtml = clients.length ? clients.map(function(c){
+      return '<div class="client-card">'+
+        '<div class="client-avatar" style="background:'+escapeHtml(c.accent||'#0E7A5F')+';color:#fff;">'+logoInner(c.logo)+'</div>'+
+        '<div class="client-meta"><div class="name">'+escapeHtml(c.name)+'</div>'+
+          '<div class="slug">#'+escapeHtml(c.slug)+' · '+(c.buttons?c.buttons.length:0)+' enlaces</div></div>'+
+        '<div class="client-actions">'+
+          '<button class="btn btn-ghost btn-sm" data-act="edit" data-slug="'+escapeHtml(c.slug)+'">Editar</button>'+
+        '</div>'+
+      '</div>';
+    }).join('') : '<div class="empty">Todavía no hay clientes. Crea el primero.</div>';
+
+    app.innerHTML =
+      '<div class="admin-header"><div><h1>Tap Hub</h1><p>Panel de clientes — cada uno con su propia página de enlaces</p></div>'+
+        '<div style="display:flex;gap:6px;">'+
+          '<button class="btn btn-ghost btn-sm" id="settingsBtn" type="button">⚙️ Ajustes</button>'+
+          '<button class="btn btn-ghost btn-sm" id="logoutBtn" type="button">Cerrar sesión</button>'+
+        '</div></div>'+
+      '<button class="btn btn-primary" id="newClientBtn">+ Nuevo cliente</button>'+
+      '<div id="clientList" style="display:flex;flex-direction:column;gap:10px;">'+cardsHtml+'</div>';
+
+    document.getElementById('newClientBtn').onclick = function(){ renderForm(null, clients); };
+    document.getElementById('settingsBtn').onclick = function(){ renderSettings(clients, settings); };
+    document.getElementById('logoutBtn').onclick = async function(){
+      await Auth.signOut();
+      route();
+    };
+    app.querySelectorAll('[data-act="edit"]').forEach(function(btn){
+      btn.onclick = function(){
+        var slug = btn.getAttribute('data-slug');
+        var c = clients.find(function(x){ return x.slug===slug; });
+        renderForm(c, clients);
+      };
+    });
+  }
+
+  /* ---------------- PANEL SETTINGS VIEW ---------------- */
+  function renderSettings(clients, settings){
+    var bg = (settings && settings.background) || '';
+    var app = document.getElementById('app');
+    app.innerHTML =
+      '<div class="admin-header"><h1>Ajustes del panel</h1></div>'+
+      '<div class="form-card">'+
+        '<div class="field"><label>Fondo de TU panel (color, o sube una imagen)</label>'+
+          (isImageUrl(bg) ?
+            '<div class="link-box"><span>Imagen de fondo puesta ✓</span>'+
+              '<button class="btn btn-danger btn-sm" id="removeSettingsBgBtn" type="button">Quitar imagen</button></div>'
+            : '')+
+          '<div class="row2">'+
+            '<input type="color" id="s-bg-color" value="'+escapeHtml(isImageUrl(bg) ? '#F6F5F2' : (bg || '#F6F5F2'))+'" style="width:40px;height:40px;border-radius:10px;border:1px solid var(--surface-edge);padding:2px;">'+
+            '<input type="file" id="s-bg-file" accept="image/png,image/jpeg,image/webp" style="font-size:12px;">'+
+          '</div>'+
+          '<input type="hidden" id="s-bg-image" value="'+escapeHtml(isImageUrl(bg) ? bg : '')+'">'+
+        '</div>'+
+        '<div class="form-actions">'+
+          '<button class="btn btn-ghost" id="settingsCancelBtn" type="button">Volver</button>'+
+          '<button class="btn btn-primary" id="settingsSaveBtn" type="button">Guardar</button>'+
+        '</div>'+
+      '</div>';
+
+    document.getElementById('settingsCancelBtn').onclick = function(){ renderAdmin(clients, settings); };
+
+    var removeBtn = document.getElementById('removeSettingsBgBtn');
+    if(removeBtn){
+      removeBtn.onclick = function(){
+        document.getElementById('s-bg-image').value = '';
+        removeBtn.parentElement.remove();
+        toast('Imagen quitada — guarda para confirmar');
+      };
+    }
+
+    document.getElementById('s-bg-file').addEventListener('change', async function(e){
+      var file = e.target.files[0];
+      if(!file) return;
+      if(file.size > 10 * 1024 * 1024){ toast('La imagen debe pesar menos de 10MB'); return; }
+      toast('Subiendo imagen...');
+      try{
+        var url = await Storage.uploadLogo(file, 'panel-bg');
+        document.getElementById('s-bg-image').value = url;
+        toast('Imagen subida');
+      }catch(err){
+        toast('No se pudo subir: '+(err && err.message ? err.message : 'error'));
+      }
+    });
+
+    document.getElementById('settingsSaveBtn').onclick = async function(){
+      var newBg = document.getElementById('s-bg-image').value.trim() || document.getElementById('s-bg-color').value;
+      try{
+        await Storage.savePanelSettings(newBg);
+        toast('Ajustes guardados');
+        renderAdmin(clients, { background: newBg });
+      }catch(err){
+        toast('No se pudo guardar: '+(err && err.message ? err.message : 'error'));
+      }
+    };
+  }
+
+  function renderForm(existing, clients){
+    var isEdit = !!existing;
+    var draft = existing ? JSON.parse(JSON.stringify(existing)) : {
+      slug:'', name:'', tagline:'', accent:'#0E7A5F', logo:'★',
+      buttons:[{icon:'menu',label:'Ver Menú',url:''},{icon:'review',label:'Dejar Reseña',url:''}]
+    };
+
+    var app = document.getElementById('app');
+
+    function buttonRowInnerHtml(b){
+      var opts = Object.keys(ICONS).map(function(k){
+        return '<option value="'+k+'"'+(k===b.icon?' selected':'')+'>'+ICON_LABELS[k]+'</option>';
+      }).join('');
+      var hasCustomIcon = !!b.iconImage;
+      return (
+        '<div class="button-row-main">'+
+          '<input type="color" class="row-color" title="Color de esta opción" value="'+escapeHtml(b.color||'#0E7A5F')+'">'+
+          '<select class="row-icon"'+(hasCustomIcon ? ' style="display:none;"' : '')+'>'+opts+'</select>'+
+          '<input class="label-input" type="text" placeholder="Texto (ej. Ver Menú)" value="'+escapeHtml(b.label)+'">'+
+          '<input class="url-input" type="url" placeholder="https://..." value="'+escapeHtml(b.url)+'">'+
+          '<button class="row-remove" type="button" title="Quitar">&times;</button>'+
+        '</div>'+
+        '<div class="button-row-icon-upload">'+
+          (hasCustomIcon ?
+            '<span class="row-icon-status">Ícono propio puesto ✓</span><button class="btn btn-danger btn-sm row-remove-icon" type="button">Quitar</button>'
+            : '<span class="row-icon-status">o sube tu propio ícono:</span><input type="file" class="row-icon-file" accept="image/png,image/jpeg,image/webp,image/svg+xml">')+
+          '<input type="hidden" class="row-icon-image" value="'+escapeHtml(b.iconImage||'')+'">'+
+        '</div>'
+      );
+    }
+
+    function buttonRowHtml(b, i){
+      return '<div class="button-row" data-idx="'+i+'">'+buttonRowInnerHtml(b)+'</div>';
+    }
+
+    app.innerHTML =
+      '<div class="admin-header"><h1>'+(isEdit?'Editar cliente':'Nuevo cliente')+'</h1></div>'+
+      '<div class="form-card">'+
+        '<div class="field"><label>Nombre del negocio</label><input type="text" id="f-name" value="'+escapeHtml(draft.name)+'" placeholder="Ej. Romano\'s Pizza"></div>'+
+        '<div class="field"><label>Frase corta (opcional)</label><input type="text" id="f-tagline" value="'+escapeHtml(draft.tagline||'')+'" placeholder="Ej. Pizza artesanal desde 1998"></div>'+
+        '<div class="row2">'+
+          '<div class="field"><label>Color de marca</label><div class="color-field"><input type="color" id="f-accent" value="'+escapeHtml(draft.accent||'#0E7A5F')+'"></div></div>'+
+          '<div class="field"><label>Logo (emoji, inicial, o sube una imagen)</label>'+
+            '<input type="text" id="f-logo" value="'+escapeHtml(draft.logo||'')+'" placeholder="🍕 o https://...">'+
+            '<input type="file" id="f-logo-file" accept="image/png,image/jpeg,image/webp" style="font-size:12px;">'+
+          '</div>'+
+        '</div>'+
+        '<div class="field"><label>Fondo de la página (color, o sube una imagen)</label>'+
+          (isImageUrl(draft.background) ?
+            '<div class="link-box"><span>Imagen de fondo puesta ✓</span>'+
+              '<button class="btn btn-danger btn-sm" id="removeBgBtn" type="button">Quitar imagen</button></div>'
+            : '')+
+          '<div class="row2">'+
+            '<input type="color" id="f-bg-color" value="'+escapeHtml(isImageUrl(draft.background) ? '#F6F5F2' : (draft.background || '#F6F5F2'))+'" style="width:40px;height:40px;border-radius:10px;border:1px solid var(--surface-edge);padding:2px;">'+
+            '<input type="file" id="f-bg-file" accept="image/png,image/jpeg,image/webp" style="font-size:12px;">'+
+          '</div>'+
+          '<input type="hidden" id="f-bg-image" value="'+escapeHtml(isImageUrl(draft.background) ? draft.background : '')+'">'+
+        '</div>'+
+        '<div class="field"><label>Estilo de letra de la página</label>'+
+          '<select id="f-font">'+
+            Object.keys(FONTS).map(function(k){
+              return '<option value="'+k+'"'+(k===(draft.font||'default')?' selected':'')+' style="font-family:'+(FONTS[k].css||'inherit')+';">'+FONTS[k].label+'</option>';
+            }).join('')+
+          '</select>'+
+        '</div>'+
+        '<div class="field"><label>Enlace de esta página</label>'+
+          '<div class="link-box"><span id="linkPreview"></span>'+
+            '<button class="btn btn-ghost btn-sm" id="copyLinkBtn" type="button">Copiar</button></div>'+
+        '</div>'+
+        '<div class="field"><label>Opciones (botones que verá el cliente)</label>'+
+          '<div class="buttons-editor" id="buttonsEditor">'+
+            draft.buttons.map(buttonRowHtml).join('')+
+          '</div>'+
+          '<button class="btn btn-ghost btn-sm add-row-btn" id="addRowBtn" type="button">+ Agregar opción</button>'+
+        '</div>'+
+        '<div class="form-actions">'+
+          (isEdit ? '<button class="btn btn-danger" id="deleteBtn" type="button">Eliminar cliente</button>' : '')+
+          '<button class="btn btn-ghost" id="cancelBtn" type="button">Cancelar</button>'+
+          '<button class="btn btn-primary" id="saveBtn" type="button">Guardar</button>'+
+        '</div>'+
+      '</div>';
+
+    function currentSlug(){
+      return isEdit ? existing.slug : uniqueSlug(document.getElementById('f-name').value, clients);
+    }
+    function updateLinkPreview(){
+      document.getElementById('linkPreview').textContent = baseUrl()+'#'+currentSlug();
+    }
+    updateLinkPreview();
+    document.getElementById('f-name').addEventListener('input', function(){ if(!isEdit) updateLinkPreview(); });
+
+    document.getElementById('f-logo-file').addEventListener('change', async function(e){
+      var file = e.target.files[0];
+      if(!file) return;
+      if(file.size > 10 * 1024 * 1024){ toast('La imagen debe pesar menos de 10MB'); return; }
+      toast('Subiendo imagen...');
+      try{
+        var url = await Storage.uploadLogo(file, currentSlug());
+        document.getElementById('f-logo').value = url;
+        toast('Logo subido');
+      }catch(err){
+        toast('No se pudo subir: '+(err && err.message ? err.message : 'error'));
+      }
+    });
+
+    var removeBgBtn = document.getElementById('removeBgBtn');
+    if(removeBgBtn){
+      removeBgBtn.onclick = function(){
+        document.getElementById('f-bg-image').value = '';
+        removeBgBtn.parentElement.remove();
+        toast('Imagen de fondo quitada — guarda para confirmar');
+      };
+    }
+
+    document.getElementById('f-bg-file').addEventListener('change', async function(e){
+      var file = e.target.files[0];
+      if(!file) return;
+      if(file.size > 10 * 1024 * 1024){ toast('La imagen debe pesar menos de 10MB'); return; }
+      toast('Subiendo imagen de fondo...');
+      try{
+        var url = await Storage.uploadLogo(file, currentSlug()+'-bg');
+        document.getElementById('f-bg-image').value = url;
+        toast('Fondo subido');
+      }catch(err){
+        toast('No se pudo subir: '+(err && err.message ? err.message : 'error'));
+      }
+    });
+
+    document.getElementById('copyLinkBtn').onclick = function(){
+      var link = baseUrl()+'#'+currentSlug();
+      navigator.clipboard && navigator.clipboard.writeText(link).then(function(){
+        toast('Link copiado');
+      }).catch(function(){ toast(link); });
+    };
+
+    document.getElementById('addRowBtn').onclick = function(){
+      if(document.querySelectorAll('.button-row').length >= 9){ toast('Máximo 9 opciones'); return; }
+      var editor = document.getElementById('buttonsEditor');
+      var idx = editor.children.length;
+      editor.insertAdjacentHTML('beforeend', buttonRowHtml({icon:'website',label:'',url:''}, idx));
+      wireRow(editor.lastElementChild);
+    };
+
+    function readRowData(row){
+      return {
+        icon: row.querySelector('.row-icon').value,
+        color: row.querySelector('.row-color').value,
+        label: row.querySelector('.label-input').value,
+        url: row.querySelector('.url-input').value,
+        iconImage: row.querySelector('.row-icon-image').value
+      };
+    }
+
+    function wireRow(row){
+      row.querySelector('.row-remove').onclick = function(){
+        if(document.querySelectorAll('.button-row').length <= 1){ toast('Debe quedar al menos una opción'); return; }
+        row.remove();
+      };
+      var iconFile = row.querySelector('.row-icon-file');
+      if(iconFile){
+        iconFile.addEventListener('change', async function(e){
+          var file = e.target.files[0];
+          if(!file) return;
+          if(file.size > 10 * 1024 * 1024){ toast('El ícono debe pesar menos de 10MB'); return; }
+          toast('Subiendo ícono...');
+          try{
+            var data = readRowData(row);
+            data.iconImage = await Storage.uploadLogo(file, 'icon');
+            row.innerHTML = buttonRowInnerHtml(data);
+            wireRow(row);
+            toast('Ícono subido');
+          }catch(err){
+            toast('No se pudo subir: '+(err && err.message ? err.message : 'error'));
+          }
+        });
+      }
+      var removeIconBtn = row.querySelector('.row-remove-icon');
+      if(removeIconBtn){
+        removeIconBtn.onclick = function(){
+          var data = readRowData(row);
+          data.iconImage = '';
+          row.innerHTML = buttonRowInnerHtml(data);
+          wireRow(row);
+        };
+      }
+    }
+    document.querySelectorAll('.button-row').forEach(wireRow);
+
+    document.getElementById('cancelBtn').onclick = function(){ renderAdmin(clients); };
+
+    if(isEdit){
+      document.getElementById('deleteBtn').onclick = async function(){
+        var ok = confirm ? confirm('¿Eliminar "'+existing.name+'"? Su link dejará de funcionar.') : true;
+        if(!ok) return;
+        try{
+          await Storage.remove(existing.slug);
+          toast('Cliente eliminado');
+          renderAdmin(await Storage.load());
+        }catch(e){
+          toast('No se pudo borrar: '+(e && e.message ? e.message : 'error'));
+        }
+      };
+    }
+
+    document.getElementById('saveBtn').onclick = async function(){
+      var name = document.getElementById('f-name').value.trim();
+      if(!name){ toast('Ponle un nombre al negocio'); return; }
+      var rows = Array.from(document.querySelectorAll('.button-row'));
+      var all = rows.map(function(r, i){
+        return {
+          pos: i + 1,
+          icon: r.querySelector('.row-icon').value,
+          color: r.querySelector('.row-color').value,
+          iconImage: r.querySelector('.row-icon-image').value.trim(),
+          label: r.querySelector('.label-input').value.trim(),
+          url: r.querySelector('.url-input').value.trim()
+        };
+      });
+      var incomplete = all.find(function(b){ return (b.label && !b.url) || (!b.label && b.url); });
+      if(incomplete){
+        toast('A la opción '+incomplete.pos+' le falta el '+(incomplete.label ? 'link' : 'texto'));
+        return;
+      }
+      var buttons = all.filter(function(b){ return b.label && b.url; });
+      if(!buttons.length){ toast('Agrega al menos una opción con texto y link'); return; }
+
+      var slug = isEdit ? existing.slug : uniqueSlug(name, clients);
+      var newClient = {
+        slug: slug,
+        name: name,
+        tagline: document.getElementById('f-tagline').value.trim(),
+        accent: document.getElementById('f-accent').value,
+        logo: document.getElementById('f-logo').value.trim() || name.slice(0,1).toUpperCase(),
+        background: document.getElementById('f-bg-image').value.trim() || document.getElementById('f-bg-color').value,
+        font: document.getElementById('f-font').value,
+        buttons: buttons
+      };
+
+      try{
+        await Storage.upsert(newClient);
+        toast('Guardado');
+        renderAdmin(await Storage.load());
+      }catch(e){
+        toast('No se pudo guardar: '+(e && e.message ? e.message : 'error'));
+      }
+    };
+  }
+
+  route();
+})();
+</script>
+</body>
+</html>
