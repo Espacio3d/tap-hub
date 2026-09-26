@@ -475,7 +475,7 @@
       'FN:'+client.name,
       'ORG:'+client.name,
       client.phone ? 'TEL;TYPE=CELL:'+client.phone : '',
-      'URL:'+baseUrl()+'#'+client.slug,
+      'URL:'+baseUrl()+client.slug,
       client.tagline ? 'NOTE:'+client.tagline : '',
       'END:VCARD'
     ].filter(Boolean).join('\n');
@@ -810,7 +810,7 @@
     }
     var qrInstance = null;
     function updateLinkPreview(){
-      var link = baseUrl()+'#'+currentSlug();
+      var link = baseUrl()+currentSlug();
       document.getElementById('linkPreview').textContent = link;
       if(window.QRCode){
         if(!qrInstance){
@@ -880,7 +880,7 @@
     });
 
     document.getElementById('copyLinkBtn').onclick = function(){
-      var link = baseUrl()+'#'+currentSlug();
+      var link = baseUrl()+currentSlug();
       navigator.clipboard && navigator.clipboard.writeText(link).then(function(){
         toast('Link copiado');
       }).catch(function(){ toast(link); });
