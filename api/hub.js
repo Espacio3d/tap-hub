@@ -75,8 +75,8 @@ img{max-width:100%;}\
 .icon{width:18px;height:18px;flex:0 0 auto;}.icon path,.icon circle,.icon rect{stroke:currentColor;}\
 .hub{display:flex;flex-direction:column;gap:20px;align-items:center;padding-top:8px;font-family:var(--hub-font, inherit);}\
 .hub-avatar{width:76px;height:76px;border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:700;color:var(--accent-ink);background:var(--accent, var(--accent-default));overflow:hidden;}\
-.hub h1{font-size:24px;text-align:center;font-family:var(--hub-font, "Outfit"), -apple-system, sans-serif;margin:0;text-wrap:balance;}\
-.hub .tagline{color:var(--text-dim);font-size:14px;text-align:center;margin-top:-8px;}\
+.hub h1{font-size:24px;text-align:center;font-family:var(--hub-font, "Outfit"), -apple-system, sans-serif;margin:0;text-wrap:balance;color:var(--hub-text, var(--text));}\
+.hub .tagline{color:var(--hub-text, var(--text-dim));font-size:14px;text-align:center;margin-top:-8px;}\
 .hub-links{width:100%;display:flex;flex-direction:column;gap:10px;}\
 .hub-link{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--surface-edge);border-radius:14px;padding:15px 16px;text-decoration:none;color:var(--text);font-weight:500;font-size:15px;}\
 .hub-link .icon-badge{width:34px;height:34px;border-radius:10px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;background:var(--chip-bg);color:var(--accent, var(--accent-default));}\
@@ -108,6 +108,7 @@ function buildVCardUrl(client, pageUrl){
 function renderPage(client, pageUrl){
   var fontDef = FONTS[client.font];
   var hubFontVar = (fontDef && fontDef.css) ? ('--hub-font:'+fontDef.css+';') : '';
+  var hubTextVar = client.text_color ? ('--hub-text:'+client.text_color+';') : '';
   var accentVar = '--accent:'+(client.accent || '#0E7A5F')+';';
   var bgStyle = isImageUrl(client.background)
     ? 'background-image:url(\''+client.background+'\');background-size:cover;background-position:center;background-attachment:fixed;'
@@ -168,7 +169,7 @@ function renderPage(client, pageUrl){
     '<meta name="twitter:description" content="'+escapeHtml(ogDesc)+'">\n'+
     FONT_LINK+'\n'+
     '<style id="app-style">'+CSS+'</style>\n'+
-    '</head><body style="'+hubFontVar+accentVar+bgStyle+'">\n'+
+    '</head><body style="'+hubFontVar+hubTextVar+accentVar+bgStyle+'">\n'+
     '<div id="app"><div class="hub">'+
       '<div class="hub-avatar">'+logoInner(client.logo)+'</div>'+
       '<h1>'+escapeHtml(client.name)+'</h1>'+
@@ -182,7 +183,9 @@ function renderPage(client, pageUrl){
     '(function(){\n'+
     '  var sb = window.supabase.createClient("'+SUPABASE_URL+'", "'+SUPABASE_ANON_KEY+'");\n'+
     '  var slug = '+JSON.stringify(client.slug)+';\n'+
-    '  function logEvent(type, label){ sb.from("events").insert({client_slug:slug, type:type, button_label:label||null}).then(function(r){ if(r.error) console.error(r.error); }); }\n'+
+    '  var ua = navigator.userAgent;\n'+
+    '  var device = /iPad|Tablet/i.test(ua) ? "tablet" : (/Mobi|Android|iPhone/i.test(ua) ? "movil" : "escritorio");\n'+
+    '  function logEvent(type, label){ sb.from("events").insert({client_slug:slug, type:type, button_label:label||null, device:device}).then(function(r){ if(r.error) console.error(r.error); }); }\n'+
     '  logEvent("view");\n'+
     '  var buttons = '+JSON.stringify((client.buttons||[]).map(function(b){ return b.label; }))+';\n'+
     '  document.querySelectorAll(".hub-links a[href]:not([download]):not([data-tap-extra])").forEach(function(a,i){\n'+
