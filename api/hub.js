@@ -176,7 +176,7 @@ function renderPage(client, pageUrl){
       (client.tagline ? '<div class="tagline">'+escapeHtml(client.tagline)+'</div>' : '')+
       '<div class="hub-links">'+contactHtml+whatsappHtml+linksHtml+'</div>'+
       captureHtml+
-      '<div class="hub-footer">Creado con Tap Hub</div>'+
+      '<div class="hub-footer">Creado con Espacio3d.gt</div>'+
     '</div></div>\n'+
     '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"><\/script>\n'+
     '<script>\n'+
