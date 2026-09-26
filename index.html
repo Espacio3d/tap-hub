@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Tap Hub</title>
+<title>Espacio3d.gt</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Work+Sans:wght@400;500;600&family=Poppins:wght@500;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@500;600;700&family=Bebas+Neue&family=Fraunces:wght@600;700&family=Quicksand:wght@500;600;700&family=Oswald:wght@500;600;700&family=Abril+Fatface&family=DM+Serif+Display&family=Righteous&family=Pacifico&family=Caveat:wght@600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -504,7 +504,7 @@
     document.documentElement.style.removeProperty('--hub-text');
     applyBackground(settings && settings.background);
     document.getElementById('app').innerHTML =
-      '<div class="admin-header"><div><h1>Tap Hub</h1><p>Inicia sesión para administrar tus clientes</p></div></div>'+
+      '<div class="admin-header"><div><h1>Espacio3d.gt</h1><p>Inicia sesión para administrar tus clientes</p></div></div>'+
       '<div class="form-card">'+
         '<div class="field"><label>Correo</label><input type="text" id="l-email" placeholder="tu@correo.com"></div>'+
         '<div class="field"><label>Contraseña</label><input type="password" id="l-pass" placeholder="••••••••"></div>'+
@@ -598,7 +598,7 @@
         (client.tagline ? '<div class="tagline">'+escapeHtml(client.tagline)+'</div>' : '')+
         '<div class="hub-links">'+contactHtml+whatsappHtml+linksHtml+'</div>'+
         captureHtml+
-        '<div class="hub-footer">Creado con Tap Hub</div>'+
+        '<div class="hub-footer">Creado con Espacio3d.gt</div>'+
       '</div>';
 
     Storage.logEvent(client.slug, 'view');
@@ -647,7 +647,7 @@
     }).join('') : '<div class="empty">Todavía no hay clientes. Crea el primero.</div>';
 
     app.innerHTML =
-      '<div class="admin-header"><div><h1>Tap Hub</h1><p>Panel de clientes — cada uno con su propia página de enlaces</p></div>'+
+      '<div class="admin-header"><div><h1>Espacio3d.gt</h1><p>Panel de clientes — cada uno con su propia página de enlaces</p></div>'+
         '<div style="display:flex;gap:6px;">'+
           '<button class="btn btn-ghost btn-sm" id="settingsBtn" type="button">⚙️ Ajustes</button>'+
           '<button class="btn btn-ghost btn-sm" id="logoutBtn" type="button">Cerrar sesión</button>'+
