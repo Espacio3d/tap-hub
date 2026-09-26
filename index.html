@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Work+Sans:wght@400;500;600&family=Poppins:wght@500;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@500;600;700&family=Bebas+Neue&family=Fraunces:wght@600;700&family=Quicksand:wght@500;600;700&family=Oswald:wght@500;600;700&family=Abril+Fatface&family=DM+Serif+Display&family=Righteous&family=Pacifico&family=Caveat:wght@600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style id="app-style">
   :root{
     --bg:#F6F5F2;
@@ -162,6 +163,17 @@
     overflow:hidden;
   }
   .link-box span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+  .qr-box{
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    padding-top:8px;
+  }
+  .qr-box canvas{ border-radius:10px; border:1px solid var(--surface-edge); }
+  .templates-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .template-swatch{
+    width:44px; height:44px; border-radius:10px; border:1px solid var(--surface-edge);
+    color:#fff; font-weight:700; font-size:15px; cursor:pointer;
+  }
+  .template-swatch:hover{ outline:2px solid var(--accent-default); outline-offset:2px; }
 
   .toast{
     position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
@@ -225,13 +237,14 @@
     offer:     '<path d="M20 12.2 12.6 20l-9-9L4 4l7 .4z" stroke-width="1.6" stroke-linejoin="round" fill="none"/><circle cx="8.3" cy="8.3" r="1.4" stroke-width="1.4" fill="none"/>',
     whatsapp:  '<path d="M12 3a9 9 0 0 0-7.7 13.6L3 21l4.6-1.2A9 9 0 1 0 12 3z" stroke-width="1.5" fill="none"/><path d="M8.3 8.7c-.2.9.1 2 1.3 3.5s2.5 2.2 3.6 2.3c1 .1 1.6-.5 1.8-1l-1.7-1.1c-.3.3-.7.6-1.1.4-.6-.3-1.6-1.1-2.1-2.1-.2-.4.1-.7.4-1l-.9-1.6c-.5-.1-1.1.1-1.3.6z" fill="currentColor" stroke="none"/>',
     survey:    '<rect x="4" y="3" width="16" height="18" rx="2" stroke-width="1.6" fill="none"/><path d="M8 8h8M8 12l1.6 1.6L12.5 10M8 16h5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
-    support:   '<circle cx="12" cy="12" r="8.5" stroke-width="1.6" fill="none"/><circle cx="12" cy="12" r="3.2" stroke-width="1.5" fill="none"/><path d="M6.2 6.2l3.3 3.3M17.8 6.2l-3.3 3.3M6.2 17.8l3.3-3.3M17.8 17.8l-3.3-3.3" stroke-width="1.4" stroke-linecap="round"/>'
+    support:   '<circle cx="12" cy="12" r="8.5" stroke-width="1.6" fill="none"/><circle cx="12" cy="12" r="3.2" stroke-width="1.5" fill="none"/><path d="M6.2 6.2l3.3 3.3M17.8 6.2l-3.3 3.3M6.2 17.8l3.3-3.3M17.8 17.8l-3.3-3.3" stroke-width="1.4" stroke-linecap="round"/>',
+    contact:   '<rect x="3" y="5" width="18" height="14" rx="2" stroke-width="1.6" fill="none"/><circle cx="9" cy="11" r="2" stroke-width="1.5" fill="none"/><path d="M6 16c0-1.7 1.3-3 3-3s3 1.3 3 3M14 9h4M14 13h4" stroke-width="1.5" stroke-linecap="round"/>'
   };
   var ICON_LABELS = {
     menu:"Menú", review:"Reseña", wifi:"WiFi", rewards:"Recompensas", app:"Descargar app",
     giftcard:"Gift card", instagram:"Instagram", facebook:"Facebook", website:"Sitio web",
     calendar:"Reservar/Agendar", phone:"Llamar", game:"Juego", offer:"Ofertas", whatsapp:"WhatsApp",
-    survey:"Encuesta", support:"Servicio al cliente"
+    survey:"Encuesta", support:"Servicio al cliente", contact:"Contacto"
   };
 
   var FONTS = {
@@ -249,6 +262,14 @@
     pacifico:   { label:"Pacifico (manuscrita casual)", css:"'Pacifico',cursive" },
     caveat:     { label:"Caveat (manuscrita)", css:"'Caveat',cursive" }
   };
+
+  var TEMPLATES = [
+    { key:"clasico",    label:"Clásico verde",    accent:"#0E7A5F", font:"default" },
+    { key:"nocturno",   label:"Elegante nocturno", accent:"#C9A227", font:"playfair" },
+    { key:"vibrante",   label:"Vibrante rosa",     accent:"#E23FA0", font:"quicksand" },
+    { key:"corporativo",label:"Corporativo azul",  accent:"#1D4ED8", font:"montserrat" },
+    { key:"rustico",    label:"Rústico cálido",    accent:"#B5651D", font:"fraunces" }
+  ];
 
   function svgIcon(key, cls){
     return '<svg class="'+(cls||'icon')+'" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'+(ICONS[key]||ICONS.website)+'</svg>';
@@ -414,6 +435,19 @@
   }
 
   /* ---------------- PUBLIC HUB VIEW ---------------- */
+  function buildVCardUrl(client){
+    var lines = [
+      'BEGIN:VCARD','VERSION:3.0',
+      'FN:'+client.name,
+      'ORG:'+client.name,
+      client.phone ? 'TEL;TYPE=CELL:'+client.phone : '',
+      'URL:'+baseUrl()+'#'+client.slug,
+      client.tagline ? 'NOTE:'+client.tagline : '',
+      'END:VCARD'
+    ].filter(Boolean).join('\n');
+    return 'data:text/vcard;charset=utf-8,'+encodeURIComponent(lines);
+  }
+
   function renderHub(client){
     document.documentElement.style.setProperty('--accent', client.accent || '');
     applyBackground(client.background);
@@ -434,12 +468,18 @@
         '<svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
       '</a>';
     }).join('');
+    var contactHtml = client.phone ?
+      '<a class="hub-link" href="'+buildVCardUrl(client)+'" download="'+escapeHtml(slugify(client.name))+'.vcf">'+
+        '<span class="icon-badge" style="background:var(--accent, var(--accent-default));color:#fff;">'+svgIcon('contact')+'</span>'+
+        '<span>Guardar Contacto</span>'+
+        '<svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
+      '</a>' : '';
     app.innerHTML =
       '<div class="hub">'+
         '<div class="hub-avatar">'+logoInner(client.logo)+'</div>'+
         '<h1>'+escapeHtml(client.name)+'</h1>'+
         (client.tagline ? '<div class="tagline">'+escapeHtml(client.tagline)+'</div>' : '')+
-        '<div class="hub-links">'+linksHtml+'</div>'+
+        '<div class="hub-links">'+contactHtml+linksHtml+'</div>'+
         '<div class="hub-footer">Creado con Tap Hub</div>'+
       '</div>';
   }
@@ -591,6 +631,14 @@
       '<div class="form-card">'+
         '<div class="field"><label>Nombre del negocio</label><input type="text" id="f-name" value="'+escapeHtml(draft.name)+'" placeholder="Ej. Romano\'s Pizza"></div>'+
         '<div class="field"><label>Frase corta (opcional)</label><input type="text" id="f-tagline" value="'+escapeHtml(draft.tagline||'')+'" placeholder="Ej. Pizza artesanal desde 1998"></div>'+
+        '<div class="field"><label>Teléfono (opcional — activa el botón "Guardar Contacto")</label><input type="text" id="f-phone" value="'+escapeHtml(draft.phone||'')+'" placeholder="Ej. +502 1234 5678"></div>'+
+        '<div class="field"><label>Plantilla rápida (opcional, ajusta color y letra)</label>'+
+          '<div class="templates-row">'+
+            TEMPLATES.map(function(t){
+              return '<button type="button" class="template-swatch" data-key="'+t.key+'" title="'+t.label+'" style="background:'+t.accent+';font-family:'+(FONTS[t.font].css||'inherit')+';">Aa</button>';
+            }).join('')+
+          '</div>'+
+        '</div>'+
         '<div class="row2">'+
           '<div class="field"><label>Color de marca</label><div class="color-field"><input type="color" id="f-accent" value="'+escapeHtml(draft.accent||'#0E7A5F')+'"></div></div>'+
           '<div class="field"><label>Logo (emoji, inicial, o sube una imagen)</label>'+
@@ -619,6 +667,10 @@
         '<div class="field"><label>Enlace de esta página</label>'+
           '<div class="link-box"><span id="linkPreview"></span>'+
             '<button class="btn btn-ghost btn-sm" id="copyLinkBtn" type="button">Copiar</button></div>'+
+          '<div class="qr-box">'+
+            '<div id="qrCanvas" style="width:140px;height:140px;"></div>'+
+            '<button class="btn btn-ghost btn-sm" id="downloadQrBtn" type="button">Descargar QR</button>'+
+          '</div>'+
         '</div>'+
         '<div class="field"><label>Opciones (botones que verá el cliente)</label>'+
           '<div class="buttons-editor" id="buttonsEditor">'+
@@ -636,11 +688,39 @@
     function currentSlug(){
       return isEdit ? existing.slug : uniqueSlug(document.getElementById('f-name').value, clients);
     }
+    var qrInstance = null;
     function updateLinkPreview(){
-      document.getElementById('linkPreview').textContent = baseUrl()+'#'+currentSlug();
+      var link = baseUrl()+'#'+currentSlug();
+      document.getElementById('linkPreview').textContent = link;
+      if(window.QRCode){
+        if(!qrInstance){
+          qrInstance = new QRCode(document.getElementById('qrCanvas'), { text: link, width: 140, height: 140 });
+        } else {
+          qrInstance.makeCode(link);
+        }
+      }
     }
     updateLinkPreview();
     document.getElementById('f-name').addEventListener('input', function(){ if(!isEdit) updateLinkPreview(); });
+
+    document.getElementById('downloadQrBtn').onclick = function(){
+      var canvas = document.querySelector('#qrCanvas canvas');
+      if(!canvas){ toast('El QR todavía está cargando, intenta de nuevo'); return; }
+      var link = document.createElement('a');
+      link.download = currentSlug()+'-qr.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    };
+
+    document.querySelectorAll('.template-swatch').forEach(function(btn){
+      btn.onclick = function(){
+        var t = TEMPLATES.find(function(x){ return x.key === btn.getAttribute('data-key'); });
+        if(!t) return;
+        document.getElementById('f-accent').value = t.accent;
+        document.getElementById('f-font').value = t.font;
+        toast('Plantilla "'+t.label+'" aplicada — guarda para confirmar');
+      };
+    });
 
     document.getElementById('f-logo-file').addEventListener('change', async function(e){
       var file = e.target.files[0];
@@ -782,6 +862,7 @@
         slug: slug,
         name: name,
         tagline: document.getElementById('f-tagline').value.trim(),
+        phone: document.getElementById('f-phone').value.trim(),
         accent: document.getElementById('f-accent').value,
         logo: document.getElementById('f-logo').value.trim() || name.slice(0,1).toUpperCase(),
         background: document.getElementById('f-bg-image').value.trim() || document.getElementById('f-bg-color').value,
