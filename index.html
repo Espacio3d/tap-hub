@@ -332,9 +332,13 @@
       return pub.data.publicUrl;
     },
     loadPanelSettings: async function(){
-      var res = await sb.from('app_settings').select('*').eq('id', 1).maybeSingle();
-      if(res.error){ console.error(res.error); return { background: '' }; }
-      return res.data || { background: '' };
+      for(var attempt=0; attempt<3; attempt++){
+        var res = await sb.from('app_settings').select('*').eq('id', 1).maybeSingle();
+        if(!res.error){ return res.data || { background: '' }; }
+        console.error(res.error);
+        if(attempt < 2){ await new Promise(function(resolve){ setTimeout(resolve, 500); }); }
+      }
+      return { background: '' };
     },
     savePanelSettings: async function(background){
       var res = await sb.from('app_settings').update({ background: background }).eq('id', 1);
