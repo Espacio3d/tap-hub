@@ -197,8 +197,8 @@
     background:var(--accent, var(--accent-default));
     overflow:hidden;
   }
-  .hub h1{ font-size:24px; text-align:center; font-family:var(--hub-font, "Outfit"), -apple-system, sans-serif; }
-  .hub .tagline{ color:var(--text-dim); font-size:14px; text-align:center; margin-top:-8px; }
+  .hub h1{ font-size:24px; text-align:center; font-family:var(--hub-font, "Outfit"), -apple-system, sans-serif; color:var(--hub-text, var(--text)); }
+  .hub .tagline{ color:var(--hub-text, var(--text-dim)); font-size:14px; text-align:center; margin-top:-8px; }
   .hub-links{ width:100%; display:flex; flex-direction:column; gap:10px; }
   .hub-link{
     display:flex; align-items:center; gap:12px;
@@ -501,6 +501,7 @@
   function renderLogin(settings){
     document.documentElement.style.removeProperty('--accent');
     document.documentElement.style.removeProperty('--hub-font');
+    document.documentElement.style.removeProperty('--hub-text');
     applyBackground(settings && settings.background);
     document.getElementById('app').innerHTML =
       '<div class="admin-header"><div><h1>Tap Hub</h1><p>Inicia sesión para administrar tus clientes</p></div></div>'+
@@ -553,6 +554,8 @@
     var fontDef = FONTS[client.font];
     if(fontDef && fontDef.css){ document.documentElement.style.setProperty('--hub-font', fontDef.css); }
     else { document.documentElement.style.removeProperty('--hub-font'); }
+    if(client.text_color){ document.documentElement.style.setProperty('--hub-text', client.text_color); }
+    else { document.documentElement.style.removeProperty('--hub-text'); }
     var app = document.getElementById('app');
     var linksHtml = (client.buttons||[]).map(function(b){
       var badgeStyle = b.color ?
@@ -628,6 +631,7 @@
   function renderAdmin(clients, settings){
     document.documentElement.style.removeProperty('--accent');
     document.documentElement.style.removeProperty('--hub-font');
+    document.documentElement.style.removeProperty('--hub-text');
     applyBackground(settings && settings.background);
     var app = document.getElementById('app');
     var cardsHtml = clients.length ? clients.map(function(c){
@@ -887,6 +891,13 @@
             }).join('')+
           '</select>'+
         '</div>'+
+        '<div class="field"><label>Color de letra (nombre y frase)</label>'+
+          '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
+            '<input type="checkbox" id="f-text-auto" style="width:18px;height:18px;"'+(draft.text_color?'':' checked')+'>'+
+            '<label for="f-text-auto" style="margin:0;">Automático (se adapta solo, recomendado si no subiste una imagen de fondo)</label>'+
+          '</div>'+
+          '<input type="color" id="f-text-color" value="'+escapeHtml(draft.text_color||'#181C1B')+'" style="width:40px;height:40px;border-radius:10px;border:1px solid var(--surface-edge);padding:2px;'+(draft.text_color?'':'display:none;')+'">'+
+        '</div>'+
         '<div class="field"><label>Enlace de esta página</label>'+
           '<div class="link-box"><span id="linkPreview"></span>'+
             '<button class="btn btn-ghost btn-sm" id="copyLinkBtn" type="button">Copiar</button></div>'+
@@ -980,6 +991,10 @@
       }catch(err){
         toast('No se pudo subir: '+(err && err.message ? err.message : 'error'));
       }
+    });
+
+    document.getElementById('f-text-auto').addEventListener('change', function(e){
+      document.getElementById('f-text-color').style.display = e.target.checked ? 'none' : '';
     });
 
     document.getElementById('copyLinkBtn').onclick = function(){
@@ -1094,6 +1109,7 @@
         logo: document.getElementById('f-logo').value.trim() || name.slice(0,1).toUpperCase(),
         background: document.getElementById('f-bg-image').value.trim() || document.getElementById('f-bg-color').value,
         font: document.getElementById('f-font').value,
+        text_color: document.getElementById('f-text-auto').checked ? '' : document.getElementById('f-text-color').value,
         buttons: buttons
       };
 
