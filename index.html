@@ -82,7 +82,8 @@
 
   /* ================= ADMIN ================= */
   .admin-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
-  .admin-header p{ color:var(--text-dim); font-size:14px; margin:4px 0 0; }
+  .admin-header h1{ color:var(--panel-text, var(--text)); }
+  .admin-header p{ color:var(--panel-text, var(--text-dim)); }
 
   .client-card{
     background:var(--surface); border:1px solid var(--surface-edge); border-radius:16px;
@@ -340,8 +341,8 @@
       }
       return { background: '' };
     },
-    savePanelSettings: async function(background){
-      var res = await sb.from('app_settings').update({ background: background }).eq('id', 1);
+    savePanelSettings: async function(background, textColor){
+      var res = await sb.from('app_settings').update({ background: background, text_color: textColor }).eq('id', 1);
       if(res.error) throw res.error;
     },
     logEvent: function(slug, type, buttonLabel){
@@ -506,7 +507,7 @@
     document.documentElement.style.removeProperty('--accent');
     document.documentElement.style.removeProperty('--hub-font');
     document.documentElement.style.removeProperty('--hub-text');
-    applyBackground(settings && settings.background);
+    applyBackground(settings && settings.background, settings && settings.text_color);
     document.getElementById('app').innerHTML =
       '<div class="admin-header"><div><h1>Espacio3d.gt</h1><p>Inicia sesión para administrar tus clientes</p></div></div>'+
       '<div class="form-card">'+
@@ -525,9 +526,10 @@
   }
 
   /* ---------------- BACKGROUND (shared by hub pages and the admin panel) ---------------- */
-  function applyBackground(background){
+  function applyBackground(background, textColor){
     document.body.style.backgroundImage = '';
     document.documentElement.style.removeProperty('--bg');
+    document.documentElement.style.removeProperty('--panel-text');
     if(isImageUrl(background)){
       document.body.style.backgroundImage = 'url("'+background+'")';
       document.body.style.backgroundSize = 'cover';
@@ -536,6 +538,7 @@
     } else if(background){
       document.documentElement.style.setProperty('--bg', background);
     }
+    if(textColor){ document.documentElement.style.setProperty('--panel-text', textColor); }
   }
 
   /* ---------------- PUBLIC HUB VIEW ---------------- */
@@ -636,7 +639,7 @@
     document.documentElement.style.removeProperty('--accent');
     document.documentElement.style.removeProperty('--hub-font');
     document.documentElement.style.removeProperty('--hub-text');
-    applyBackground(settings && settings.background);
+    applyBackground(settings && settings.background, settings && settings.text_color);
     var app = document.getElementById('app');
     var cardsHtml = clients.length ? clients.map(function(c){
       return '<div class="client-card">'+
@@ -746,6 +749,7 @@
   /* ---------------- PANEL SETTINGS VIEW ---------------- */
   function renderSettings(clients, settings){
     var bg = (settings && settings.background) || '';
+    var textColor = (settings && settings.text_color) || '';
     var app = document.getElementById('app');
     app.innerHTML =
       '<div class="admin-header"><h1>Ajustes del panel</h1></div>'+
@@ -760,6 +764,13 @@
             '<input type="file" id="s-bg-file" accept="image/png,image/jpeg,image/webp" style="font-size:12px;">'+
           '</div>'+
           '<input type="hidden" id="s-bg-image" value="'+escapeHtml(isImageUrl(bg) ? bg : '')+'">'+
+        '</div>'+
+        '<div class="field"><label>Color de letra del panel</label>'+
+          '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
+            '<input type="checkbox" id="s-text-auto" style="width:18px;height:18px;"'+(textColor?'':' checked')+'>'+
+            '<label for="s-text-auto" style="margin:0;">Automático (recomendado si no subiste imagen de fondo)</label>'+
+          '</div>'+
+          '<input type="color" id="s-text-color" value="'+escapeHtml(textColor||'#181C1B')+'" style="width:40px;height:40px;border-radius:10px;border:1px solid var(--surface-edge);padding:2px;'+(textColor?'':'display:none;')+'">'+
         '</div>'+
         '<div class="form-actions">'+
           '<button class="btn btn-ghost" id="settingsCancelBtn" type="button">Volver</button>'+
@@ -792,12 +803,17 @@
       }
     });
 
+    document.getElementById('s-text-auto').addEventListener('change', function(e){
+      document.getElementById('s-text-color').style.display = e.target.checked ? 'none' : '';
+    });
+
     document.getElementById('settingsSaveBtn').onclick = async function(){
       var newBg = document.getElementById('s-bg-image').value.trim() || document.getElementById('s-bg-color').value;
+      var newTextColor = document.getElementById('s-text-auto').checked ? '' : document.getElementById('s-text-color').value;
       try{
-        await Storage.savePanelSettings(newBg);
+        await Storage.savePanelSettings(newBg, newTextColor);
         toast('Ajustes guardados');
-        renderAdmin(clients, { background: newBg });
+        renderAdmin(clients, { background: newBg, text_color: newTextColor });
       }catch(err){
         toast('No se pudo guardar: '+(err && err.message ? err.message : 'error'));
       }
