@@ -315,6 +315,10 @@
       var res = await sb.from('clients').upsert(client, {onConflict:'slug'});
       if(res.error) throw res.error;
     },
+    bulkUpsert: async function(clientsArray){
+      var res = await sb.from('clients').upsert(clientsArray, {onConflict:'slug'});
+      if(res.error) throw res.error;
+    },
     remove: async function(slug){
       var res = await sb.from('clients').delete().eq('slug', slug);
       if(res.error) throw res.error;
@@ -341,7 +345,7 @@
         .then(function(res){ if(res.error) console.error(res.error); });
     },
     loadStats: async function(slug){
-      var events = await sb.from('events').select('type,button_label').eq('client_slug', slug);
+      var events = await sb.from('events').select('type,button_label,device').eq('client_slug', slug);
       var leads = await sb.from('leads').select('contact,created_at').eq('client_slug', slug).order('created_at', {ascending:false});
       var rows = events.data || [];
       var views = rows.filter(function(r){ return r.type==='view'; }).length;
@@ -350,7 +354,12 @@
         var k = r.button_label || '(sin nombre)';
         clicks[k] = (clicks[k]||0) + 1;
       });
-      return { views: views, clicks: clicks, leads: leads.data || [] };
+      var devices = {};
+      rows.filter(function(r){ return r.type==='view'; }).forEach(function(r){
+        var k = r.device || 'desconocido';
+        devices[k] = (devices[k]||0) + 1;
+      });
+      return { views: views, clicks: clicks, devices: devices, leads: leads.data || [] };
     },
     submitLead: async function(slug, contact){
       var res = await sb.from('leads').insert({ client_slug: slug, contact: contact });
@@ -383,6 +392,62 @@
       s = slugify(base)+'-'+n; n++;
     }
     return s;
+  }
+
+  function parseCsvLine(line){
+    var result = [], cur = '', inQuotes = false;
+    for(var i=0;i<line.length;i++){
+      var ch = line[i];
+      if(inQuotes){
+        if(ch === '"'){
+          if(line[i+1] === '"'){ cur += '"'; i++; }
+          else { inQuotes = false; }
+        } else { cur += ch; }
+      } else {
+        if(ch === '"'){ inQuotes = true; }
+        else if(ch === ','){ result.push(cur); cur = ''; }
+        else { cur += ch; }
+      }
+    }
+    result.push(cur);
+    return result;
+  }
+
+  function parseClientsCsv(text, existingClients){
+    var lines = text.split(/\r?\n/).filter(function(l){ return l.trim().length; });
+    if(!lines.length) return [];
+    var header = parseCsvLine(lines[0]).map(function(h){ return h.trim().toLowerCase(); });
+    var idx = {};
+    header.forEach(function(h,i){ idx[h] = i; });
+    var out = [];
+    var working = existingClients.slice();
+    for(var i=1;i<lines.length;i++){
+      var cols = parseCsvLine(lines[i]);
+      var name = (cols[idx.name]||'').trim();
+      if(!name) continue;
+      var buttonsRaw = (cols[idx.buttons]||'').trim();
+      var buttons = buttonsRaw ? buttonsRaw.split(';').map(function(part){
+        var p = part.split('|');
+        return { icon:(p[0]||'website').trim(), label:(p[1]||'').trim(), url:(p[2]||'').trim(), color:'', iconImage:'' };
+      }).filter(function(b){ return b.label && b.url; }) : [];
+      if(!buttons.length) buttons = [{icon:'website',label:'Sitio web',url:'https://',color:'',iconImage:''}];
+      var slug = uniqueSlug(name, working);
+      var newClient = {
+        slug: slug, name: name,
+        tagline: (cols[idx.tagline]||'').trim(),
+        phone: (cols[idx.phone]||'').trim(),
+        accent: (cols[idx.accent]||'').trim() || '#0E7A5F',
+        logo: name.slice(0,1).toUpperCase(),
+        background: '',
+        font: (cols[idx.font]||'').trim() || 'default',
+        buttons: buttons,
+        capture_leads: false, capture_type: 'email',
+        whatsapp_enabled: false, save_contact_enabled: false
+      };
+      out.push(newClient);
+      working.push(newClient);
+    }
+    return out;
   }
 
   function isImageUrl(s){
@@ -583,7 +648,12 @@
           '<button class="btn btn-ghost btn-sm" id="settingsBtn" type="button">⚙️ Ajustes</button>'+
           '<button class="btn btn-ghost btn-sm" id="logoutBtn" type="button">Cerrar sesión</button>'+
         '</div></div>'+
-      '<button class="btn btn-primary" id="newClientBtn">+ Nuevo cliente</button>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
+        '<button class="btn btn-primary" id="newClientBtn" style="flex:1;">+ Nuevo cliente</button>'+
+        '<button class="btn btn-ghost" id="importCsvBtn" type="button">📥 Importar CSV</button>'+
+        '<input type="file" id="csvFileInput" accept=".csv" style="display:none;">'+
+      '</div>'+
+      '<a href="#" id="downloadTemplateLink" style="font-size:12px;color:var(--text-dim);text-align:center;">Descargar plantilla CSV de ejemplo</a>'+
       '<div id="clientList" style="display:flex;flex-direction:column;gap:10px;">'+cardsHtml+'</div>';
 
     document.getElementById('newClientBtn').onclick = function(){ renderForm(null, clients); };
@@ -592,6 +662,33 @@
       await Auth.signOut();
       route();
     };
+    document.getElementById('downloadTemplateLink').onclick = function(e){
+      e.preventDefault();
+      var csv = 'name,tagline,phone,accent,font,buttons\n'+
+        '"Romano\'s Pizza","Pizza artesanal desde 1998","+502 1234 5678","#0E7A5F","default","menu|Ver Menú|https://example.com/menu;instagram|Instagram|https://instagram.com/x"\n';
+      var a = document.createElement('a');
+      a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+      a.download = 'plantilla-tap-hub.csv';
+      a.click();
+    };
+    document.getElementById('importCsvBtn').onclick = function(){
+      document.getElementById('csvFileInput').click();
+    };
+    document.getElementById('csvFileInput').addEventListener('change', async function(e){
+      var file = e.target.files[0];
+      if(!file) return;
+      try{
+        var text = await file.text();
+        var newClients = parseClientsCsv(text, clients);
+        if(!newClients.length){ toast('No se encontraron filas válidas en el CSV'); return; }
+        toast('Importando '+newClients.length+' clientes...');
+        await Storage.bulkUpsert(newClients);
+        toast(newClients.length+' clientes importados');
+        renderAdmin(await Storage.load(), settings);
+      }catch(err){
+        toast('No se pudo importar: '+(err && err.message ? err.message : 'error en el archivo'));
+      }
+    });
     app.querySelectorAll('[data-act="edit"]').forEach(function(btn){
       btn.onclick = function(){
         var slug = btn.getAttribute('data-slug');
@@ -620,12 +717,18 @@
     var leadsHtml = stats.leads.length ? stats.leads.map(function(l){
       return '<div class="stat-row"><span>'+escapeHtml(l.contact)+'</span><span style="color:var(--text-dim);font-size:12px;">'+new Date(l.created_at).toLocaleDateString()+'</span></div>';
     }).join('') : '<p style="color:var(--text-dim);font-size:13px;">Todavía no hay contactos capturados.</p>';
+    var deviceLabels = { movil:'📱 Móvil', tablet:'📱 Tablet', escritorio:'💻 Computadora', desconocido:'❓ Desconocido' };
+    var deviceRows = Object.keys(stats.devices).sort(function(a,b){ return stats.devices[b]-stats.devices[a]; });
+    var devicesHtml = deviceRows.length ? deviceRows.map(function(k){
+      return '<div class="stat-row"><span>'+(deviceLabels[k]||k)+'</span><b>'+stats.devices[k]+'</b></div>';
+    }).join('') : '<p style="color:var(--text-dim);font-size:13px;">Todavía no hay datos.</p>';
 
     app.innerHTML =
       '<div class="admin-header"><h1>'+escapeHtml(client.name)+'</h1></div>'+
       '<div class="form-card">'+
         '<div class="field"><label>Vistas totales</label><div style="font-size:32px;font-weight:700;font-family:Outfit,sans-serif;">'+stats.views+'</div></div>'+
         '<div class="field"><label>Clics por opción</label>'+clicksHtml+'</div>'+
+        '<div class="field"><label>Desde qué tipo de dispositivo</label>'+devicesHtml+'</div>'+
         (client.capture_leads ? '<div class="field"><label>Contactos capturados</label>'+leadsHtml+'</div>' : '')+
         '<div class="form-actions"><button class="btn btn-ghost" id="statsBackBtn" type="button">Volver</button></div>'+
       '</div>';
