@@ -203,15 +203,15 @@
   .hub-links{ width:100%; display:flex; flex-direction:column; gap:10px; }
   .hub-link{
     display:flex; align-items:center; gap:12px;
-    background:var(--surface); border:1px solid var(--surface-edge); border-radius:14px;
-    padding:15px 16px; text-decoration:none; color:var(--text); font-weight:500; font-size:15px;
+    background:var(--hub-card, var(--surface)); border:1px solid var(--surface-edge); border-radius:14px;
+    padding:15px 16px; text-decoration:none; color:var(--hub-card-text, var(--text)); font-weight:500; font-size:15px;
   }
   .hub-link .icon-badge{
     width:34px; height:34px; border-radius:10px; flex:0 0 auto;
     display:flex; align-items:center; justify-content:center;
     background:var(--chip-bg); color:var(--accent, var(--accent-default));
   }
-  .hub-link .chev{ margin-left:auto; color:var(--text-dim); width:16px; height:16px; }
+  .hub-link .chev{ margin-left:auto; color:var(--hub-card-text, var(--text-dim)); width:16px; height:16px; }
   .hub-footer{ color:var(--text-dim); font-size:12px; text-align:center; padding-top:8px; }
   .capture-box{
     width:100%; background:var(--surface); border:1px solid var(--surface-edge); border-radius:14px;
@@ -460,6 +460,15 @@
     return /^https?:\/\//i.test(s||'');
   }
 
+  function contrastTextColor(hex){
+    var h = (hex||'').replace('#','');
+    if(h.length === 3){ h = h.split('').map(function(c){ return c+c; }).join(''); }
+    var r = parseInt(h.substr(0,2),16), g = parseInt(h.substr(2,2),16), b = parseInt(h.substr(4,2),16);
+    if(isNaN(r) || isNaN(g) || isNaN(b)) return '';
+    var brightness = (r*299 + g*587 + b*114) / 1000;
+    return brightness >= 150 ? '#181C1B' : '#FFFFFF';
+  }
+
   function logoInner(logo){
     if(isImageUrl(logo)){
       return '<img src="'+escapeHtml(logo)+'" alt="" style="width:100%;height:100%;object-fit:contain;">';
@@ -508,6 +517,8 @@
     document.documentElement.style.removeProperty('--accent');
     document.documentElement.style.removeProperty('--hub-font');
     document.documentElement.style.removeProperty('--hub-text');
+    document.documentElement.style.removeProperty('--hub-card');
+    document.documentElement.style.removeProperty('--hub-card-text');
     applyBackground(settings && settings.background, settings && settings.text_color);
     document.getElementById('app').innerHTML =
       '<div class="admin-header"><div><h1>Espacio3d.gt</h1><p>Inicia sesión para administrar tus clientes</p></div></div>'+
@@ -564,6 +575,13 @@
     else { document.documentElement.style.removeProperty('--hub-font'); }
     if(client.text_color){ document.documentElement.style.setProperty('--hub-text', client.text_color); }
     else { document.documentElement.style.removeProperty('--hub-text'); }
+    if(client.card_color){
+      document.documentElement.style.setProperty('--hub-card', client.card_color);
+      document.documentElement.style.setProperty('--hub-card-text', contrastTextColor(client.card_color));
+    } else {
+      document.documentElement.style.removeProperty('--hub-card');
+      document.documentElement.style.removeProperty('--hub-card-text');
+    }
     var app = document.getElementById('app');
     var linksHtml = (client.buttons||[]).map(function(b){
       var badgeStyle = b.color ?
@@ -640,6 +658,8 @@
     document.documentElement.style.removeProperty('--accent');
     document.documentElement.style.removeProperty('--hub-font');
     document.documentElement.style.removeProperty('--hub-text');
+    document.documentElement.style.removeProperty('--hub-card');
+    document.documentElement.style.removeProperty('--hub-card-text');
     applyBackground(settings && settings.background, settings && settings.text_color);
     var app = document.getElementById('app');
     var cardsHtml = clients.length ? clients.map(function(c){
@@ -920,6 +940,13 @@
           '</div>'+
           '<input type="color" id="f-text-color" value="'+escapeHtml(draft.text_color||'#181C1B')+'" style="width:40px;height:40px;border-radius:10px;border:1px solid var(--surface-edge);padding:2px;'+(draft.text_color?'':'display:none;')+'">'+
         '</div>'+
+        '<div class="field"><label>Color de fondo de los botones (Guardar Contacto, WhatsApp, etc.)</label>'+
+          '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
+            '<input type="checkbox" id="f-card-auto" style="width:18px;height:18px;"'+(draft.card_color?'':' checked')+'>'+
+            '<label for="f-card-auto" style="margin:0;">Automático (blanco u oscuro según el tema del visitante)</label>'+
+          '</div>'+
+          '<input type="color" id="f-card-color" value="'+escapeHtml(draft.card_color||'#FFFFFF')+'" style="width:40px;height:40px;border-radius:10px;border:1px solid var(--surface-edge);padding:2px;'+(draft.card_color?'':'display:none;')+'">'+
+        '</div>'+
         '<div class="field"><label>Enlace de esta página</label>'+
           '<div class="link-box"><span id="linkPreview"></span>'+
             '<button class="btn btn-ghost btn-sm" id="copyLinkBtn" type="button">Copiar</button></div>'+
@@ -1017,6 +1044,10 @@
 
     document.getElementById('f-text-auto').addEventListener('change', function(e){
       document.getElementById('f-text-color').style.display = e.target.checked ? 'none' : '';
+    });
+
+    document.getElementById('f-card-auto').addEventListener('change', function(e){
+      document.getElementById('f-card-color').style.display = e.target.checked ? 'none' : '';
     });
 
     document.getElementById('copyLinkBtn').onclick = function(){
@@ -1133,6 +1164,7 @@
         background: document.getElementById('f-bg-image').value.trim() || document.getElementById('f-bg-color').value,
         font: document.getElementById('f-font').value,
         text_color: document.getElementById('f-text-auto').checked ? '' : document.getElementById('f-text-color').value,
+        card_color: document.getElementById('f-card-auto').checked ? '' : document.getElementById('f-card-color').value,
         buttons: buttons
       };
 
