@@ -19,6 +19,7 @@ var ICONS = {
   giftcard:  '<rect x="3" y="7" width="18" height="13" rx="2" stroke-width="1.6" fill="none"/><path d="M3 12h18M12 7v13M8.5 7c-1.4 0-2.5-1-2.5-2.2C6 3.6 7 3 8 3.4c1.3.5 2.5 2 3 3.6-1 0-2.5 0-2.5 0zm7 0c1.4 0 2.5-1 2.5-2.2C18 3.6 17 3 16 3.4c-1.3.5-2.5 2-3 3.6 1 0 2.5 0 2.5 0z" stroke-width="1.4" stroke-linejoin="round" fill="none"/>',
   instagram: '<rect x="3" y="3" width="18" height="18" rx="5" stroke-width="1.6" fill="none"/><circle cx="12" cy="12" r="4" stroke-width="1.6" fill="none"/><circle cx="17.3" cy="6.7" r="1" fill="currentColor" stroke="none"/>',
   facebook:  '<path d="M14 21v-7h2.5l.5-3H14V9c0-.9.3-1.5 1.7-1.5H17V4.8C16.6 4.7 15.6 4.6 14.5 4.6c-2.4 0-4 1.4-4 4.1V11H8v3h2.5v7z" stroke-width="1.2" stroke-linejoin="round" fill="none"/>',
+  linkedin:  '<rect x="3" y="3" width="18" height="18" rx="4" stroke-width="1.6" fill="none"/><circle cx="8" cy="8.2" r="1.3" fill="currentColor" stroke="none"/><path d="M8 11v6" stroke-width="1.8" stroke-linecap="round"/><path d="M12 17v-6M12 12.4c0-1 .9-1.8 2-1.8 1.2 0 2.1.9 2.1 2.3V17" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
   website:   '<circle cx="12" cy="12" r="9" stroke-width="1.6" fill="none"/><path d="M3 12h18M12 3c2.5 2.5 3.8 6 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-6-3.8-9s1.3-6.5 3.8-9z" stroke-width="1.4" fill="none"/>',
   calendar:  '<rect x="3.5" y="5" width="17" height="16" rx="2" stroke-width="1.6" fill="none"/><path d="M8 3v4M16 3v4M3.5 10h17" stroke-width="1.6" stroke-linecap="round"/>',
   phone:     '<path d="M6.5 3.5h3l1.3 4.5-2.2 1.7a13 13 0 0 0 5.7 5.7l1.7-2.2 4.5 1.3v3c0 1.2-1 2-2.1 1.9C10.8 19 5 13.2 4.6 5.6 4.5 4.5 5.3 3.5 6.5 3.5z" stroke-width="1.5" stroke-linejoin="round" fill="none"/>',
@@ -95,7 +96,7 @@ var FONT_LINK = '<link rel="preconnect" href="https://fonts.gstatic.com" crossor
 function buildVCardUrl(client, pageUrl){
   var lines = [
     'BEGIN:VCARD','VERSION:3.0',
-    'FN:'+client.name,
+    'FN:'+(client.contact_name || client.name),
     'ORG:'+client.name,
     client.phone ? 'TEL;TYPE=CELL:'+client.phone : '',
     'URL:'+pageUrl,
