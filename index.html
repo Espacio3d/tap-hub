@@ -550,7 +550,7 @@
       document.body.style.backgroundImage = 'url("'+background+'")';
       document.body.style.backgroundSize = 'cover';
       document.body.style.backgroundPosition = 'center';
-      document.body.style.backgroundAttachment = 'fixed';
+      document.body.style.backgroundRepeat = 'no-repeat';
     } else if(background){
       document.documentElement.style.setProperty('--bg', background);
     }
@@ -682,6 +682,7 @@
     app.innerHTML =
       '<div class="admin-header"><div><h1>Espacio3d.gt</h1><p>Panel de clientes — cada uno con su propia página de enlaces</p></div>'+
         '<div style="display:flex;gap:6px;">'+
+          '<button class="btn btn-ghost btn-sm" id="nfcWriterBtn" type="button">✍️ Escribir NFC</button>'+
           '<button class="btn btn-ghost btn-sm" id="settingsBtn" type="button">⚙️ Ajustes</button>'+
           '<button class="btn btn-ghost btn-sm" id="logoutBtn" type="button">Cerrar sesión</button>'+
         '</div></div>'+
@@ -698,6 +699,7 @@
       '</div>';
 
     document.getElementById('newClientBtn').onclick = function(){ renderForm(null, clients); };
+    document.getElementById('nfcWriterBtn').onclick = function(){ renderNfcWriter(clients, settings); };
     document.getElementById('settingsBtn').onclick = function(){ renderSettings(clients, settings); };
     document.getElementById('logoutBtn').onclick = async function(){
       await Auth.signOut();
@@ -805,6 +807,98 @@
         renderStats(client, clients, settings);
       }catch(err){
         toast('No se pudo reiniciar: '+(err && err.message ? err.message : 'error'));
+      }
+    };
+  }
+
+  /* ---------------- NFC WRITER VIEW ----------------
+     Uses the Web NFC API (NDEFReader), which ONLY exists on Android
+     with Google Chrome. It is not implemented by Safari/iOS or by
+     desktop browsers — there is no workaround for that, it's a
+     platform restriction. On any unsupported device we show an
+     explanation instead of a broken tool. */
+  function renderNfcWriter(clients, settings){
+    var app = document.getElementById('app');
+    var supported = ('NDEFReader' in window);
+
+    if(!supported){
+      app.innerHTML =
+        '<div class="admin-header"><h1>Escribir NFC</h1></div>'+
+        '<div class="form-card">'+
+          '<p style="color:var(--text-dim);font-size:14px;line-height:1.5;">'+
+            'Esta herramienta solo funciona en un teléfono <b>Android</b> usando el navegador <b>Google Chrome</b>. '+
+            'Tu dispositivo o navegador actual no lo soporta (en iPhone nunca va a funcionar, es una restricción de Apple, no nuestra).'+
+          '</p>'+
+          '<p style="color:var(--text-dim);font-size:14px;line-height:1.5;">'+
+            'Mientras tanto, puedes seguir usando la app <b>NFC Tools</b> para programar tus tags.'+
+          '</p>'+
+          '<div class="form-actions"><button class="btn btn-ghost" id="nfcBackBtn" type="button">Volver</button></div>'+
+        '</div>';
+      document.getElementById('nfcBackBtn').onclick = function(){ renderAdmin(clients, settings); };
+      return;
+    }
+
+    if(!clients.length){
+      app.innerHTML =
+        '<div class="admin-header"><h1>Escribir NFC</h1></div>'+
+        '<div class="form-card">'+
+          '<p style="color:var(--text-dim);font-size:14px;">Todavía no tienes ningún cliente creado. Crea uno primero para poder escribir su link en un tag.</p>'+
+          '<div class="form-actions"><button class="btn btn-ghost" id="nfcBackBtn" type="button">Volver</button></div>'+
+        '</div>';
+      document.getElementById('nfcBackBtn').onclick = function(){ renderAdmin(clients, settings); };
+      return;
+    }
+
+    app.innerHTML =
+      '<div class="admin-header"><h1>Escribir NFC</h1></div>'+
+      '<div class="form-card">'+
+        '<p style="color:var(--text-dim);font-size:13px;line-height:1.5;">'+
+          'Elige el cliente, toca "Escribir tag", y cuando el teléfono te avise, acerca el sticker NFC en blanco a la parte de atrás del celular sin moverlo hasta que aparezca el mensaje de listo.'+
+        '</p>'+
+        '<div class="field"><label>Cliente</label>'+
+          '<select id="nfcClientSelect">'+
+            clients.map(function(c){ return '<option value="'+escapeHtml(c.slug)+'">'+escapeHtml(c.name)+'</option>'; }).join('')+
+          '</select>'+
+        '</div>'+
+        '<div class="field"><label>Link que se va a escribir</label>'+
+          '<div class="link-box"><span id="nfcLinkPreview"></span></div>'+
+        '</div>'+
+        '<button class="btn btn-primary" id="nfcWriteActionBtn" type="button">📡 Escribir tag</button>'+
+        '<p id="nfcStatus" style="font-size:14px;min-height:20px;"></p>'+
+        '<div class="form-actions"><button class="btn btn-ghost" id="nfcBackBtn" type="button">Volver</button></div>'+
+      '</div>';
+
+    document.getElementById('nfcBackBtn').onclick = function(){ renderAdmin(clients, settings); };
+
+    function updateLinkPreview(){
+      var slug = document.getElementById('nfcClientSelect').value;
+      document.getElementById('nfcLinkPreview').textContent = baseUrl() + slug;
+    }
+    document.getElementById('nfcClientSelect').addEventListener('change', updateLinkPreview);
+    updateLinkPreview();
+
+    document.getElementById('nfcWriteActionBtn').onclick = async function(){
+      var slug = document.getElementById('nfcClientSelect').value;
+      var link = baseUrl() + slug;
+      var statusEl = document.getElementById('nfcStatus');
+      statusEl.style.color = 'var(--text-dim)';
+      statusEl.textContent = 'Acerca el tag NFC en blanco a la parte de atrás del teléfono y no lo muevas...';
+      try{
+        var ndef = new NDEFReader();
+        await ndef.write({ records: [{ recordType: 'url', data: link }] });
+        statusEl.style.color = 'var(--accent-default)';
+        statusEl.textContent = '✅ ¡Listo! Se escribió: ' + link;
+        toast('Tag escrito correctamente');
+      }catch(err){
+        var name = err && err.name;
+        var msg = 'No se pudo escribir el tag.';
+        if(name === 'NotAllowedError'){ msg = 'Permiso de NFC denegado. Revisa que el NFC esté encendido en Ajustes del teléfono y vuelve a intentar.'; }
+        else if(name === 'NotSupportedError'){ msg = 'Este tag no se puede escribir — puede estar bloqueado, dañado, o no ser compatible.'; }
+        else if(name === 'NetworkError'){ msg = 'Se perdió el contacto con el tag antes de terminar. No lo alejes del teléfono hasta ver el mensaje de listo — intenta de nuevo.'; }
+        else if(name === 'AbortError'){ msg = 'No se detectó ningún tag a tiempo. Intenta de nuevo y acércalo más rápido.'; }
+        statusEl.style.color = 'var(--danger)';
+        statusEl.textContent = '❌ '+msg+(err && err.message ? ' ('+err.message+')' : '');
+        toast('No se pudo escribir el tag');
       }
     };
   }
