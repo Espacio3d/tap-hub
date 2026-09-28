@@ -57,7 +57,7 @@ function svgIcon(key, cls){
   return '<svg class="'+(cls||'icon')+'" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'+(ICONS[key]||ICONS.website)+'</svg>';
 }
 function logoInner(logo){
-  if (isImageUrl(logo)) return '<img src="'+escapeHtml(logo)+'" alt="" style="width:100%;height:100%;object-fit:cover;">';
+  if (isImageUrl(logo)) return '<img src="'+escapeHtml(logo)+'" alt="" style="width:100%;height:100%;object-fit:contain;">';
   return escapeHtml(logo || '•');
 }
 function slugify(s){
