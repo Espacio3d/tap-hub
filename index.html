@@ -666,7 +666,7 @@
     document.documentElement.style.removeProperty('--hub-card-text');
     applyBackground(settings && settings.background, settings && settings.text_color);
     var app = document.getElementById('app');
-    var cardsHtml = clients.length ? clients.map(function(c){
+    function clientCardHtml(c){
       return '<div class="client-card">'+
         '<div class="client-avatar" style="background:'+escapeHtml(c.accent||'#0E7A5F')+';color:#fff;">'+logoInner(c.logo)+'</div>'+
         '<div class="client-meta"><div class="name">'+escapeHtml(c.name)+'</div>'+
@@ -676,7 +676,8 @@
           '<button class="btn btn-ghost btn-sm" data-act="edit" data-slug="'+escapeHtml(c.slug)+'">Editar</button>'+
         '</div>'+
       '</div>';
-    }).join('') : '<div class="empty">Todavía no hay clientes. Crea el primero.</div>';
+    }
+    var cardsHtml = clients.length ? clients.map(clientCardHtml).join('') : '<div class="empty">Todavía no hay clientes. Crea el primero.</div>';
 
     app.innerHTML =
       '<div class="admin-header"><div><h1>Espacio3d.gt</h1><p>Panel de clientes — cada uno con su propia página de enlaces</p></div>'+
@@ -690,7 +691,11 @@
         '<input type="file" id="csvFileInput" accept=".csv" style="display:none;">'+
       '</div>'+
       '<a href="#" id="downloadTemplateLink" style="font-size:12px;color:var(--text-dim);text-align:center;">Descargar plantilla CSV de ejemplo</a>'+
-      '<div id="clientList" style="display:flex;flex-direction:column;gap:10px;">'+cardsHtml+'</div>';
+      '<button class="btn btn-ghost" id="toggleClientsBtn" type="button">Clientes</button>'+
+      '<div id="clientsSection" style="display:none;flex-direction:column;gap:10px;">'+
+        '<input type="text" id="clientSearchInput" placeholder="Buscar cliente por nombre..." style="padding:10px 12px;font-size:14px;border:1px solid var(--surface-edge);border-radius:10px;background:var(--surface);color:var(--text);">'+
+        '<div id="clientList" style="display:flex;flex-direction:column;gap:10px;">'+cardsHtml+'</div>'+
+      '</div>';
 
     document.getElementById('newClientBtn').onclick = function(){ renderForm(null, clients); };
     document.getElementById('settingsBtn').onclick = function(){ renderSettings(clients, settings); };
@@ -725,19 +730,32 @@
         toast('No se pudo importar: '+(err && err.message ? err.message : 'error en el archivo'));
       }
     });
-    app.querySelectorAll('[data-act="edit"]').forEach(function(btn){
-      btn.onclick = function(){
-        var slug = btn.getAttribute('data-slug');
-        var c = clients.find(function(x){ return x.slug===slug; });
-        renderForm(c, clients);
-      };
-    });
-    app.querySelectorAll('[data-act="stats"]').forEach(function(btn){
-      btn.onclick = function(){
-        var slug = btn.getAttribute('data-slug');
-        var c = clients.find(function(x){ return x.slug===slug; });
-        renderStats(c, clients, settings);
-      };
+    function bindClientCardActions(){
+      app.querySelectorAll('[data-act="edit"]').forEach(function(btn){
+        btn.onclick = function(){
+          var slug = btn.getAttribute('data-slug');
+          var c = clients.find(function(x){ return x.slug===slug; });
+          renderForm(c, clients);
+        };
+      });
+      app.querySelectorAll('[data-act="stats"]').forEach(function(btn){
+        btn.onclick = function(){
+          var slug = btn.getAttribute('data-slug');
+          var c = clients.find(function(x){ return x.slug===slug; });
+          renderStats(c, clients, settings);
+        };
+      });
+    }
+    bindClientCardActions();
+    document.getElementById('toggleClientsBtn').onclick = function(){
+      var section = document.getElementById('clientsSection');
+      section.style.display = (section.style.display === 'none') ? 'flex' : 'none';
+    };
+    document.getElementById('clientSearchInput').addEventListener('input', function(e){
+      var q = e.target.value.trim().toLowerCase();
+      var filtered = q ? clients.filter(function(c){ return (c.name||'').toLowerCase().indexOf(q) !== -1; }) : clients;
+      document.getElementById('clientList').innerHTML = filtered.length ? filtered.map(clientCardHtml).join('') : '<div class="empty">No se encontraron clientes.</div>';
+      bindClientCardActions();
     });
   }
 
