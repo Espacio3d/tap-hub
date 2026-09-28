@@ -53,6 +53,14 @@ function escapeHtml(s){
   });
 }
 function isImageUrl(s){ return /^https?:\/\//i.test(s || ''); }
+function contrastTextColor(hex){
+  var h = (hex||'').replace('#','');
+  if(h.length === 3){ h = h.split('').map(function(c){ return c+c; }).join(''); }
+  var r = parseInt(h.substr(0,2),16), g = parseInt(h.substr(2,2),16), b = parseInt(h.substr(4,2),16);
+  if(isNaN(r) || isNaN(g) || isNaN(b)) return '';
+  var brightness = (r*299 + g*587 + b*114) / 1000;
+  return brightness >= 150 ? '#181C1B' : '#FFFFFF';
+}
 function svgIcon(key, cls){
   return '<svg class="'+(cls||'icon')+'" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'+(ICONS[key]||ICONS.website)+'</svg>';
 }
@@ -79,9 +87,9 @@ img{max-width:100%;}\
 .hub h1{font-size:24px;text-align:center;font-family:var(--hub-font, "Outfit"), -apple-system, sans-serif;margin:0;text-wrap:balance;color:var(--hub-text, var(--text));}\
 .hub .tagline{color:var(--hub-text, var(--text-dim));font-size:14px;text-align:center;margin-top:-8px;}\
 .hub-links{width:100%;display:flex;flex-direction:column;gap:10px;}\
-.hub-link{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--surface-edge);border-radius:14px;padding:15px 16px;text-decoration:none;color:var(--text);font-weight:500;font-size:15px;}\
+.hub-link{display:flex;align-items:center;gap:12px;background:var(--hub-card, var(--surface));border:1px solid var(--surface-edge);border-radius:14px;padding:15px 16px;text-decoration:none;color:var(--hub-card-text, var(--text));font-weight:500;font-size:15px;}\
 .hub-link .icon-badge{width:34px;height:34px;border-radius:10px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;background:var(--chip-bg);color:var(--accent, var(--accent-default));}\
-.hub-link .chev{margin-left:auto;color:var(--text-dim);width:16px;height:16px;}\
+.hub-link .chev{margin-left:auto;color:var(--hub-card-text, var(--text-dim));width:16px;height:16px;}\
 .hub-footer{color:var(--text-dim);font-size:12px;text-align:center;padding-top:8px;}.hub-footer a{color:inherit;}\
 .capture-box{width:100%;background:var(--surface);border:1px solid var(--surface-edge);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--text-dim);}\
 .capture-row{display:flex;gap:8px;}\
@@ -110,6 +118,7 @@ function renderPage(client, pageUrl){
   var fontDef = FONTS[client.font];
   var hubFontVar = (fontDef && fontDef.css) ? ('--hub-font:'+fontDef.css+';') : '';
   var hubTextVar = client.text_color ? ('--hub-text:'+client.text_color+';') : '';
+  var hubCardVar = client.card_color ? ('--hub-card:'+client.card_color+';--hub-card-text:'+contrastTextColor(client.card_color)+';') : '';
   var accentVar = '--accent:'+(client.accent || '#0E7A5F')+';';
   var bgStyle = isImageUrl(client.background)
     ? 'background-image:url(\''+client.background+'\');background-size:cover;background-position:center;background-attachment:fixed;'
@@ -170,7 +179,7 @@ function renderPage(client, pageUrl){
     '<meta name="twitter:description" content="'+escapeHtml(ogDesc)+'">\n'+
     FONT_LINK+'\n'+
     '<style id="app-style">'+CSS+'</style>\n'+
-    '</head><body style="'+hubFontVar+hubTextVar+accentVar+bgStyle+'">\n'+
+    '</head><body style="'+hubFontVar+hubTextVar+hubCardVar+accentVar+bgStyle+'">\n'+
     '<div id="app"><div class="hub">'+
       '<div class="hub-avatar">'+logoInner(client.logo)+'</div>'+
       '<h1>'+escapeHtml(client.name)+'</h1>'+
