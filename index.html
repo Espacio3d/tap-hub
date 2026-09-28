@@ -462,7 +462,7 @@
 
   function logoInner(logo){
     if(isImageUrl(logo)){
-      return '<img src="'+escapeHtml(logo)+'" alt="" style="width:100%;height:100%;object-fit:cover;">';
+      return '<img src="'+escapeHtml(logo)+'" alt="" style="width:100%;height:100%;object-fit:contain;">';
     }
     return escapeHtml(logo||'•');
   }
