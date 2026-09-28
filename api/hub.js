@@ -121,7 +121,7 @@ function renderPage(client, pageUrl){
   var hubCardVar = client.card_color ? ('--hub-card:'+client.card_color+';--hub-card-text:'+contrastTextColor(client.card_color)+';') : '';
   var accentVar = '--accent:'+(client.accent || '#0E7A5F')+';';
   var bgStyle = isImageUrl(client.background)
-    ? 'background-image:url(\''+client.background+'\');background-size:cover;background-position:center;background-attachment:fixed;'
+    ? 'background-image:url(\''+client.background+'\');background-size:cover;background-position:center;background-repeat:no-repeat;'
     : (client.background ? '--bg:'+client.background+';' : '');
 
   var linksHtml = (client.buttons || []).map(function(b){
