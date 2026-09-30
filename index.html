@@ -558,18 +558,6 @@
   }
 
   /* ---------------- PUBLIC HUB VIEW ---------------- */
-  function buildVCardUrl(client){
-    var lines = [
-      'BEGIN:VCARD','VERSION:3.0',
-      'FN:'+(client.contact_name || client.name),
-      'ORG:'+client.name,
-      client.phone ? 'TEL;TYPE=CELL:'+client.phone : '',
-      'URL:'+baseUrl()+client.slug,
-      client.tagline ? 'NOTE:'+client.tagline : '',
-      'END:VCARD'
-    ].filter(Boolean).join('\n');
-    return 'data:text/vcard;charset=utf-8,'+encodeURIComponent(lines);
-  }
 
   function renderHub(client){
     document.documentElement.style.setProperty('--accent', client.accent || '');
@@ -601,7 +589,7 @@
       '</a>';
     }).join('');
     var contactHtml = (client.phone && client.save_contact_enabled) ?
-      '<a class="hub-link" href="'+buildVCardUrl(client)+'" download="'+escapeHtml(slugify(client.name))+'.vcf">'+
+      '<a class="hub-link" href="'+baseUrl()+client.slug+'/vcard">'+
         '<span class="icon-badge" style="background:var(--accent, var(--accent-default));color:#fff;">'+svgIcon('contact')+'</span>'+
         '<span>Guardar Contacto</span>'+
         '<svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
