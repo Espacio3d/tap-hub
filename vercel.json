@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/:slug/vcard", "destination": "/api/vcard?slug=:slug" },
     { "source": "/:slug", "destination": "/api/hub?slug=:slug" }
   ]
 }
