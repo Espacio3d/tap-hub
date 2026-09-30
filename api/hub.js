@@ -101,18 +101,6 @@ img{max-width:100%;}\
 
 var FONT_LINK = '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Work+Sans:wght@400;500;600&family=Poppins:wght@500;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@500;600;700&family=Bebas+Neue&family=Fraunces:wght@600;700&family=Quicksand:wght@500;600;700&family=Oswald:wght@500;600;700&family=Abril+Fatface&family=DM+Serif+Display&family=Righteous&family=Pacifico&family=Caveat:wght@600;700&display=swap">';
 
-function buildVCardUrl(client, pageUrl){
-  var lines = [
-    'BEGIN:VCARD','VERSION:3.0',
-    'FN:'+(client.contact_name || client.name),
-    'ORG:'+client.name,
-    client.phone ? 'TEL;TYPE=CELL:'+client.phone : '',
-    'URL:'+pageUrl,
-    client.tagline ? 'NOTE:'+client.tagline : '',
-    'END:VCARD'
-  ].filter(Boolean).join('\n');
-  return 'data:text/vcard;charset=utf-8,'+encodeURIComponent(lines);
-}
 
 function renderPage(client, pageUrl){
   var fontDef = FONTS[client.font];
@@ -139,7 +127,7 @@ function renderPage(client, pageUrl){
   }).join('');
 
   var contactHtml = (client.phone && client.save_contact_enabled) ?
-    '<a class="hub-link" href="'+buildVCardUrl(client, pageUrl)+'" download="'+escapeHtml(slugify(client.name))+'.vcf">'+
+    '<a class="hub-link" href="'+pageUrl+'/vcard">'+
       '<span class="icon-badge" style="background:var(--accent, var(--accent-default));color:#fff;">'+svgIcon('contact')+'</span>'+
       '<span>Guardar Contacto</span>'+
       '<svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
