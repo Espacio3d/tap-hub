@@ -48,7 +48,7 @@ module.exports = async function handler(req, res){
     ].filter(Boolean).join('\r\n');
     var filename = slugify(client.contact_name || client.name)+'.vcf';
     res.setHeader('Content-Type', 'text/vcard; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename="'+filename+'"');
+    res.setHeader('Content-Disposition', 'inline; filename="'+filename+'"');
     res.setHeader('Cache-Control', 'public, max-age=60');
     res.status(200).send(lines);
   }catch(e){
