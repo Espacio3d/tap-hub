@@ -26,20 +26,11 @@ function parseMirror(m){
   return { uid: match[1].toUpperCase(), ctr: parseInt(match[2], 16) };
 }
 
-function contrastTextColor(hex){
-  var h = (hex||'').replace('#','');
-  if(h.length === 3){ h = h.split('').map(function(c){ return c+c; }).join(''); }
-  var r = parseInt(h.substr(0,2),16), g = parseInt(h.substr(2,2),16), b = parseInt(h.substr(4,2),16);
-  if(isNaN(r) || isNaN(g) || isNaN(b)) return '';
-  return (r*299 + g*587 + b*114) / 1000 >= 150 ? '#181C1B' : '#FFFFFF';
-}
-
 function renderPage(state){
   var p = state.program || {};
-  var accent = p.accent || '#0E7A5F';
-  var ink = contrastTextColor(accent);
-  var bodyStyle = '--accent:' + accent + ';' + (ink ? '--accent-ink-custom:' + ink + ';' : '') +
-    (p.background && !L.isImageUrl(p.background) ? '--bg:' + p.background + ';' : '');
+  var look = L.resolveDesign(p);
+  state.look = { subtitle: look.subtitle, stampIcon: look.stampIcon, emptyStyle: look.emptyStyle, shape: look.shape };
+  var bodyStyle = look.bodyStyle;
   var title = p.name ? 'Tarjeta de sellos · ' + p.name : 'Tarjeta de sellos';
 
   return '<!doctype html>\n<html lang="es"><head>\n' +
@@ -52,18 +43,24 @@ function renderPage(state){
     '<title>' + L.escapeHtml(title) + '</title>\n' +
     L.FONT_LINK + '\n' +
     '<style>' + L.BASE_CSS + PAGE_CSS + '</style>\n' +
-    '</head><body style="' + bodyStyle + '">\n' +
+    '</head><body class="shape-' + look.shape + '" style="' + L.escapeHtml(bodyStyle) + '">\n' +
     '<div id="app"></div>\n' +
     '<script>window.__STATE__ = ' + L.jsonForScript(state) + ';<\/script>\n' +
+    '<script>' + L.BIRTH_JS + '<\/script>\n' +
     '<script>' + PAGE_JS + '<\/script>\n' +
     '</body></html>';
 }
 
 var PAGE_CSS = '\
 .stamps{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:10px;justify-items:center;}\
-.stamp{width:52px;height:52px;border-radius:50%;border:2px dashed var(--surface-edge);display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:13px;font-weight:600;}\
+.stamp{width:52px;height:52px;border-radius:50%;border:2px dashed color-mix(in srgb,var(--card-text,var(--text)) 22%,transparent);display:flex;align-items:center;justify-content:center;color:color-mix(in srgb,var(--card-text,var(--text)) 55%,transparent);font-size:13px;font-weight:600;overflow:hidden;}\
+.shape-rounded .stamp{border-radius:14px;}\
+.shape-square .stamp{border-radius:4px;}\
 .stamp.on{border:none;background:var(--accent,var(--accent-default));color:var(--accent-ink-custom,var(--accent-ink));}\
 .stamp.on svg{width:26px;height:26px;}\
+.stamp .ico{font-size:26px;line-height:1;}\
+.stamp img.ico{width:70%;height:70%;object-fit:contain;}\
+.stamp.faded .ico{opacity:.28;filter:grayscale(1);}\
 .stamp.new{animation:pop .5s ease-out;}\
 @keyframes pop{0%{transform:scale(.3);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}\
 .count{display:flex;justify-content:space-between;align-items:baseline;}\
@@ -112,8 +109,11 @@ var PAGE_JS = '(' + function(){
   function headHtml(){
     var logo = /^https?:\/\//i.test(P.logo || '') ? '<img src="'+esc(P.logo)+'" alt="">' : esc(P.logo || (P.name||'•').charAt(0));
     return '<div class="head"><div class="avatar">'+logo+'</div><h1>'+esc(P.name || 'Tarjeta de sellos')+'</h1>'+
-      '<div class="sub">Tarjeta de sellos</div></div>';
+      '<div class="sub">'+esc((S.look && S.look.subtitle) || 'Tarjeta de sellos')+'</div></div>';
   }
+  var LOOK = S.look || {};
+  var ICON = !LOOK.stampIcon ? '' : (/^https?:\/\//i.test(LOOK.stampIcon)
+    ? '<img class="ico" src="'+esc(LOOK.stampIcon)+'" alt="">' : '<span class="ico">'+esc(LOOK.stampIcon)+'</span>');
   var CHECK = '<svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   /* ---------- messages for every result the database can give ---------- */
@@ -138,7 +138,7 @@ var PAGE_JS = '(' + function(){
       '<div class="foot">Creado con Espacio3d.gt</div>';
   }
 
-  function renderRegister(mode, flash){
+  function renderRegister(mode, flash, prefill){
     var isNew = mode !== 'recover';
     app.innerHTML = headHtml() +
       '<div class="card">'+
@@ -149,7 +149,7 @@ var PAGE_JS = '(' + function(){
         (flash ? '<div class="msg '+flash.cls+'">'+esc(flash.text)+'</div>' : '')+
         (isNew ? '<div class="field"><label for="fName">Nombre</label><input id="fName" autocomplete="name" placeholder="Tu nombre"></div>' : '')+
         '<div class="field"><label for="fPhone">Teléfono / WhatsApp</label><input id="fPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="5555 1234"></div>'+
-        '<div class="field"><label for="fBirth">Fecha de nacimiento</label><input id="fBirth" type="date" max="'+new Date().toISOString().slice(0,10)+'"></div>'+
+        '<div class="field"><label for="fBirth">Fecha de nacimiento</label>'+birthInputHtml('fBirth')+'</div>'+
         (isNew && P.ask_email ? '<div class="field"><label for="fEmail">Correo (opcional)</label><input id="fEmail" type="email" autocomplete="email" placeholder="tu@correo.com"></div>' : '')+
         (isNew ? '<label class="check"><input type="checkbox" id="fMkt"> Acepto recibir promociones de '+esc(P.name || 'este negocio')+'.</label>' : '')+
         '<button class="btn btn-primary" id="fSend" type="button">'+(isNew ? 'Crear mi tarjeta' : 'Recuperar mi tarjeta')+'</button>'+
@@ -158,20 +158,28 @@ var PAGE_JS = '(' + function(){
       '<div class="foot">Tus datos solo los usa '+esc(P.name || 'el negocio')+' para tu tarjeta. · Espacio3d.gt</div>';
 
     $('fSwitch').onclick = function(){ renderRegister(isNew ? 'recover' : 'new'); };
+    birthMask($('fBirth'));
+    // Keep what the person already typed when we show an error
+    if(prefill){ ['fName','fPhone','fBirth','fEmail'].forEach(function(id){ if($(id) && prefill[id]) $(id).value = prefill[id]; }); }
+    function typed(){ var o = {}; ['fName','fPhone','fBirth','fEmail'].forEach(function(id){ if($(id)) o[id] = $(id).value; }); return o; }
     $('fSend').onclick = function(){
       var btn = this;
       var body = isNew ? {
-        action:'register', name:$('fName').value, phone:$('fPhone').value, birthday:$('fBirth').value,
+        action:'register', name:$('fName').value, phone:$('fPhone').value, birthday:birthToIso($('fBirth').value),
         email: $('fEmail') ? $('fEmail').value : '', marketing: $('fMkt').checked
-      } : { action:'recover', phone:$('fPhone').value, birthday:$('fBirth').value };
+      } : { action:'recover', phone:$('fPhone').value, birthday:birthToIso($('fBirth').value) };
       if(isNew && !body.name.trim()){ $('fName').focus(); return; }
       if(!body.phone.trim()){ $('fPhone').focus(); return; }
-      if(!body.birthday){ $('fBirth').focus(); return; }
+      if(!body.birthday){
+        renderRegister(mode, { cls:'msg-err', text:'Escribe tu fecha de nacimiento así: día/mes/año, por ejemplo 14/03/1965.' }, typed());
+        return;
+      }
+      var saved = typed();
       btn.disabled = true; btn.textContent = 'Un momento...';
       post(body).then(function(r){
         if(!r.ok){
           var text = r.reason === 'not_found' ? 'No encontramos una tarjeta con esos datos.' : (r.message || 'Algo salió mal. Intenta de nuevo.');
-          renderRegister(mode, { cls:'msg-err', text:text });
+          renderRegister(mode, { cls:'msg-err', text:text }, saved);
           return;
         }
         card = r.card;
@@ -189,7 +197,8 @@ var PAGE_JS = '(' + function(){
     for(var i = 0; i < need; i++){
       var on = i < bal;
       var isNew = justStamped && i === Math.min(bal, need) - 1;
-      dots += '<div class="stamp'+(on?' on':'')+(isNew?' new':'')+'">'+(on ? CHECK : (i+1))+'</div>';
+      var faded = !on && LOOK.emptyStyle === 'faded' && ICON;
+      dots += '<div class="stamp'+(on?' on':'')+(isNew?' new':'')+(faded?' faded':'')+'">'+(on ? (ICON || CHECK) : (faded ? ICON : (i+1)))+'</div>';
     }
     var extra = bal > need ? '<div class="reward-line">+'+(bal-need)+' sellos extra para tu próxima tarjeta</div>' : '';
 
