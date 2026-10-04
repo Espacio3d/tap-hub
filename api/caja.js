@@ -35,6 +35,7 @@ function renderPage(state){
     '</head><body style="--accent:' + L.escapeHtml(accent) + ';">\n' +
     '<div id="app"></div>\n' +
     '<script>window.__STATE__ = ' + L.jsonForScript(state) + ';<\/script>\n' +
+    '<script>' + L.BIRTH_JS + '<\/script>\n' +
     '<script>' + PAGE_JS + '<\/script>\n' +
     '</body></html>';
 }
@@ -174,17 +175,18 @@ var PAGE_JS = '(' + function(){
         (flash ? '<div class="msg '+flash.cls+'">'+esc(flash.text)+'</div>' : '')+
         '<div class="field"><label for="rName">Nombre</label><input id="rName" autocomplete="off"></div>'+
         '<div class="field"><label for="rPhone">Teléfono</label><input id="rPhone" type="tel" inputmode="tel" value="'+esc(phone)+'"></div>'+
-        '<div class="field"><label for="rBirth">Fecha de nacimiento</label><input id="rBirth" type="date" max="'+new Date().toISOString().slice(0,10)+'"></div>'+
+        '<div class="field"><label for="rBirth">Fecha de nacimiento</label>'+birthInputHtml('rBirth')+'</div>'+
         '<div class="sub">Con su teléfono y fecha de nacimiento podrá abrir su tarjeta en su celular cuando quiera.</div>'+
         '<button class="btn btn-primary" id="regBtn" type="button">Registrar y sellar</button>'+
         '<button class="btn btn-ghost" id="backBtn" type="button">Cancelar</button>'+
       '</div>';
     $('rName').focus();
+    birthMask($('rBirth'));
     $('backBtn').onclick = function(){ renderSearch(); };
     $('regBtn').onclick = function(){
-      var body = { action:'register', name:$('rName').value, phone:$('rPhone').value, birthday:$('rBirth').value };
+      var body = { action:'register', name:$('rName').value, phone:$('rPhone').value, birthday:birthToIso($('rBirth').value) };
       if(!body.name.trim()){ $('rName').focus(); return; }
-      if(!body.birthday){ $('rBirth').focus(); return; }
+      if(!body.birthday){ alert('Escribe la fecha así: día/mes/año, por ejemplo 14/03/1965.'); $('rBirth').focus(); return; }
       this.disabled = true;
       post(body).then(function(r){
         if(needPin(r)) return;
