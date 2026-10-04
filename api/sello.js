@@ -72,7 +72,7 @@ var PAGE_CSS = '\
 .prize{text-align:center;display:flex;flex-direction:column;gap:6px;}\
 .prize .big{font-size:40px;}\
 .pin-row{display:flex;gap:8px;}\
-.pin-row input{flex:1;min-width:0;text-align:center;letter-spacing:6px;font-size:20px;}\
+.pin-row input{flex:1;min-width:0;text-align:center;letter-spacing:6px;font-size:20px;background:var(--bg);border:1px solid var(--surface-edge);border-radius:12px;padding:10px 12px;color:var(--text);font-family:inherit;}\
 .pin-row .btn{width:auto;}\
 ';
 
