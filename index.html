@@ -834,8 +834,9 @@
     var prog = progRes.data || {
       client_slug: client.slug, enabled: false, stamps_needed: 8, reward: 'Premio gratis', cooldown_hours: 24,
       ask_email: false, require_geo_qr: false, lat: null, lng: null, geo_radius_m: 150,
-      nfc_require_counter: false, caja_token: null, caja_pin_hash: null
+      nfc_require_counter: false, caja_token: null, caja_pin_hash: null, design: {}
     };
+    var design = Object.assign({}, prog.design || {});
     var isNew = !progRes.data;
 
     var stats = { customers: 0, stamps: 0, redemptions: 0, suspicious: [], recent: [] };
@@ -864,6 +865,15 @@
         '<input type="checkbox" id="'+id+'" style="width:18px;height:18px;"'+(on?' checked':'')+'>'+
         '<label for="'+id+'" style="margin:0;">'+label+'</label></div>';
     }
+    function designColorField(id, label, value, fallback){
+      var auto = !value;
+      return '<div class="field"><label>'+label+'</label>'+
+        '<div style="display:flex;align-items:center;gap:10px;">'+
+          '<input type="checkbox" id="'+id+'-auto" style="width:18px;height:18px;"'+(auto?' checked':'')+'>'+
+          '<label for="'+id+'-auto" style="margin:0;font-weight:400;">Igual que la página</label>'+
+          '<input type="color" id="'+id+'" value="'+escapeHtml(value || fallback)+'" style="width:40px;height:40px;border-radius:10px;border:1px solid var(--surface-edge);padding:2px;'+(auto?'display:none;':'')+'">'+
+        '</div></div>';
+    }
     function linkRow(label, url, id){
       return '<div class="field"><label>'+label+'</label>'+
         '<div class="link-box"><span>'+escapeHtml(url)+'</span>'+
@@ -888,6 +898,51 @@
         '</div>'+
         '<div class="field"><label>Premio</label><input type="text" id="l-reward" value="'+escapeHtml(prog.reward)+'" placeholder="Café gratis"></div>'+
         chk('l-email', prog.ask_email, 'Pedir correo en el registro (opcional para el cliente)')+
+      '</div>'+
+
+      '<div class="form-card">'+
+        '<h3 style="font-size:16px;">Diseño de la tarjeta</h3>'+
+        '<p style="margin:0;font-size:12px;color:var(--text-dim);">Lo que marques como "Igual que la página" usa el diseño de la página del negocio.</p>'+
+        '<div id="d-preview"></div>'+
+        '<div class="field"><label>Texto bajo el nombre</label><input type="text" id="d-subtitle" maxlength="60" value="'+escapeHtml(design.subtitle||'')+'" placeholder="Tarjeta de sellos"></div>'+
+        '<div class="field"><label>Ícono de los sellos (emoji o imagen)</label>'+
+          '<div class="row2"><input type="text" id="d-icon" value="'+escapeHtml(isImageUrl(design.stamp_icon) ? '' : (design.stamp_icon||''))+'" placeholder="✓ (vacío = palomita)" maxlength="8">'+
+          '<input type="file" id="d-icon-file" accept="image/png,image/jpeg,image/webp" style="font-size:12px;min-width:0;max-width:100%;flex:1;"></div>'+
+          '<input type="hidden" id="d-icon-img" value="'+escapeHtml(isImageUrl(design.stamp_icon) ? design.stamp_icon : '')+'">'+
+          '<div class="templates-row" id="d-emojis">'+['☕','🍕','🍔','🌮','🍦','🍺','🥩','🐷','💈','✂️','💅','⭐','❤️','🎁'].map(function(e){
+            return '<button class="btn btn-ghost btn-sm" type="button" data-emoji="'+e+'" style="font-size:18px;padding:6px 9px;">'+e+'</button>';
+          }).join('')+'</div>'+
+          '<button class="btn btn-danger btn-sm" id="d-icon-clear" type="button" style="align-self:flex-start;">Quitar ícono (usar palomita)</button>'+
+        '</div>'+
+        '<div class="row2">'+
+          '<div class="field"><label>Forma de los sellos</label><select id="d-shape">'+
+            [['circle','Círculo'],['rounded','Redondeado'],['square','Cuadrado']].map(function(o){
+              return '<option value="'+o[0]+'"'+((design.shape||'circle')===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+
+          '</select></div>'+
+          '<div class="field"><label>Sellos vacíos</label><select id="d-empty">'+
+            '<option value="number"'+(design.empty_style!=='faded'?' selected':'')+'>Con número</option>'+
+            '<option value="faded"'+(design.empty_style==='faded'?' selected':'')+'>Ícono en gris</option>'+
+          '</select></div>'+
+        '</div>'+
+        designColorField('d-accent', 'Color principal (botones y sellos)', design.accent, client.accent || '#0E7A5F')+
+        designColorField('d-card', 'Color de los cuadros', design.card_color, client.card_color || '#FFFFFF')+
+        designColorField('d-text', 'Color del nombre y texto de arriba', design.text_color, client.text_color || '#181C1B')+
+        '<div class="field"><label>Fondo</label>'+
+          chk('d-bg-auto', !design.bg, 'Igual que la página')+
+          '<div id="d-bg-box" class="row2" style="'+(design.bg?'':'display:none;')+'">'+
+            '<input type="color" id="d-bg-color" value="'+escapeHtml(design.bg && !isImageUrl(design.bg) ? design.bg : '#F6F5F2')+'" style="width:40px;height:40px;border-radius:10px;border:1px solid var(--surface-edge);padding:2px;">'+
+            '<input type="file" id="d-bg-file" accept="image/png,image/jpeg,image/webp" style="font-size:12px;min-width:0;max-width:100%;flex:1;">'+
+          '</div>'+
+          '<input type="hidden" id="d-bg-img" value="'+escapeHtml(isImageUrl(design.bg) ? design.bg : '')+'">'+
+          '<button class="btn btn-danger btn-sm" id="d-bg-img-clear" type="button" style="align-self:flex-start;'+(isImageUrl(design.bg)?'':'display:none;')+'">Quitar imagen de fondo</button>'+
+        '</div>'+
+        '<div class="field"><label>Letra de los títulos</label><select id="d-font">'+
+          '<option value="">Igual que la página</option>'+
+          Object.keys(FONTS).filter(function(k){ return k !== 'default'; }).map(function(k){
+            return '<option value="'+k+'"'+(design.font===k?' selected':'')+' style="font-family:'+FONTS[k].css+';">'+FONTS[k].label+'</option>';
+          }).join('')+
+        '</select></div>'+
+        '<p style="margin:0;font-size:12px;color:var(--text-dim);">Recuerda tocar <b>Guardar</b> (abajo) para aplicar el diseño.</p>'+
       '</div>'+
 
       '<div class="form-card">'+
@@ -968,6 +1023,116 @@
     });
     document.getElementById('loyBackBtn').onclick = function(){ renderAdmin(clients, settings); };
 
+    /* ---- Diseño de la tarjeta: read form → design object, live preview ---- */
+    function readDesign(){
+      function v(id){ return document.getElementById(id).value; }
+      function color(id){ return document.getElementById(id+'-auto').checked ? '' : v(id); }
+      var bgAuto = document.getElementById('d-bg-auto').checked;
+      var out = {
+        subtitle: v('d-subtitle').trim(),
+        stamp_icon: v('d-icon-img') || v('d-icon').trim(),
+        shape: v('d-shape'),
+        empty_style: v('d-empty'),
+        accent: color('d-accent'),
+        card_color: color('d-card'),
+        text_color: color('d-text'),
+        bg: bgAuto ? '' : (v('d-bg-img') || v('d-bg-color')),
+        font: v('d-font')
+      };
+      Object.keys(out).forEach(function(k){ if(!out[k] || out[k] === 'circle' || out[k] === 'number') delete out[k]; });
+      return out;
+    }
+    function updatePreview(){
+      var d = readDesign();
+      var accent = d.accent || client.accent || '#0E7A5F';
+      var bg = d.bg || client.background || '#F6F5F2';
+      var card = d.card_color || client.card_color || '#FFFFFF';
+      var cardText = contrastTextColor(card) || '#181C1B';
+      var head = d.text_color || client.text_color || (isImageUrl(bg) ? '#FFFFFF' : (contrastTextColor(bg) || '#181C1B'));
+      var fontKey = d.font || client.font;
+      var font = (FONTS[fontKey] && FONTS[fontKey].css) || "'Outfit',sans-serif";
+      var radius = d.shape === 'square' ? '4px' : (d.shape === 'rounded' ? '10px' : '50%');
+      var icon = d.stamp_icon ? (isImageUrl(d.stamp_icon)
+        ? '<img src="'+escapeHtml(d.stamp_icon)+'" style="width:70%;height:70%;object-fit:contain;">'
+        : '<span style="font-size:20px;">'+escapeHtml(d.stamp_icon)+'</span>') : '✓';
+      var dots = '';
+      for(var i = 0; i < 8; i++){
+        var on = i < 4;
+        var faded = !on && d.empty_style === 'faded' && d.stamp_icon;
+        dots += '<div style="width:40px;height:40px;border-radius:'+radius+';display:flex;align-items:center;justify-content:center;overflow:hidden;font-weight:700;font-size:12px;'+
+          (on ? 'background:'+accent+';color:'+(contrastTextColor(accent)||'#fff')+';' : 'border:2px dashed '+cardText+'33;color:'+cardText+'88;')+'">'+
+          (on ? icon : (faded ? '<span style="opacity:.28;filter:grayscale(1);display:flex;align-items:center;justify-content:center;width:100%;height:100%;">'+icon+'</span>' : (i+1)))+'</div>';
+      }
+      var bgCss = isImageUrl(bg) ? 'background:url(\''+bg.replace(/'/g,'%27')+'\') center/cover;' : 'background:'+bg+';';
+      document.getElementById('d-preview').innerHTML =
+        '<div style="'+bgCss+'border-radius:16px;padding:18px 14px;display:flex;flex-direction:column;gap:12px;border:1px solid var(--surface-edge);">'+
+          '<div style="text-align:center;color:'+head+';">'+
+            '<div style="width:48px;height:48px;border-radius:14px;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:22px;background:'+accent+';overflow:hidden;">'+logoInner(client.logo)+'</div>'+
+            '<div style="font-family:'+font+';font-size:20px;font-weight:700;">'+escapeHtml(client.name)+'</div>'+
+            '<div style="font-size:12px;opacity:.75;">'+escapeHtml(d.subtitle || 'Tarjeta de sellos')+'</div>'+
+          '</div>'+
+          '<div style="background:'+card+';color:'+cardText+';border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;">'+
+            '<div style="display:flex;justify-content:space-between;font-size:13px;"><span>Hola, <b>María</b></span><b style="font-family:'+font+';font-size:18px;">4/8</b></div>'+
+            '<div style="display:grid;grid-template-columns:repeat(4,40px);gap:8px;justify-content:center;">'+dots+'</div>'+
+            '<div style="background:'+accent+';color:'+(contrastTextColor(accent)||'#fff')+';border-radius:10px;padding:9px;text-align:center;font-family:'+font+';font-weight:600;font-size:14px;">Botón de ejemplo</div>'+
+          '</div>'+
+        '</div>';
+    }
+    ['d-subtitle','d-icon','d-shape','d-empty','d-accent','d-card','d-text','d-bg-color','d-font'].forEach(function(id){
+      document.getElementById(id).addEventListener('input', updatePreview);
+      document.getElementById(id).addEventListener('change', updatePreview);
+    });
+    ['d-accent','d-card','d-text'].forEach(function(id){
+      document.getElementById(id+'-auto').addEventListener('change', function(){
+        document.getElementById(id).style.display = this.checked ? 'none' : '';
+        updatePreview();
+      });
+    });
+    document.getElementById('d-bg-auto').addEventListener('change', function(){
+      document.getElementById('d-bg-box').style.display = this.checked ? 'none' : 'flex';
+      updatePreview();
+    });
+    document.getElementById('d-icon').addEventListener('input', function(){ document.getElementById('d-icon-img').value = ''; });
+    document.querySelectorAll('#d-emojis [data-emoji]').forEach(function(btn){
+      btn.onclick = function(){
+        document.getElementById('d-icon').value = btn.getAttribute('data-emoji');
+        document.getElementById('d-icon-img').value = '';
+        updatePreview();
+      };
+    });
+    document.getElementById('d-icon-clear').onclick = function(){
+      document.getElementById('d-icon').value = '';
+      document.getElementById('d-icon-img').value = '';
+      updatePreview();
+    };
+    async function uploadDesignImage(file, hiddenId, label){
+      if(!file) return;
+      if(file.size > 10 * 1024 * 1024){ toast('La imagen debe pesar menos de 10MB'); return; }
+      toast('Subiendo imagen...');
+      try{
+        var url = await Storage.uploadLogo(file, client.slug + '-sellos');
+        document.getElementById(hiddenId).value = url;
+        toast(label + ' subida — guarda para confirmar');
+        updatePreview();
+      }catch(err){
+        toast('No se pudo subir: '+(err && err.message ? err.message : 'error'));
+      }
+    }
+    document.getElementById('d-icon-file').addEventListener('change', function(e){
+      uploadDesignImage(e.target.files[0], 'd-icon-img', 'Ícono');
+    });
+    document.getElementById('d-bg-file').addEventListener('change', async function(e){
+      await uploadDesignImage(e.target.files[0], 'd-bg-img', 'Imagen de fondo');
+      if(document.getElementById('d-bg-img').value) document.getElementById('d-bg-img-clear').style.display = '';
+    });
+    document.getElementById('d-bg-color').addEventListener('input', function(){ document.getElementById('d-bg-img').value = ''; });
+    document.getElementById('d-bg-img-clear').onclick = function(){
+      document.getElementById('d-bg-img').value = '';
+      this.style.display = 'none';
+      updatePreview();
+    };
+    updatePreview();
+
     document.getElementById('l-here').onclick = function(){
       if(!navigator.geolocation){ toast('Este navegador no da la ubicación'); return; }
       toast('Obteniendo ubicación...');
@@ -992,6 +1157,7 @@
         lng: num('l-lng'),
         geo_radius_m: num('l-radius'),
         nfc_require_counter: document.getElementById('l-ctr').checked,
+        design: readDesign(),
         updated_at: new Date().toISOString()
       };
       if(!(row.stamps_needed >= 1 && row.stamps_needed <= 50)){ toast('Los sellos deben ser entre 1 y 50'); return; }
