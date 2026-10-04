@@ -100,29 +100,122 @@ var BASE_CSS = '\
 body{margin:0;background:var(--bg);color:var(--text);font-family:"Work Sans",-apple-system,BlinkMacSystemFont,sans-serif;padding-inline:16px;padding-block:28px;}\
 h1,h2,h3{font-family:"Outfit",-apple-system,sans-serif;margin:0;text-wrap:balance;}\
 #app{max-width:440px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}\
-.head{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;}\
+.head{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;color:var(--head-text,var(--text));}\
+.head .sub{color:inherit;opacity:.75;}\
+h1,h2,.btn,.count b{font-family:var(--brand-font,"Outfit"),-apple-system,sans-serif;}\
 .avatar{width:68px;height:68px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;color:#fff;background:var(--accent,var(--accent-default));overflow:hidden;}\
 .avatar img{width:100%;height:100%;object-fit:contain;}\
 .sub{color:var(--text-dim);font-size:14px;}\
-.card{background:var(--surface);border:1px solid var(--surface-edge);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:14px;}\
+.card{background:var(--card-bg,var(--surface));color:var(--card-text,var(--text));border:1px solid color-mix(in srgb,var(--card-text,var(--text)) 12%,transparent);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:14px;}\
+.card .sub,.card .reward-line,.card .field label,.card .check,.card .link{color:color-mix(in srgb,var(--card-text,var(--text)) 65%,transparent);}\
 .field{display:flex;flex-direction:column;gap:6px;}\
 .field label{font-size:13px;font-weight:600;color:var(--text-dim);}\
-.field input{background:var(--bg);border:1px solid var(--surface-edge);border-radius:10px;padding:12px;font-size:16px;color:var(--text);font-family:inherit;width:100%;}\
+.field input{background:color-mix(in srgb,var(--card-text,var(--text)) 6%,transparent);border:1px solid color-mix(in srgb,var(--card-text,var(--text)) 15%,transparent);border-radius:10px;padding:12px;font-size:16px;color:var(--text);font-family:inherit;width:100%;}\
 .check{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--text-dim);}\
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:12px;padding:14px 18px;font-size:16px;font-weight:600;cursor:pointer;font-family:"Outfit",sans-serif;width:100%;text-decoration:none;}\
 .btn-primary{background:var(--accent,var(--accent-default));color:var(--accent-ink-custom,var(--accent-ink));}\
-.btn-ghost{background:var(--chip-bg);color:var(--text);}\
+.btn-ghost{background:color-mix(in srgb,var(--card-text,var(--text)) 8%,transparent);color:inherit;}\
 .btn:disabled{opacity:.6;cursor:default;}\
 .link{background:none;border:none;color:var(--text-dim);font-size:14px;text-decoration:underline;cursor:pointer;font-family:inherit;padding:4px;}\
 .msg{border-radius:14px;padding:14px 16px;font-size:15px;line-height:1.4;text-align:center;}\
-.msg-ok{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--text);}\
-.msg-warn{background:var(--chip-bg);color:var(--text);}\
-.msg-err{background:color-mix(in srgb,var(--danger) 14%,transparent);color:var(--text);}\
-.foot{color:var(--text-dim);font-size:12px;text-align:center;}\
+.msg-ok{background:color-mix(in srgb,var(--accent,var(--ok)) 16%,var(--card-bg,var(--surface)));color:var(--card-text,var(--text));}\
+.msg-warn{background:var(--card-bg,var(--surface));color:var(--card-text,var(--text));}\
+.msg-err{background:color-mix(in srgb,var(--danger) 16%,var(--card-bg,var(--surface)));color:var(--card-text,var(--text));}\
+.foot{color:var(--head-text,var(--text-dim));opacity:.7;font-size:12px;text-align:center;}\
 .hidden{display:none !important;}\
 ';
 
-var FONT_LINK = '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Work+Sans:wght@400;500;600&display=swap">';
+var FONT_LINK = '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Work+Sans:wght@400;500;600&family=Poppins:wght@500;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@500;600;700&family=Bebas+Neue&family=Fraunces:wght@600;700&family=Quicksand:wght@500;600;700&family=Oswald:wght@500;600;700&family=Abril+Fatface&family=DM+Serif+Display&family=Righteous&family=Pacifico&family=Caveat:wght@600;700&display=swap">';
+
+// Same font keys as the panel and hub.js
+var FONTS = {
+  poppins:"'Poppins',sans-serif", playfair:"'Playfair Display',serif", montserrat:"'Montserrat',sans-serif",
+  bebas:"'Bebas Neue',sans-serif", fraunces:"'Fraunces',serif", quicksand:"'Quicksand',sans-serif",
+  oswald:"'Oswald',sans-serif", abril:"'Abril Fatface',serif", dmserif:"'DM Serif Display',serif",
+  righteous:"'Righteous',sans-serif", pacifico:"'Pacifico',cursive", caveat:"'Caveat',cursive"
+};
+
+function isHexColor(s){ return /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(s || ''); }
+
+function contrastTextColor(hex){
+  var h = (hex||'').replace('#','');
+  if(h.length === 3){ h = h.split('').map(function(c){ return c+c; }).join(''); }
+  var r = parseInt(h.substr(0,2),16), g = parseInt(h.substr(2,2),16), b = parseInt(h.substr(4,2),16);
+  if(isNaN(r) || isNaN(g) || isNaN(b)) return '';
+  return (r*299 + g*587 + b*114) / 1000 >= 150 ? '#181C1B' : '#FFFFFF';
+}
+
+/* Resolves the card's look: the program's own design (set in the
+   panel's "Diseño de la tarjeta") wins; anything left empty falls
+   back to the business page's look. Returns the inline <body> style
+   with CSS variables plus the bits the page script needs. Every value
+   is validated (hex colors / http(s) URLs / known keys) because it
+   ends up inside a style attribute. */
+function resolveDesign(p){
+  p = p || {};
+  var d = p.design || {};
+  var accent = isHexColor(d.accent) ? d.accent : (isHexColor(p.accent) ? p.accent : '#0E7A5F');
+  var bg = d.bg || p.background || '';
+  var card = isHexColor(d.card_color) ? d.card_color : (isHexColor(p.card_color) ? p.card_color : '');
+  var headText = isHexColor(d.text_color) ? d.text_color : (isHexColor(p.text_color) ? p.text_color : '');
+  var fontKey = d.font || p.font;
+  var font = FONTS[fontKey] || '';
+
+  var style = '--accent:' + accent + ';';
+  var ink = contrastTextColor(accent);
+  if(ink) style += '--accent-ink-custom:' + ink + ';';
+  if(isImageUrl(bg)){
+    style += 'background-image:url(\'' + encodeURI(bg).replace(/'/g, '%27') + '\');background-size:cover;background-position:center;background-attachment:fixed;';
+  } else if(isHexColor(bg)){
+    style += '--bg:' + bg + ';';
+    if(!headText) headText = contrastTextColor(bg);
+  }
+  if(card){
+    style += '--card-bg:' + card + ';--card-text:' + contrastTextColor(card) + ';';
+  }
+  if(headText) style += '--head-text:' + headText + ';';
+  if(font) style += '--brand-font:' + font + ';';
+
+  var icon = String(d.stamp_icon || '').slice(0, 400);
+  return {
+    bodyStyle: style,
+    subtitle: String(d.subtitle || '').slice(0, 60),
+    stampIcon: (isImageUrl(icon) || (icon && icon.length <= 8)) ? icon : '',
+    emptyStyle: d.empty_style === 'faded' ? 'faded' : 'number',
+    shape: d.shape === 'rounded' || d.shape === 'square' ? d.shape : 'circle'
+  };
+}
+
+
+/* Birthday field typed as DD/MM/AAAA instead of a calendar picker
+   (scrolling back decades in a date picker is hard for older
+   customers). Plain ES5, injected as its own <script> in the card and
+   caja pages. The slashes are added automatically while typing. */
+var BIRTH_JS = '(' + function(){
+  window.birthInputHtml = function(id){
+    return '<input id="'+id+'" type="text" inputmode="numeric" autocomplete="bday" maxlength="10" placeholder="DD/MM/AAAA" style="letter-spacing:1px;">'+
+      '<div class="sub" style="font-size:12px;">Ejemplo: 14/03/1965</div>';
+  };
+  window.birthMask = function(el){
+    el.addEventListener('input', function(){
+      var d = el.value.replace(/\D/g, '').slice(0, 8);
+      var out = d.slice(0, 2);
+      if(d.length > 2) out += '/' + d.slice(2, 4);
+      if(d.length > 4) out += '/' + d.slice(4, 8);
+      el.value = out;
+    });
+  };
+  // "14/03/1965" -> "1965-03-14", or null when it's not a real past date
+  window.birthToIso = function(v){
+    var m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec((v || '').trim());
+    if(!m) return null;
+    var day = +m[1], mon = +m[2], yr = +m[3];
+    var dt = new Date(Date.UTC(yr, mon - 1, day));
+    if(dt.getUTCFullYear() !== yr || dt.getUTCMonth() !== mon - 1 || dt.getUTCDate() !== day) return null;
+    if(yr < 1900 || dt > new Date()) return null;
+    return yr + '-' + (mon < 10 ? '0' : '') + mon + '-' + (day < 10 ? '0' : '') + day;
+  };
+}.toString() + ')();';
 
 module.exports = {
   rpc: rpc,
@@ -135,5 +228,7 @@ module.exports = {
   sendHtml: sendHtml,
   sendRpcError: sendRpcError,
   BASE_CSS: BASE_CSS,
-  FONT_LINK: FONT_LINK
+  FONT_LINK: FONT_LINK,
+  resolveDesign: resolveDesign,
+  BIRTH_JS: BIRTH_JS
 };
