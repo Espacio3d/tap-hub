@@ -947,6 +947,16 @@
         (stats.suspicious.length ? '<p style="margin:0;color:var(--danger);font-size:13px;">⚠️ '+stats.suspicious.length+' sello(s) sospechoso(s) en los últimos 30.</p>' : '')+
         '<div class="field"><label>Últimos 30 sellos</label>'+recentHtml+'</div>'+
         '<button class="btn btn-ghost btn-sm" id="l-export" type="button" style="align-self:flex-start;">📥 Exportar clientes (CSV)</button>'+
+      '</div>'+
+
+      '<button class="btn btn-ghost btn-sm" id="l-advanced" type="button" style="align-self:center;color:var(--text-dim);">Opciones avanzadas</button>'+
+      '<div class="form-card" id="l-danger" style="display:none;border-color:var(--danger);">'+
+        '<h3 style="font-size:16px;color:var(--danger);">Borrar la tarjeta de sellos</h3>'+
+        '<p style="margin:0;font-size:13px;color:var(--text-dim);">Borra para siempre los clientes, sellos, canjes, PIN y enlace de caja de este negocio. '+
+          'La página normal del negocio no se toca. <b>No se puede deshacer.</b> Si solo quieres pausarla, desmarca "Servicio activo" arriba.</p>'+
+        (prog.enabled
+          ? '<p style="margin:0;font-size:13px;">🔒 Primero apaga el servicio (desmarca "Servicio de fidelización activo" y guarda) para poder borrar.</p>'
+          : '<button class="btn btn-danger btn-sm" id="l-delete" type="button" style="align-self:flex-start;border:1px solid var(--danger);">🗑️ Borrar todo</button>')+
       '</div>');
 
     app.querySelectorAll('[data-copy]').forEach(function(btn){
@@ -1035,6 +1045,25 @@
           '\n\nGuárdalo en el celular de la caja (Compartir → Agregar a inicio). Te pedirá el PIN una sola vez. No lo compartas.';
         var phone = (client.phone || '').replace(/[^0-9]/g, '');
         window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(msg), '_blank');
+      };
+    }
+
+    document.getElementById('l-advanced').onclick = function(){
+      var box = document.getElementById('l-danger');
+      box.style.display = box.style.display === 'none' ? 'flex' : 'none';
+    };
+
+    if(document.getElementById('l-delete')){
+      document.getElementById('l-delete').onclick = async function(){
+        // Double confirmation: a yes/no dialog, then typing the exact slug.
+        if(!confirm('¿Borrar para siempre la tarjeta de sellos de "'+client.name+'"?\n\nSe borran '+stats.customers+' clientes, '+stats.stamps+' sellos y '+stats.redemptions+' canjes. No se puede deshacer.')) return;
+        var typed = prompt('Para confirmar, escribe exactamente: '+client.slug);
+        if(typed === null) return;
+        if(typed.trim() !== client.slug){ toast('No coincide. No se borró nada.'); return; }
+        var res = await sb.from('loyalty_programs').delete().eq('client_slug', client.slug).eq('enabled', false);
+        if(res.error){ console.error(res.error); toast('No se pudo borrar: '+res.error.message); return; }
+        toast('Tarjeta de sellos borrada');
+        renderAdmin(clients, settings);
       };
     }
 
@@ -1565,4 +1594,3 @@
 </script>
 </body>
 </html>
-
