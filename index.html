@@ -661,6 +661,7 @@
           '<div class="slug">#'+escapeHtml(c.slug)+' · '+(c.buttons?c.buttons.length:0)+' enlaces</div></div>'+
         '<div class="client-actions">'+
           '<button class="btn btn-ghost btn-sm" data-act="stats" data-slug="'+escapeHtml(c.slug)+'">📊</button>'+
+          '<button class="btn btn-ghost btn-sm" data-act="loyalty" data-slug="'+escapeHtml(c.slug)+'" title="Tarjeta de sellos">🎟️</button>'+
           '<button class="btn btn-ghost btn-sm" data-act="edit" data-slug="'+escapeHtml(c.slug)+'">Editar</button>'+
         '</div>'+
       '</div>';
@@ -733,6 +734,13 @@
           renderForm(c, clients);
         };
       });
+      app.querySelectorAll('[data-act="loyalty"]').forEach(function(btn){
+        btn.onclick = function(){
+          var slug = btn.getAttribute('data-slug');
+          var c = clients.find(function(x){ return x.slug===slug; });
+          renderLoyalty(c, clients, settings);
+        };
+      });
       app.querySelectorAll('[data-act="stats"]').forEach(function(btn){
         btn.onclick = function(){
           var slug = btn.getAttribute('data-slug');
@@ -801,6 +809,251 @@
       }catch(err){
         toast('No se pudo reiniciar: '+(err && err.message ? err.message : 'error'));
       }
+    };
+  }
+
+  /* ---------------- LOYALTY (TARJETA DE SELLOS) VIEW ----------------
+     Only the admin sees this. Business clients never get panel
+     access: they only receive their caja link + PIN (sent by
+     WhatsApp from here). All rules are enforced by the database
+     functions in docs/supabase/03-fidelizacion.sql — this view
+     just edits loyalty_programs and reads the history tables. */
+  async function renderLoyalty(client, clients, settings){
+    var app = document.getElementById('app');
+    app.innerHTML = '<div class="admin-header"><h1>Tarjeta de sellos</h1></div><p style="color:var(--text-dim);">Cargando...</p>';
+
+    var progRes = await sb.from('loyalty_programs').select('*').eq('client_slug', client.slug).maybeSingle();
+    if(progRes.error){
+      console.error(progRes.error);
+      app.innerHTML = '<div class="admin-header"><h1>Tarjeta de sellos</h1></div>'+
+        '<div class="form-card"><p>No se pudo cargar. ¿Ya corriste <b>docs/supabase/03-fidelizacion.sql</b> en Supabase?</p>'+
+        '<div class="form-actions"><button class="btn btn-ghost" id="loyBackBtn" type="button">Volver</button></div></div>';
+      document.getElementById('loyBackBtn').onclick = function(){ renderAdmin(clients, settings); };
+      return;
+    }
+    var prog = progRes.data || {
+      client_slug: client.slug, enabled: false, stamps_needed: 8, reward: 'Premio gratis', cooldown_hours: 24,
+      ask_email: false, require_geo_qr: false, lat: null, lng: null, geo_radius_m: 150,
+      nfc_require_counter: false, caja_token: null, caja_pin_hash: null
+    };
+    var isNew = !progRes.data;
+
+    var stats = { customers: 0, stamps: 0, redemptions: 0, suspicious: [], recent: [] };
+    if(!isNew){
+      var r1 = await sb.from('loyalty_customers').select('id', { count:'exact', head:true }).eq('client_slug', client.slug);
+      var r2 = await sb.from('loyalty_stamps').select('id', { count:'exact', head:true }).eq('client_slug', client.slug);
+      var r3 = await sb.from('loyalty_redemptions').select('id', { count:'exact', head:true }).eq('client_slug', client.slug);
+      var r4 = await sb.from('loyalty_stamps').select('via,suspicious,note,distance_m,created_at,loyalty_customers(name,phone)')
+        .eq('client_slug', client.slug).order('created_at', { ascending:false }).limit(30);
+      stats.customers = r1.count || 0;
+      stats.stamps = r2.count || 0;
+      stats.redemptions = r3.count || 0;
+      stats.recent = r4.data || [];
+      stats.suspicious = stats.recent.filter(function(s){ return s.suspicious; });
+    }
+
+    var site = location.origin + '/';   // /:slug/sello and /caja/:token are root routes (vercel.json)
+    var cardUrl = site + client.slug + '/sello';
+    var nfcUrl = cardUrl + '?via=nfc';
+    var qrUrl = cardUrl + '?via=qr';
+    var cajaUrl = prog.caja_token ? site + 'caja/' + prog.caja_token : '';
+    var viaLabels = { nfc:'NFC', qr:'QR', pin:'PIN en celular', caja:'Caja' };
+
+    function chk(id, on, label){
+      return '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
+        '<input type="checkbox" id="'+id+'" style="width:18px;height:18px;"'+(on?' checked':'')+'>'+
+        '<label for="'+id+'" style="margin:0;">'+label+'</label></div>';
+    }
+    function linkRow(label, url, id){
+      return '<div class="field"><label>'+label+'</label>'+
+        '<div class="link-box"><span>'+escapeHtml(url)+'</span>'+
+        '<button class="btn btn-ghost btn-sm" data-copy="'+escapeHtml(url)+'" type="button">Copiar</button></div></div>';
+    }
+    var recentHtml = stats.recent.length ? stats.recent.map(function(s){
+      var who = s.loyalty_customers ? escapeHtml(s.loyalty_customers.name) : '—';
+      var when = new Date(s.created_at).toLocaleString('es-GT', { day:'numeric', month:'short', hour:'numeric', minute:'2-digit' });
+      return '<div class="stat-row"><span>'+(s.suspicious ? '⚠️ ' : '')+who+' · '+(viaLabels[s.via]||s.via)+
+        (s.note ? ' <span style="color:var(--danger);font-size:12px;">('+escapeHtml(s.note)+(s.distance_m!=null?', '+s.distance_m+' m':'')+')</span>' : '')+
+        '</span><span style="color:var(--text-dim);font-size:12px;">'+when+'</span></div>';
+    }).join('') : '<p style="color:var(--text-dim);font-size:13px;">Todavía no hay sellos.</p>';
+
+    app.innerHTML =
+      '<div class="admin-header"><div><h1>Tarjeta de sellos</h1><p>'+escapeHtml(client.name)+'</p></div></div>'+
+
+      '<div class="form-card">'+
+        chk('l-enabled', prog.enabled, '<b>Servicio de fidelización activo</b> (si lo apagas, la tarjeta y la caja se pausan; no se borra nada)')+
+        '<div class="row2">'+
+          '<div class="field"><label>Sellos para el premio</label><input type="text" inputmode="numeric" id="l-needed" value="'+prog.stamps_needed+'"></div>'+
+          '<div class="field"><label>Horas de bloqueo entre sellos</label><input type="text" inputmode="numeric" id="l-cooldown" value="'+prog.cooldown_hours+'"></div>'+
+        '</div>'+
+        '<div class="field"><label>Premio</label><input type="text" id="l-reward" value="'+escapeHtml(prog.reward)+'" placeholder="Café gratis"></div>'+
+        chk('l-email', prog.ask_email, 'Pedir correo en el registro (opcional para el cliente)')+
+      '</div>'+
+
+      '<div class="form-card">'+
+        '<h3 style="font-size:16px;">Protección del QR impreso</h3>'+
+        chk('l-geo', prog.require_geo_qr, 'Exigir que el cliente esté en el negocio para sellar por QR (pide ubicación)')+
+        '<div class="row2">'+
+          '<div class="field"><label>Latitud</label><input type="text" id="l-lat" value="'+(prog.lat==null?'':prog.lat)+'" placeholder="14.6349"></div>'+
+          '<div class="field"><label>Longitud</label><input type="text" id="l-lng" value="'+(prog.lng==null?'':prog.lng)+'" placeholder="-90.5069"></div>'+
+        '</div>'+
+        '<div class="row2">'+
+          '<div class="field"><label>Radio permitido (metros)</label><input type="text" inputmode="numeric" id="l-radius" value="'+prog.geo_radius_m+'"></div>'+
+          '<div class="field"><label>&nbsp;</label><button class="btn btn-ghost btn-sm" id="l-here" type="button">📍 Usar mi ubicación actual</button></div>'+
+        '</div>'+
+        '<p style="color:var(--text-dim);font-size:12px;margin:0;">Tip: pon la ubicación estando dentro del negocio, o cópiala de Google Maps (clic derecho → coordenadas).</p>'+
+      '</div>'+
+
+      '<div class="form-card">'+
+        '<h3 style="font-size:16px;">Protección del sticker NFC</h3>'+
+        chk('l-ctr', prog.nfc_require_counter, 'Exigir contador NFC (solo si TODOS los stickers de este negocio tienen el "mirror" de UID + contador activado)')+
+        '<p style="color:var(--text-dim);font-size:12px;margin:0;">Si no estás seguro, déjalo apagado: el bloqueo por horas sigue funcionando igual.</p>'+
+        '<div class="form-actions">'+
+          '<button class="btn btn-ghost" id="loyBackBtn" type="button">Volver</button>'+
+          '<button class="btn btn-primary" id="loySaveBtn" type="button">Guardar</button>'+
+        '</div>'+
+      '</div>'+
+
+      (isNew ? '<div class="form-card"><p style="margin:0;color:var(--text-dim);">Guarda primero para generar los enlaces, el PIN y la caja.</p></div>' :
+      '<div class="form-card">'+
+        '<h3 style="font-size:16px;">Enlaces para grabar e imprimir</h3>'+
+        linkRow('Enlace para el sticker NFC (grábalo con NFC Tools)', nfcUrl)+
+        linkRow('Enlace para el QR impreso', qrUrl)+
+        '<div class="qr-box"><div id="loyQr" style="width:140px;height:140px;"></div>'+
+          '<button class="btn btn-ghost btn-sm" id="loyQrBtn" type="button">Descargar QR</button></div>'+
+        linkRow('Enlace corto (para escribirlo a mano, WhatsApp o inicio — NO sella solo)', cardUrl)+
+      '</div>'+
+
+      '<div class="form-card">'+
+        '<h3 style="font-size:16px;">Caja del negocio</h3>'+
+        '<div class="field"><label>PIN de caja (4 a 8 números) '+(prog.caja_pin_hash ? '— ya hay uno puesto ✓' : '— todavía no hay PIN')+'</label>'+
+          '<div class="row2"><input type="text" inputmode="numeric" id="l-pin" maxlength="8" placeholder="Nuevo PIN" autocomplete="off">'+
+          '<button class="btn btn-ghost btn-sm" id="l-pin-save" type="button">Guardar PIN</button></div>'+
+          '<p style="color:var(--text-dim);font-size:12px;margin:0;">Cambiar el PIN desconecta todos los celulares de caja.</p></div>'+
+        (cajaUrl ? linkRow('Enlace de caja (secreto — solo para el negocio)', cajaUrl) : '<p style="margin:0;color:var(--text-dim);font-size:13px;">Todavía no hay enlace de caja.</p>')+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
+          '<button class="btn btn-ghost btn-sm" id="l-caja-new" type="button">'+(cajaUrl ? '🔄 Regenerar enlace (el viejo deja de servir)' : '➕ Generar enlace de caja')+'</button>'+
+          (cajaUrl ? '<button class="btn btn-ghost btn-sm" id="l-caja-wa" type="button">📲 Mandar por WhatsApp</button>' : '')+
+        '</div>'+
+      '</div>'+
+
+      '<div class="form-card">'+
+        '<h3 style="font-size:16px;">Estadísticas</h3>'+
+        '<div class="row2">'+
+          '<div class="field"><label>Clientes</label><div style="font-size:28px;font-weight:700;font-family:Outfit,sans-serif;">'+stats.customers+'</div></div>'+
+          '<div class="field"><label>Sellos</label><div style="font-size:28px;font-weight:700;font-family:Outfit,sans-serif;">'+stats.stamps+'</div></div>'+
+          '<div class="field"><label>Canjes</label><div style="font-size:28px;font-weight:700;font-family:Outfit,sans-serif;">'+stats.redemptions+'</div></div>'+
+        '</div>'+
+        (stats.suspicious.length ? '<p style="margin:0;color:var(--danger);font-size:13px;">⚠️ '+stats.suspicious.length+' sello(s) sospechoso(s) en los últimos 30.</p>' : '')+
+        '<div class="field"><label>Últimos 30 sellos</label>'+recentHtml+'</div>'+
+        '<button class="btn btn-ghost btn-sm" id="l-export" type="button" style="align-self:flex-start;">📥 Exportar clientes (CSV)</button>'+
+      '</div>');
+
+    app.querySelectorAll('[data-copy]').forEach(function(btn){
+      btn.onclick = function(){
+        var text = btn.getAttribute('data-copy');
+        (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
+          .then(function(){ toast('Copiado'); }, function(){ prompt('Copia el enlace:', text); });
+      };
+    });
+    document.getElementById('loyBackBtn').onclick = function(){ renderAdmin(clients, settings); };
+
+    document.getElementById('l-here').onclick = function(){
+      if(!navigator.geolocation){ toast('Este navegador no da la ubicación'); return; }
+      toast('Obteniendo ubicación...');
+      navigator.geolocation.getCurrentPosition(function(pos){
+        document.getElementById('l-lat').value = pos.coords.latitude.toFixed(6);
+        document.getElementById('l-lng').value = pos.coords.longitude.toFixed(6);
+        toast('Ubicación puesta (precisión ~'+Math.round(pos.coords.accuracy)+' m) — guarda para confirmar');
+      }, function(){ toast('No se pudo obtener la ubicación'); }, { enableHighAccuracy:true, timeout:15000 });
+    };
+
+    document.getElementById('loySaveBtn').onclick = async function(){
+      function num(id){ var v = document.getElementById(id).value.trim().replace(',', '.'); return v === '' ? null : Number(v); }
+      var row = {
+        client_slug: client.slug,
+        enabled: document.getElementById('l-enabled').checked,
+        stamps_needed: num('l-needed'),
+        cooldown_hours: num('l-cooldown'),
+        reward: document.getElementById('l-reward').value.trim(),
+        ask_email: document.getElementById('l-email').checked,
+        require_geo_qr: document.getElementById('l-geo').checked,
+        lat: num('l-lat'),
+        lng: num('l-lng'),
+        geo_radius_m: num('l-radius'),
+        nfc_require_counter: document.getElementById('l-ctr').checked,
+        updated_at: new Date().toISOString()
+      };
+      if(!(row.stamps_needed >= 1 && row.stamps_needed <= 50)){ toast('Los sellos deben ser entre 1 y 50'); return; }
+      if(!(row.cooldown_hours >= 0 && row.cooldown_hours <= 720)){ toast('Las horas de bloqueo deben ser entre 0 y 720'); return; }
+      if(!row.reward){ toast('Escribe el premio'); return; }
+      if(row.lat != null && !(row.lat >= -90 && row.lat <= 90)){ toast('Latitud no válida'); return; }
+      if(row.lng != null && !(row.lng >= -180 && row.lng <= 180)){ toast('Longitud no válida'); return; }
+      if(!(row.geo_radius_m >= 20)){ row.geo_radius_m = 150; }
+      if(row.require_geo_qr && (row.lat == null || row.lng == null)){ toast('Para exigir ubicación, pon la latitud y longitud del negocio'); return; }
+      var res = await sb.from('loyalty_programs').upsert(row, { onConflict:'client_slug' });
+      if(res.error){ console.error(res.error); toast('No se pudo guardar: '+res.error.message); return; }
+      toast('Guardado');
+      renderLoyalty(client, clients, settings);
+    };
+
+    if(isNew) return;
+
+    if(window.QRCode){
+      new QRCode(document.getElementById('loyQr'), { text: qrUrl, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
+    }
+    document.getElementById('loyQrBtn').onclick = function(){
+      var canvas = document.querySelector('#loyQr canvas');
+      if(!canvas){ toast('El QR todavía está cargando, intenta de nuevo'); return; }
+      var a = document.createElement('a');
+      a.download = client.slug + '-sellos-qr.png';
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    };
+
+    document.getElementById('l-pin-save').onclick = async function(){
+      var pin = document.getElementById('l-pin').value.trim();
+      if(!/^\d{4,8}$/.test(pin)){ toast('El PIN debe tener de 4 a 8 números'); return; }
+      var res = await sb.rpc('loyalty_admin_set_pin', { p_slug: client.slug, p_pin: pin });
+      if(res.error){ console.error(res.error); toast('No se pudo guardar el PIN: '+res.error.message); return; }
+      toast('PIN guardado. Anótalo: no se puede volver a ver.');
+      prog.caja_pin_hash = 'set';
+      document.getElementById('l-pin').value = '';
+    };
+
+    document.getElementById('l-caja-new').onclick = async function(){
+      if(cajaUrl && !confirm('El enlace actual dejará de funcionar y los celulares de caja tendrán que entrar con el enlace nuevo. ¿Continuar?')) return;
+      var res = await sb.rpc('loyalty_admin_new_caja_link', { p_slug: client.slug });
+      if(res.error){ console.error(res.error); toast('No se pudo generar: '+res.error.message); return; }
+      toast('Enlace de caja listo');
+      renderLoyalty(client, clients, settings);
+    };
+
+    if(document.getElementById('l-caja-wa')){
+      document.getElementById('l-caja-wa').onclick = function(){
+        var msg = 'Hola 👋 Este es el acceso de CAJA de la tarjeta de sellos de '+client.name+':\n'+cajaUrl+
+          '\n\nGuárdalo en el celular de la caja (Compartir → Agregar a inicio). Te pedirá el PIN una sola vez. No lo compartas.';
+        var phone = (client.phone || '').replace(/[^0-9]/g, '');
+        window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(msg), '_blank');
+      };
+    }
+
+    document.getElementById('l-export').onclick = async function(){
+      var res = await sb.from('loyalty_customers')
+        .select('name,phone,birthday,email,marketing_ok,balance,total_stamps,last_stamp_at,created_at')
+        .eq('client_slug', client.slug).order('created_at');
+      if(res.error){ toast('No se pudo exportar'); return; }
+      var cols = ['name','phone','birthday','email','marketing_ok','balance','total_stamps','last_stamp_at','created_at'];
+      var head = ['Nombre','Teléfono','Nacimiento','Correo','Acepta promociones','Sellos actuales','Sellos totales','Último sello','Registrado'];
+      var csv = head.join(',') + '\n' + res.data.map(function(r){
+        return cols.map(function(k){ var v = r[k] == null ? '' : String(r[k]); return '"' + v.replace(/"/g, '""') + '"'; }).join(',');
+      }).join('\n');
+      var blob = new Blob(['﻿' + csv], { type:'text/csv;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = client.slug + '-clientes-sellos.csv';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
     };
   }
 
@@ -1312,3 +1565,4 @@
 </script>
 </body>
 </html>
+
