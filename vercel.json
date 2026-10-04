@@ -1,5 +1,7 @@
 {
   "rewrites": [
+    { "source": "/caja/:token", "destination": "/api/caja?token=:token" },
+    { "source": "/:slug/sello", "destination": "/api/sello?slug=:slug" },
     { "source": "/:slug/vcard", "destination": "/api/vcard?slug=:slug" },
     { "source": "/:slug", "destination": "/api/hub?slug=:slug" }
   ]
