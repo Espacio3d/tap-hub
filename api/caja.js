@@ -47,6 +47,15 @@ var PAGE_CSS = '\
 .big-num{font-family:"Outfit",sans-serif;font-size:34px;font-weight:700;}\
 .who{display:flex;justify-content:space-between;align-items:center;gap:12px;}\
 .pin{text-align:center;letter-spacing:8px;font-size:24px !important;}\
+.tabs{display:flex;gap:6px;background:var(--surface);border:1px solid var(--surface-edge);border-radius:14px;padding:5px;}\
+.tabs button{flex:1;border:none;background:none;border-radius:10px;padding:10px 4px;font-size:14px;font-weight:600;font-family:"Outfit",sans-serif;color:var(--text-dim);cursor:pointer;}\
+.tabs button.on{background:var(--accent,var(--accent-default));color:var(--accent-ink-custom,var(--accent-ink));}\
+.person{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--surface-edge);}\
+.person:first-child{border-top:none;}\
+.person .info{flex:1;min-width:0;}\
+.person .btn{width:auto;padding:10px 14px;font-size:14px;}\
+.person.sent{opacity:.55;}\
+textarea.msgbox{width:100%;background:color-mix(in srgb,var(--text) 6%,transparent);border:1px solid var(--surface-edge);border-radius:10px;padding:12px;font-size:16px;color:var(--text);font-family:inherit;resize:vertical;}\
 ';
 
 var PAGE_JS = '(' + function(){
@@ -72,10 +81,22 @@ var PAGE_JS = '(' + function(){
     }).then(function(r){ return r.json(); })
       .catch(function(){ return { ok:false, reason:'network', message:'Sin conexión. Revisa el internet.' }; });
   }
+  var TAB = 'sellar';
   function head(){
     return '<div class="head"><h1>Caja · '+esc(P.name || '')+'</h1>'+
-      '<div class="sub">Premio: '+esc(P.reward)+' · '+P.stamps_needed+' sellos</div></div>';
+      '<div class="sub">Premio: '+esc(P.reward)+' · '+P.stamps_needed+' sellos</div></div>'+
+      (P.caja_promos && TAB !== 'login' ? '<div class="tabs">'+
+        '<button type="button" data-tab="sellar" class="'+(TAB==='sellar'?'on':'')+'">🎟️ Sellar</button>'+
+        '<button type="button" data-tab="birthday" class="'+(TAB==='birthday'?'on':'')+'">🎂 Cumpleaños</button>'+
+        '<button type="button" data-tab="promo" class="'+(TAB==='promo'?'on':'')+'">📣 Promos</button>'+
+      '</div>' : '');
   }
+  app.addEventListener('click', function(e){
+    var t = e.target.closest && e.target.closest('[data-tab]');
+    if(!t) return;
+    var tab = t.getAttribute('data-tab');
+    if(tab === 'sellar') renderSearch(); else renderAudience(tab);
+  });
   function needPin(r){
     if(r.reason === 'need_pin'){ renderLogin({ cls:'msg-warn', text:'Ingresa el PIN de caja otra vez.' }); return true; }
     if(r.reason === 'inactive' || r.reason === 'bad_link'){ renderOff(); return true; }
@@ -87,6 +108,7 @@ var PAGE_JS = '(' + function(){
   }
 
   function renderLogin(flash){
+    TAB = 'login';
     app.innerHTML = head() +
       '<div class="card">'+
         (flash ? '<div class="msg '+flash.cls+'">'+esc(flash.text)+'</div>' : '')+
@@ -110,6 +132,7 @@ var PAGE_JS = '(' + function(){
 
   function renderSearch(flash){
     current = null;
+    TAB = 'sellar';
     app.innerHTML = head() +
       (flash ? '<div class="msg '+flash.cls+'">'+flash.text+'</div>' : '')+
       '<div class="card">'+
@@ -164,6 +187,98 @@ var PAGE_JS = '(' + function(){
       else if(r.reason === 'not_enough') flash = { cls:'msg-err', text:'Todavía no completa su tarjeta.' };
       else flash = { cls:'msg-err', text:esc(r.message || 'Algo salió mal.') };
       renderCustomer(flash);
+    });
+  }
+
+  /* ---------- 🎂 Cumpleaños / 📣 Promos ----------
+     Lists ONLY customers who accepted promotions. "Enviar" opens this
+     phone's WhatsApp (the business's) with the message already written;
+     the cashier just taps send. Each send is recorded so it shows
+     "✓ Enviado" for everyone who uses this caja. */
+  var DEFAULT_BDAY = '¡Feliz cumpleaños, {nombre}! 🎂 En {negocio} queremos celebrarte: visítanos esta semana y recibe un regalo especial. ¡Te esperamos!';
+  var drafts = { birthday: null, promo: '' };
+
+  function fill(text, c){
+    var first = (c.name || '').trim().split(/\s+/)[0] || '';
+    return text
+      .replace(/\{nombre\}/g, first)
+      .replace(/\{negocio\}/g, P.name || '')
+      .replace(/\{premio\}/g, P.reward || '')
+      .replace(/\{sellos\}/g, String(Math.min(c.balance, P.stamps_needed)))
+      .replace(/\{faltan\}/g, String(Math.max(P.stamps_needed - c.balance, 0)))
+      .replace(/\{enlace\}/g, location.origin + '/' + P.slug + '/sello');
+  }
+  function prettyPhone(p){ return p && p.length === 11 && p.indexOf('502') === 0 ? p.slice(3,7) + ' ' + p.slice(7) : '+' + p; }
+  function wasSent(c, kind){
+    if(!c.last_sent_at) return false;
+    var ago = Date.now() - new Date(c.last_sent_at).getTime();
+    return kind === 'birthday' ? ago < 30 * 864e5 : ago < 12 * 36e5;
+  }
+
+  function renderAudience(kind){
+    TAB = kind;
+    if(drafts.birthday === null) drafts.birthday = P.birthday_msg || DEFAULT_BDAY;
+    app.innerHTML = head() + '<div class="card"><div class="sub">Cargando...</div></div>';
+    post({ action:'audience', kind:kind }).then(function(r){
+      if(needPin(r)) return;
+      if(!Array.isArray(r)){
+        app.innerHTML = head() + '<div class="card"><div class="msg msg-err">'+esc(r.message || 'No se pudo cargar la lista.')+'</div></div>';
+        return;
+      }
+      var list = r;
+      var isB = kind === 'birthday';
+
+      function draw(){
+        var pending = list.filter(function(c){ return !wasSent(c, kind); });
+        app.innerHTML = head() +
+          '<div class="card">'+
+            '<h2 style="font-size:19px;">'+(isB ? '🎂 Cumpleañeros' : '📣 Enviar una promo')+'</h2>'+
+            '<div class="sub" style="margin-top:-6px;">'+(isB
+              ? 'Clientes que cumplen años de hoy a 7 días y aceptaron promociones.'
+              : 'Se envía a todos los clientes que aceptaron recibir promociones.')+'</div>'+
+            '<div class="field"><label for="msg">'+(isB ? 'Mensaje (ya viene escrito, puedes cambiarlo)' : 'Escribe tu promo')+'</label>'+
+              '<textarea id="msg" class="msgbox" rows="4" placeholder="Ej: ¡Hola {nombre}! Este viernes 2x1 en café ☕">'+esc(drafts[kind])+'</textarea>'+
+              '<div class="sub" style="font-size:12px;">Escribe <b>{nombre}</b> y se cambia solo por el nombre de cada cliente.</div>'+
+            '</div>'+
+            (list.length ? '<button class="btn btn-primary" id="nextBtn" type="button"'+(pending.length ? '' : ' disabled')+'>'+
+              (pending.length ? '▶ Enviar al siguiente ('+pending.length+' pendiente'+(pending.length===1?'':'s')+')' : '✓ Ya se envió a todos')+'</button>' : '')+
+          '</div>'+
+          '<div class="card">'+
+            '<div class="sub">'+list.length+' cliente'+(list.length===1?'':'s')+' · '+(list.length - pending.length)+' enviado'+(list.length - pending.length===1?'':'s')+'</div>'+
+            (list.length ? '<div>'+list.map(function(c){
+              var sent = wasSent(c, kind);
+              var info = isB ? (c.days === 0 ? '🎂 ¡Hoy!' : (c.days === 1 ? '🎂 Mañana' : '🎂 En '+c.days+' días'))
+                             : Math.min(c.balance, P.stamps_needed)+'/'+P.stamps_needed+' sellos';
+              return '<div class="person'+(sent?' sent':'')+'"><div class="info"><b>'+esc(c.name)+'</b>'+
+                '<div class="sub" style="font-size:13px;">'+esc(prettyPhone(c.phone))+' · '+info+'</div></div>'+
+                '<button class="btn '+(sent?'btn-ghost':'btn-primary')+'" type="button" data-send="'+esc(c.id)+'">'+(sent?'✓ Enviado':'Enviar')+'</button></div>';
+            }).join('')+'</div>'
+            : '<div class="sub">'+(isB ? 'No hay cumpleañeros esta semana.' : 'Todavía nadie ha aceptado recibir promociones.')+'</div>')+
+          '</div>';
+
+        $('msg').oninput = function(){ drafts[kind] = this.value; };
+        if($('nextBtn')) $('nextBtn').onclick = function(){
+          var next = list.filter(function(c){ return !wasSent(c, kind); })[0];
+          if(next) send(next);
+        };
+        app.querySelectorAll('[data-send]').forEach(function(btn){
+          btn.onclick = function(){
+            var c = list.filter(function(x){ return x.id === btn.getAttribute('data-send'); })[0];
+            if(c) send(c);
+          };
+        });
+      }
+
+      function send(c){
+        var text = (drafts[kind] || '').trim();
+        if(!text){ alert('Primero escribe el mensaje.'); $('msg').focus(); return; }
+        window.open('https://wa.me/' + c.phone + '?text=' + encodeURIComponent(fill(text, c)), '_blank');
+        c.last_sent_at = new Date().toISOString();
+        post({ action:'sent', customer:c.id, kind:kind });
+        draw();
+      }
+
+      draw();
     });
   }
 
@@ -224,6 +339,11 @@ module.exports = async function handler(req, res){
         r = await L.rpc('loyalty_caja_lookup', { p_caja: token, p_device: device, p_phone: String(b.phone || '') });
       } else if(b.action === 'stamp' || b.action === 'redeem'){
         r = await L.rpc('loyalty_caja_action', { p_caja: token, p_device: device, p_customer: String(b.customer || ''), p_action: b.action });
+      } else if(b.action === 'audience'){
+        r = await L.rpc('loyalty_caja_audience', { p_caja: token, p_device: device, p_kind: b.kind === 'promo' ? 'promo' : 'birthday' });
+      } else if(b.action === 'sent'){
+        r = await L.rpc('loyalty_caja_mark_sent', {
+          p_caja: token, p_device: device, p_customer: String(b.customer || ''), p_kind: b.kind === 'promo' ? 'promo' : 'birthday' });
       } else if(b.action === 'register'){
         r = await L.rpc('loyalty_caja_register', {
           p_caja: token, p_device: device, p_name: String(b.name || ''), p_phone: String(b.phone || ''), p_birthday: b.birthday || null });
