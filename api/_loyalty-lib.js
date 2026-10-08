@@ -82,7 +82,7 @@ function sendHtml(res, status, html){
 // Turns a thrown rpc error into a JSON answer for the page
 function sendRpcError(res, e){
   console.error(e);
-  var known = ['locked','inactive','bad_name','bad_phone','bad_birthday','exists','no_session','bad_link','need_pin','not_found','bad_pin'];
+  var known = ['locked','inactive','bad_name','bad_phone','bad_birthday','exists','no_session','bad_link','need_pin','not_found','bad_pin','promos_off'];
   if(known.indexOf(e.reason) !== -1){
     sendJson(res, 400, { ok:false, reason:e.reason, message:e.hint || '' });
   } else {
