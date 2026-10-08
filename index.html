@@ -835,7 +835,8 @@
     var prog = progRes.data || {
       client_slug: client.slug, enabled: false, stamps_needed: 8, reward: 'Premio gratis', cooldown_hours: 24,
       ask_email: false, require_geo_qr: false, lat: null, lng: null, geo_radius_m: 150,
-      nfc_require_counter: false, caja_token: null, caja_pin_hash: null, design: {}
+      nfc_require_counter: false, caja_token: null, caja_pin_hash: null, design: {},
+      caja_promos: false, birthday_msg: null
     };
     var design = Object.assign({}, prog.design || {});
     var isNew = !progRes.data;
@@ -890,6 +891,7 @@
 
     app.innerHTML =
       '<div class="admin-header"><div><h1>Tarjeta de sellos</h1><p>'+escapeHtml(client.name)+'</p></div></div>'+
+      (isNew ? '' : '<button class="btn btn-primary" id="l-promos" type="button">📣 Promociones por WhatsApp</button>')+
 
       '<div class="form-card">'+
         chk('l-enabled', prog.enabled, '<b>Servicio de fidelización activo</b> (si lo apagas, la tarjeta y la caja se pausan; no se borra nada)')+
@@ -899,6 +901,11 @@
         '</div>'+
         '<div class="field"><label>Premio</label><input type="text" id="l-reward" value="'+escapeHtml(prog.reward)+'" placeholder="Café gratis"></div>'+
         chk('l-email', prog.ask_email, 'Pedir correo en el registro (opcional para el cliente)')+
+        chk('l-caja-promos', prog.caja_promos, '<b>Cumpleaños y Promos en la Caja</b>: el negocio puede enviar saludos y promos por WhatsApp desde su Caja (solo a clientes que aceptaron promociones)')+
+        '<div class="field"><label>Mensaje de cumpleaños predeterminado ({nombre} y {negocio} se cambian solos)</label>'+
+          '<textarea id="l-bday-msg" rows="3" style="background:var(--bg);border:1px solid var(--surface-edge);border-radius:10px;padding:10px 12px;font-size:15px;color:var(--text);font-family:inherit;resize:vertical;" placeholder="¡Feliz cumpleaños, {nombre}! 🎂 En {negocio} queremos celebrarte: visítanos esta semana y recibe un regalo especial. ¡Te esperamos!">'+escapeHtml(prog.birthday_msg || '')+'</textarea>'+
+          '<p style="margin:0;font-size:12px;color:var(--text-dim);">Si lo dejas vacío se usa el mensaje de ejemplo.</p>'+
+        '</div>'+
       '</div>'+
 
       '<div class="form-card">'+
@@ -1159,6 +1166,8 @@
         geo_radius_m: num('l-radius'),
         nfc_require_counter: document.getElementById('l-ctr').checked,
         design: readDesign(),
+        caja_promos: document.getElementById('l-caja-promos').checked,
+        birthday_msg: document.getElementById('l-bday-msg').value.trim() || null,
         updated_at: new Date().toISOString()
       };
       if(!(row.stamps_needed >= 1 && row.stamps_needed <= 50)){ toast('Los sellos deben ser entre 1 y 50'); return; }
@@ -1175,6 +1184,8 @@
     };
 
     if(isNew) return;
+
+    document.getElementById('l-promos').onclick = function(){ renderPromos(client, clients, settings, prog); };
 
     if(window.QRCode){
       new QRCode(document.getElementById('loyQr'), { text: qrUrl, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
@@ -1251,6 +1262,133 @@
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
     };
+  }
+
+  /* ---------------- PROMOCIONES (WHATSAPP) VIEW ----------------
+     Free, semi-automatic campaigns: write one message, filter the
+     customers who accepted promotions, and send it one by one — each
+     "Enviar" opens WhatsApp with the text already personalised. Only
+     customers with marketing_ok = true are ever listed. */
+  async function renderPromos(client, clients, settings, prog){
+    var app = document.getElementById('app');
+    app.innerHTML = '<div class="admin-header"><h1>Promociones</h1></div><p style="color:var(--text-dim);">Cargando...</p>';
+    var res = await sb.from('loyalty_customers')
+      .select('id,name,phone,birthday,balance,last_stamp_at,marketing_ok,created_at')
+      .eq('client_slug', client.slug).order('name');
+    if(res.error){ console.error(res.error); toast('No se pudieron cargar los clientes'); renderLoyalty(client, clients, settings); return; }
+    var all = res.data || [];
+    var optedIn = all.filter(function(c){ return c.marketing_ok; });
+    var need = prog.stamps_needed;
+    var cardUrl = location.origin + '/' + client.slug + '/sello';
+    var sent = {};   // ids sent in this session, so you can see your progress
+
+    var TEMPLATES = [
+      { label:'Promo general', text:'Hola {nombre} 👋 Esta semana en {negocio} tenemos una promoción especial para ti. ¡Te esperamos!' },
+      { label:'Cumpleaños', text:'¡Feliz cumpleaños, {nombre}! 🎂 En {negocio} te queremos consentir: ven esta semana y recibe un regalo especial.' },
+      { label:'Falta 1 sello', text:'Hola {nombre} 👋 ¡Solo te falta {faltan} sello para tu {premio} en {negocio}! Te esperamos ☕' },
+      { label:'Premio listo', text:'Hola {nombre} 🎉 ¡Ya completaste tu tarjeta en {negocio}! Pasa a canjear tu {premio}.' },
+      { label:'Te extrañamos', text:'Hola {nombre}, ¡te extrañamos en {negocio}! 😊 Llevas {sellos} de {total} sellos. Ven pronto y sigue juntando.' }
+    ];
+    var FILTERS = [
+      { key:'all',     label:'Todos los que aceptaron' },
+      { key:'bday7',   label:'🎂 Cumpleaños en los próximos 7 días' },
+      { key:'bdaymon', label:'🎂 Cumpleaños este mes' },
+      { key:'one',     label:'⏳ Les falta 1 sello' },
+      { key:'ready',   label:'🎁 Premio listo sin canjear' },
+      { key:'away',    label:'💤 No vienen hace más de 30 días' }
+    ];
+
+    function gtToday(){
+      // Today's date in Guatemala, as a UTC-midnight Date
+      var p = new Intl.DateTimeFormat('en-CA', { timeZone:'America/Guatemala', year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date()).split('-');
+      return new Date(Date.UTC(+p[0], +p[1]-1, +p[2]));
+    }
+    function daysToBirthday(iso){
+      if(!iso) return 999;
+      var t = gtToday(), b = iso.split('-');
+      var next = new Date(Date.UTC(t.getUTCFullYear(), +b[1]-1, +b[2]));
+      if(next < t) next = new Date(Date.UTC(t.getUTCFullYear()+1, +b[1]-1, +b[2]));
+      return Math.round((next - t) / 864e5);
+    }
+    function matches(c, key){
+      if(key === 'bday7') return daysToBirthday(c.birthday) <= 7;
+      if(key === 'bdaymon') return c.birthday && +c.birthday.split('-')[1] === gtToday().getUTCMonth()+1;
+      if(key === 'one') return c.balance === need - 1;
+      if(key === 'ready') return c.balance >= need;
+      if(key === 'away') return !c.last_stamp_at || (Date.now() - new Date(c.last_stamp_at)) > 30*864e5;
+      return true;
+    }
+    function fill(text, c){
+      var first = (c.name || '').trim().split(/\s+/)[0] || '';
+      var have = Math.min(c.balance, need);
+      return text
+        .replace(/\{nombre\}/g, first)
+        .replace(/\{negocio\}/g, client.name || '')
+        .replace(/\{premio\}/g, prog.reward || '')
+        .replace(/\{sellos\}/g, String(have))
+        .replace(/\{total\}/g, String(need))
+        .replace(/\{faltan\}/g, String(Math.max(need - c.balance, 0)))
+        .replace(/\{enlace\}/g, cardUrl);
+    }
+    function prettyPhone(p){ return p && p.length === 11 && p.indexOf('502') === 0 ? '+502 ' + p.slice(3,7) + ' ' + p.slice(7) : '+' + p; }
+
+    app.innerHTML =
+      '<div class="admin-header"><div><h1>Promociones</h1><p>'+escapeHtml(client.name)+' · por WhatsApp</p></div></div>'+
+      '<div class="form-card">'+
+        '<p style="margin:0;font-size:13px;color:var(--text-dim);">Solo aparecen los clientes que marcaron <b>"Acepto recibir promociones"</b>: '+
+          '<b>'+optedIn.length+'</b> de '+all.length+'. Cada botón <b>Enviar</b> abre WhatsApp con el mensaje listo; tú solo tocas enviar.</p>'+
+        '<div class="field"><label>1. ¿A quiénes?</label><select id="p-filter">'+
+          FILTERS.map(function(f){ return '<option value="'+f.key+'">'+f.label+'</option>'; }).join('')+
+        '</select></div>'+
+        '<div class="field"><label>2. Mensaje</label>'+
+          '<div class="templates-row">'+TEMPLATES.map(function(t, i){
+            return '<button class="btn btn-ghost btn-sm" type="button" data-tpl="'+i+'">'+escapeHtml(t.label)+'</button>'; }).join('')+'</div>'+
+          '<textarea id="p-text" rows="5" style="background:var(--bg);border:1px solid var(--surface-edge);border-radius:10px;padding:10px 12px;font-size:15px;color:var(--text);font-family:inherit;resize:vertical;">'+escapeHtml(TEMPLATES[0].text)+'</textarea>'+
+          '<p style="margin:0;font-size:12px;color:var(--text-dim);">Se reemplazan solos: <b>{nombre}</b> <b>{negocio}</b> <b>{premio}</b> <b>{sellos}</b> <b>{total}</b> <b>{faltan}</b> <b>{enlace}</b> (su tarjeta)</p>'+
+        '</div>'+
+        '<div class="field"><label>Así le llega al primero de la lista</label>'+
+          '<div id="p-sample" style="background:#DCF8C6;color:#111;border-radius:12px;padding:10px 12px;font-size:14px;white-space:pre-wrap;"></div></div>'+
+      '</div>'+
+      '<div class="form-card">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;"><label style="font-size:13px;font-weight:600;color:var(--text-dim);">3. Enviar</label>'+
+          '<span id="p-progress" style="font-size:13px;color:var(--text-dim);"></span></div>'+
+        '<div id="p-list" style="display:flex;flex-direction:column;gap:8px;"></div>'+
+      '</div>'+
+      '<div class="form-actions" style="border-top:none;"><button class="btn btn-ghost" id="p-back" type="button">Volver</button></div>';
+
+    function render(){
+      var key = document.getElementById('p-filter').value;
+      var text = document.getElementById('p-text').value;
+      var list = optedIn.filter(function(c){ return matches(c, key); });
+      if(key === 'bday7') list.sort(function(a, b){ return daysToBirthday(a.birthday) - daysToBirthday(b.birthday); });
+      document.getElementById('p-sample').textContent = list.length ? fill(text, list[0]) : fill(text, { name:'María', balance: need - 1 });
+      var done = list.filter(function(c){ return sent[c.id]; }).length;
+      document.getElementById('p-progress').textContent = list.length ? done + ' de ' + list.length + ' enviados' : '';
+      document.getElementById('p-list').innerHTML = list.length ? list.map(function(c){
+        var extra = key === 'bday7' || key === 'bdaymon'
+          ? (daysToBirthday(c.birthday) === 0 ? ' · 🎂 ¡hoy!' : ' · 🎂 en ' + daysToBirthday(c.birthday) + ' días')
+          : ' · ' + Math.min(c.balance, need) + '/' + need + ' sellos';
+        return '<div class="stat-row" style="align-items:center;gap:10px;'+(sent[c.id] ? 'opacity:.55;' : '')+'">'+
+          '<span style="flex:1;min-width:0;"><b>'+escapeHtml(c.name)+'</b><br><span style="font-size:12px;color:var(--text-dim);">'+escapeHtml(prettyPhone(c.phone))+extra+'</span></span>'+
+          '<button class="btn '+(sent[c.id] ? 'btn-ghost' : 'btn-primary')+' btn-sm" type="button" data-send="'+escapeHtml(c.id)+'">'+(sent[c.id] ? '✓ Enviado' : 'Enviar')+'</button>'+
+        '</div>';
+      }).join('') : '<p style="color:var(--text-dim);font-size:13px;margin:0;">Nadie cumple con este filtro por ahora.</p>';
+      document.querySelectorAll('[data-send]').forEach(function(btn){
+        btn.onclick = function(){
+          var c = optedIn.find(function(x){ return x.id === btn.getAttribute('data-send'); });
+          window.open('https://wa.me/' + c.phone + '?text=' + encodeURIComponent(fill(document.getElementById('p-text').value, c)), '_blank');
+          sent[c.id] = true;
+          render();
+        };
+      });
+    }
+    document.getElementById('p-filter').onchange = render;
+    document.getElementById('p-text').oninput = render;
+    document.querySelectorAll('[data-tpl]').forEach(function(btn){
+      btn.onclick = function(){ document.getElementById('p-text').value = TEMPLATES[+btn.getAttribute('data-tpl')].text; render(); };
+    });
+    document.getElementById('p-back').onclick = function(){ renderLoyalty(client, clients, settings); };
+    render();
   }
 
   /* ---------------- NFC WRITER VIEW ----------------
