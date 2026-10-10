@@ -128,7 +128,7 @@ function renderPage(client, pageUrl){
   }).join('');
 
   var contactHtml = (client.phone && client.save_contact_enabled) ?
-    '<a class="hub-link" href="'+pageUrl+'/vcard">'+
+    '<a class="hub-link" data-tap-extra="1" href="'+pageUrl+'/vcard">'+
       '<span class="icon-badge" style="background:var(--accent, var(--accent-default));color:#fff;">'+svgIcon('contact')+'</span>'+
       '<span>Guardar Contacto</span>'+
       '<svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
