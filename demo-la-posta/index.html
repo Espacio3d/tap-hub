@@ -168,7 +168,7 @@ var TEST = /[?&]prueba\b/.test(location.search);
 if (TEST) document.body.insertAdjacentHTML("afterbegin",
   '<div class="test-banner">🧪 MODO PRUEBA · los pedidos NO llegan a La Posta</div>');
 var V = "videos/", F = "fotos/";
-var VER = "?v=4";   // bump when video files are replaced, so browsers don't show the cached copy
+var VER = "?v=5";   // bump when video files are replaced, so browsers don't show the cached copy
 
 /* Each product: id (photo/video file name), name, category, options [label, price, unit].
    video:true means videos/<id>.mp4 exists; t = second the card video starts at (default 7). */
@@ -227,7 +227,11 @@ function minPrice(p){ return Math.min.apply(null, p.o.map(function(o){ return o[
 
 function mediaHtml(p, big){
   if (p.video) {
-    return '<video src="'+V+p.id+'.mp4'+VER+'#t='+(p.t||7)+'" poster="'+V+p.id+'.jpg'+VER+'" data-t="'+(p.t||7)+'" muted '+(big?'loop autoplay ':'')+'playsinline preload="'+(big?'auto':'metadata')+'"></video>';
+    /* Cards play a short pre-cut clip (<id>-card.mp4, ~150 KB, only the best part); the detail view plays the full video.
+       Pre-cut because iPhone browsers ignore '#t=' start times and would show the empty opening. */
+    return big
+      ? '<video src="'+V+p.id+'.mp4'+VER+'" poster="'+V+p.id+'.jpg'+VER+'" muted loop autoplay playsinline preload="auto"></video>'
+      : '<video src="'+V+p.id+'-card.mp4'+VER+'" poster="'+V+p.id+'.jpg'+VER+'" muted loop playsinline preload="auto"></video>';
   }
   return '<img src="'+F+p.id+'.png" alt="'+p.n+'" loading="lazy"><div class="shine"></div>';
 }
@@ -257,9 +261,8 @@ var io = new IntersectionObserver(function(es){
   es.forEach(function(e){ e.isIntersecting ? e.target.play().catch(function(){}) : e.target.pause(); });
 }, {threshold:.4});
 document.querySelectorAll("#menu video").forEach(function(v){
+  v.muted = true;   // iOS only autoplays when the muted *property* is set
   io.observe(v);
-  /* Cards loop only the good part of the clip (from data-t to the end), never the empty opening */
-  v.addEventListener("ended", function(){ v.currentTime = +v.dataset.t; v.play().catch(function(){}); });
 });
 
 /* Category chips: jump + highlight current section */
@@ -443,12 +446,19 @@ function cartClick(e){
   if (b.dataset.back) { step2 = false; return renderCart(); }
   if (b.dataset.f) { chk[b.dataset.f] = b.dataset.v; return renderCart(); }
   if (b.dataset.loc) {
-    if (!navigator.geolocation) return alert("Tu teléfono no permite compartir la ubicación.");
+    if (!navigator.geolocation) return alert("Este navegador no permite compartir la ubicación. Escribe tu dirección.");
     b.textContent = "Buscando tu ubicación…";
     navigator.geolocation.getCurrentPosition(function(pos){
       chk.loc = "https://maps.google.com/?q=" + pos.coords.latitude.toFixed(6) + "," + pos.coords.longitude.toFixed(6);
       renderCart();
-    }, function(){ alert("No pudimos obtener tu ubicación. Escribe tu dirección."); renderCart(); }, {enableHighAccuracy:true, timeout:10000});
+    }, function(err){
+      /* Common inside WhatsApp/Instagram in-app browsers and private browsing, where location is blocked */
+      var inApp = /FBAN|FBAV|Instagram|WhatsApp|Line\//i.test(navigator.userAgent);
+      alert(err && err.code === 1
+        ? "Tu teléfono no dio permiso para usar la ubicación." + (inApp ? "\n\nSi abriste el menú desde WhatsApp o Instagram, toca ··· y elige \"Abrir en Safari\" o \"Abrir en Chrome\"." : "\n\nRevisa en Ajustes que tu navegador tenga permiso de ubicación.") + "\n\nTambién puedes escribir tu dirección."
+        : "No pudimos obtener tu ubicación en este momento. Escribe tu dirección o inténtalo de nuevo.");
+      renderCart();
+    }, {enableHighAccuracy:true, timeout:15000, maximumAge:60000});
     return;
   }
   if (b.dataset.send) {
