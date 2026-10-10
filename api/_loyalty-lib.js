@@ -97,6 +97,7 @@ var BASE_CSS = '\
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#121615;--surface:#1C2120;--surface-edge:#2B3230;--text:#EEF1EF;--text-dim:#9AA5A1;--accent-default:#2FD1A4;--accent-ink:#0B1413;--chip-bg:#242B29;--danger:#E17A6B;--ok:#2FD1A4;color-scheme:dark;}}\
 :root[data-theme="dark"]{--bg:#121615;--surface:#1C2120;--surface-edge:#2B3230;--text:#EEF1EF;--text-dim:#9AA5A1;--accent-default:#2FD1A4;--accent-ink:#0B1413;--chip-bg:#242B29;--danger:#E17A6B;--ok:#2FD1A4;color-scheme:dark;}\
 *{box-sizing:border-box;}html,body{min-height:100%;}\
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background-image:var(--bg-img,none);background-size:cover;background-position:center;background-repeat:no-repeat;}\
 body{margin:0;background:var(--bg);color:var(--text);font-family:"Work Sans",-apple-system,BlinkMacSystemFont,sans-serif;padding-inline:16px;padding-block:28px;}\
 h1,h2,h3{font-family:"Outfit",-apple-system,sans-serif;margin:0;text-wrap:balance;}\
 #app{max-width:440px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}\
@@ -165,7 +166,7 @@ function resolveDesign(p){
   var ink = contrastTextColor(accent);
   if(ink) style += '--accent-ink-custom:' + ink + ';';
   if(isImageUrl(bg)){
-    style += 'background-image:url(\'' + encodeURI(bg).replace(/'/g, '%27') + '\');background-size:cover;background-position:center;background-attachment:fixed;';
+    style += '--bg-img:url(\'' + encodeURI(bg).replace(/'/g, '%27') + '\');';
   } else if(isHexColor(bg)){
     style += '--bg:' + bg + ';';
     if(!headText) headText = contrastTextColor(bg);
