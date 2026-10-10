@@ -590,7 +590,7 @@
       '</a>';
     }).join('');
     var contactHtml = (client.phone && client.save_contact_enabled) ?
-      '<a class="hub-link" href="'+baseUrl()+client.slug+'/vcard">'+
+      '<a class="hub-link" data-tap-extra="1" href="'+baseUrl()+client.slug+'/vcard">'+
         '<span class="icon-badge" style="background:var(--accent, var(--accent-default));color:#fff;">'+svgIcon('contact')+'</span>'+
         '<span>Guardar Contacto</span>'+
         '<svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
@@ -688,7 +688,7 @@
         '<div id="clientList" style="display:flex;flex-direction:column;gap:10px;">'+cardsHtml+'</div>'+
       '</div>';
 
-    document.getElementById('newClientBtn').onclick = function(){ renderForm(null, clients); };
+    document.getElementById('newClientBtn').onclick = function(){ renderForm(null, clients, settings); };
     document.getElementById('nfcWriterBtn').onclick = function(){ renderNfcWriter(clients, settings); };
     document.getElementById('settingsBtn').onclick = function(){ renderSettings(clients, settings); };
     document.getElementById('logoutBtn').onclick = async function(){
@@ -732,7 +732,7 @@
         btn.onclick = function(){
           var slug = btn.getAttribute('data-slug');
           var c = clients.find(function(x){ return x.slug===slug; });
-          renderForm(c, clients);
+          renderForm(c, clients, settings);
         };
       });
       app.querySelectorAll('[data-act="loyalty"]').forEach(function(btn){
@@ -1557,7 +1557,7 @@
     };
   }
 
-  function renderForm(existing, clients){
+  function renderForm(existing, clients, settings){
     var isEdit = !!existing;
     var draft = existing ? JSON.parse(JSON.stringify(existing)) : {
       slug:'', name:'', tagline:'', accent:'#0E7A5F', logo:'★',
@@ -1826,7 +1826,7 @@
     }
     document.querySelectorAll('.button-row').forEach(wireRow);
 
-    document.getElementById('cancelBtn').onclick = function(){ renderAdmin(clients); };
+    document.getElementById('cancelBtn').onclick = function(){ renderAdmin(clients, settings); };
 
     if(isEdit){
       document.getElementById('deleteBtn').onclick = async function(){
@@ -1835,7 +1835,7 @@
         try{
           await Storage.remove(existing.slug);
           toast('Cliente eliminado');
-          renderAdmin(await Storage.load());
+          renderAdmin(await Storage.load(), settings);
         }catch(e){
           toast('No se pudo borrar: '+(e && e.message ? e.message : 'error'));
         }
@@ -1887,7 +1887,7 @@
       try{
         await Storage.upsert(newClient);
         toast('Guardado');
-        renderAdmin(await Storage.load());
+        renderAdmin(await Storage.load(), settings);
       }catch(e){
         toast('No se pudo guardar: '+(e && e.message ? e.message : 'error'));
       }
