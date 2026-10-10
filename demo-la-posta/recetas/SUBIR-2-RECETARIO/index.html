@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>La Posta · Recetas</title>
+<meta name="description" content="Recetas guatemaltecas con los cortes de cerdo de La Posta. Pide tus cortes por WhatsApp hasta la puerta de tu casa.">
+<meta name="theme-color" content="#F7AFAF">
+<meta property="og:title" content="La Posta · Recetas">
+<meta property="og:description" content="Recetas guatemaltecas con nuestros cortes de cerdo.">
+<meta property="og:image" content="https://www.espacio3dgt.com/demo-la-posta/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Allura&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pink:#F7AFAF; --pink-soft:#FDE8E8; --pink-deep:#E98A8A;
+  --brown:#3B2622; --brown-2:#6B4E48; --cream:#FFFAF8; --line:#F1D6D3;
+  --wa:#25D366;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:Montserrat,system-ui,sans-serif;background:var(--cream);color:var(--brown);padding-bottom:40px}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background-image:var(--bg-img,none);background-size:cover;background-position:center;background-repeat:no-repeat}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+a{color:inherit}
+
+/* ---------- Hero ---------- */
+.hero{position:relative;background:var(--pink);padding:28px 16px 34px;text-align:center;overflow:hidden;border-radius:0 0 32px 32px}
+.hero::after{content:"";position:absolute;right:-60px;top:-40px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.18)}
+.logo{width:104px;height:104px;border-radius:50%;background:#fff;margin:0 auto 10px;overflow:hidden;box-shadow:0 10px 30px rgba(59,38,34,.15);position:relative;z-index:1}
+.logo img{width:100%;height:100%;object-fit:contain;padding:6px}
+.hero .script{font-family:Allura,cursive;font-size:44px;line-height:1;position:relative;z-index:1}
+.hero h1{font-size:26px;font-weight:700;letter-spacing:.06em;margin-top:-4px;position:relative;z-index:1}
+.hero .sub{font-size:11px;letter-spacing:.32em;text-transform:uppercase;margin-top:6px;color:var(--brown-2);position:relative;z-index:1}
+
+/* ---------- Views ---------- */
+main{padding:18px 16px 0;max-width:980px;margin:0 auto}
+.view-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.view-head h2{font-family:Allura,cursive;font-weight:400;font-size:38px;line-height:1}
+.view-head .count{font-size:12px;color:var(--brown-2)}
+.back{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;background:#fff;border:1px solid var(--line);padding:8px 12px;border-radius:99px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(min-width:640px){.grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:900px){.grid{grid-template-columns:repeat(4,1fr)}}
+.card{background:#fff;border-radius:20px;overflow:hidden;border:1px solid var(--line);text-align:left;display:flex;flex-direction:column;transition:transform .2s, box-shadow .2s;position:relative}
+.card:active{transform:scale(.97)}
+@media(hover:hover){.card:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(59,38,34,.1)}}
+.media{position:relative;aspect-ratio:4/5;background:radial-gradient(circle at 50% 60%,#fff 0%,var(--pink-soft) 70%);overflow:hidden;display:grid;place-items:center}
+.media.short{aspect-ratio:1/1}
+.media img.photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.media img.cut{width:78%;height:66%;object-fit:contain;filter:drop-shadow(0 14px 14px rgba(59,38,34,.18))}
+.soon{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:rgba(255,255,255,.85);padding:5px 9px;border-radius:99px}
+.info{padding:10px 12px 12px}
+.info h3{font-family:Allura,cursive;font-weight:400;font-size:26px;line-height:1.05}
+.info p{font-size:12px;color:var(--brown-2);margin-top:4px}
+
+/* Folder card: a tab on top and a recipe counter */
+.folder{border-top-left-radius:6px}
+.folder::before{content:"";position:absolute;top:0;left:0;width:44%;height:8px;background:var(--pink-deep);border-radius:0 0 10px 0;z-index:2}
+.folder .info h3{font-family:Montserrat,sans-serif;font-size:14px;font-weight:600;line-height:1.25}
+.folder .tag{position:absolute;top:16px;right:10px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--brown);color:#fff;padding:5px 8px;border-radius:99px;z-index:2}
+
+/* ---------- Detail ---------- */
+.veil{position:fixed;inset:0;background:rgba(59,38,34,.45);opacity:0;pointer-events:none;transition:opacity .25s;z-index:40}
+.veil.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-height:92vh;overflow-y:auto;background:var(--cream);border-radius:26px 26px 0 0;transform:translateY(100%);transition:transform .3s ease;z-index:50;max-width:620px;margin:0 auto}
+.sheet.on{transform:none}
+.sheet .close{position:sticky;top:0;display:flex;justify-content:flex-end;padding:10px 12px 0;background:linear-gradient(var(--cream) 70%,transparent)}
+.sheet .close button{width:36px;height:36px;border-radius:50%;background:#fff;border:1px solid var(--line);font-size:20px;line-height:1}
+.sheet .full{display:block;width:calc(100% - 32px);margin:0 16px;border-radius:18px;border:1px solid var(--line)}
+.sheet .body{padding:16px 20px 24px}
+.sheet h2{font-family:Allura,cursive;font-weight:400;font-size:40px;line-height:1}
+.sheet .corte{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--brown-2);margin-top:4px}
+.sheet h4{font-size:12px;letter-spacing:.14em;text-transform:uppercase;margin:18px 0 6px}
+.sheet ul,.sheet ol{padding-left:20px;font-size:14px;line-height:1.6}
+.wa{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--wa);color:#fff;font-weight:700;font-size:15px;padding:14px;border-radius:14px;text-decoration:none;margin-top:22px}
+
+.media video.cutvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.corte-box{display:flex;gap:14px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px}
+.cb-media{position:relative;width:96px;height:120px;flex:0 0 auto;border-radius:12px;overflow:hidden;background:radial-gradient(circle at 50% 60%,#fff 0%,var(--pink-soft) 70%);display:grid;place-items:center}
+.cb-media video{width:100%;height:100%;object-fit:cover}
+.cb-media img{width:86%;height:70%;object-fit:contain}
+.cb-info{display:flex;flex-direction:column;gap:4px;font-size:14px}
+.cb-info b{font-size:16px}
+.cb-info span{color:var(--brown-2);font-size:13px}
+footer{text-align:center;font-size:12px;color:var(--brown-2);padding:30px 16px 10px;line-height:1.7}
+footer b{color:var(--brown)}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="logo"><img src="/demo-la-posta/logo.png" alt="La Posta"></div>
+  <div class="script">Recetas</div>
+  <h1>CHAPINAS</h1>
+  <div class="sub">con nuestros cortes de cerdo</div>
+</header>
+
+<main id="view"></main>
+
+<footer>
+  <b>¡Hasta la puerta de tu casa!</b><br>
+  Entregas de lunes a sábado<br>
+  WhatsApp <b>4186 9362</b>
+</footer>
+
+<div class="veil" id="veil"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+
+<script>
+var WA = "50241869362";
+
+/* Cada corte es una carpeta con sus recetas.
+   Para agregar una receta: guardar la imagen como img/<corte>--<receta>.webp y
+   agregar la receta dentro de su corte. Si la imagen todavía no existe, la
+   tarjeta muestra la foto del corte. Para un corte nuevo, agregar un objeto
+   con su foto de ../fotos/. */
+var CORTES = [
+  { id:"adobado", n:"Adobado", foto:"01-adobado", precio:"Q26 / lb", video:true, recetas:[
+    { id:"tacos-de-adobado", n:"Tacos de adobado",
+      ing:["1 lb de adobado","Tortillas pequeñas","Cebolla","Cilantro","Guacamol","Limón","Salsa de chile"],
+      pasos:["Calentar la plancha con un poco de aceite.","Dorar el adobado 8 a 10 minutos.","Picarlo en trocitos.","Calentar las tortillas.","Servir con cebolla, cilantro y limón."] }
+  ]},
+  { id:"carne-molida", n:"Carne molida", foto:"04-carne-molida", precio:"Q25 / lb", video:true, recetas:[
+    { id:"chiles-rellenos", n:"Chiles rellenos",
+      ing:["5 chiles pimientos","½ lb de carne molida","Zanahoria y ejotes","Cebolla y ajo","4 huevos","Harina","Salsa de tomate"],
+      pasos:["Asar y pelar los chiles.","Sofreír la carne con las verduras.","Rellenar los chiles.","Pasar por harina y huevo batido.","Freír y bañar en salsa de tomate."] },
+    { id:"sopa-de-albondigas", n:"Sopa de albóndigas",
+      ing:["1 lb de carne molida", "1 huevo", "½ taza de pan molido", "Hierbabuena", "3 tomates", "Güisquil y zanahoria", "Cebolla y ajo"],
+      pasos:["Mezclar carne, huevo, pan y hierbabuena.", "Formar albóndigas pequeñas.", "Licuar tomate, cebolla y ajo y freír la salsa.", "Agregar agua o caldo, güisquil y zanahoria.", "Cocinar las albóndigas en el caldo 15 minutos."] }
+  ]},
+  { id:"chicharrones", n:"Chicharrones", foto:"07-chicharrones", precio:"Q75 / lb", video:true, recetas:[
+    { id:"chojin", n:"Chojín",
+      ing:["1 taza de chicharrón","8 rábanos","1 tomate","½ cebolla","1 chile","Hierbabuena","Naranja agria y limón"],
+      pasos:["Picar finito rábanos, tomate y cebolla.","Agregar chile y hierbabuena.","Mezclar con naranja agria y limón.","Poner el chicharrón justo al servir."] },
+    { id:"tostadas-de-chicharron", n:"Tostadas de chicharrón",
+      ing:["8 tostadas", "1 taza de chicharrón", "Frijoles volteados", "Guacamol", "Repollo picado", "Salsa de tomate", "Queso seco y perejil"],
+      pasos:["Untar frijoles volteados en cada tostada.", "Agregar guacamol.", "Poner repollo y chicharrón en trocitos.", "Bañar con salsa de tomate.", "Terminar con queso seco y perejil."] }
+  ]},
+  { id:"chorizo", n:"Chorizo", foto:"10-chorizo-rodaja-tubo", precio:"Q24 / lb en rodaja · Q20 / lb en tubo", video:true, recetas:[
+    { id:"shucos", n:"Shucos",
+      ing:["4 chorizos","4 panes para shuco","Guacamol","Repollo picado","Cebolla","Mostaza, mayonesa y salsa de tomate"],
+      pasos:["Asar los chorizos y abrirlos a lo largo.","Tostar los panes en la plancha.","Untar guacamol en el pan.","Poner chorizo, repollo y cebolla.","Terminar con las salsas."] }
+  ]},
+  { id:"longaniza-artesanal", n:"Longaniza artesanal", foto:"21-longaniza-artesanal", precio:"Q2.75 c/u · Q24 / lb en rodaja", video:true, recetas:[
+    { id:"longaniza-con-chirmol", n:"Longaniza con chirmol",
+      ing:["4 longanizas","4 tomates","½ cebolla","Cilantro","1 chile","Limón y sal","Tortillas"],
+      pasos:["Asar las longanizas a fuego medio, dándoles vuelta.","Asar los tomates y el chile en el comal.","Machacarlos en molcajete.","Agregar cebolla, cilantro, limón y sal.","Servir con frijoles y tortillas."] },
+    { id:"desayuno-chapin", n:"Desayuno chapín",
+      ing:["2 longanizas", "4 huevos", "Frijoles volteados", "Plátano maduro", "Crema y queso fresco", "Chirmol", "Tortillas"],
+      pasos:["Asar la longaniza y cortarla en rodajas.", "Revolver los huevos.", "Freír el plátano maduro.", "Calentar los frijoles volteados.", "Servir con crema, queso, chirmol y tortillas."] }
+  ]},
+  { id:"chuleta-fresca", n:"Chuleta fresca", foto:"12-chuleta-fresca", precio:"Q25 / lb", video:true, recetas:[
+    { id:"chuletas-encebolladas", n:"Chuletas encebolladas",
+      ing:["4 chuletas frescas","2 cebollas","2 tomates","Ajo","Salsa inglesa","Limón","Sal y pimienta"],
+      pasos:["Sazonar las chuletas con ajo, limón, sal y pimienta.","Dorarlas en un sartén 4 minutos por lado.","Sofreír la cebolla en rodajas y el tomate.","Agregar salsa inglesa y un poco de agua.","Regresar las chuletas y cocinar 10 minutos."] }
+  ]},
+  { id:"lomo-de-cinta", n:"Lomo de cinta", foto:"20-lomo-de-cinta", precio:"Q31 / lb · medallón Q33 / lb", video:true, recetas:[
+    { id:"jocon-de-cerdo", n:"Jocón de cerdo",
+      ing:["2 lb de lomo de cinta","1 lb de miltomate","Cilantro y cebollín","Chile pimiento verde","Pepitoria y ajonjolí","2 tortillas tostadas","Ajo y cebolla"],
+      pasos:["Cocer el lomo en trozos y guardar el caldo.","Tostar pepitoria, ajonjolí y tortillas.","Licuar con miltomate, cilantro, cebollín y chile.","Cocinar la salsa con caldo hasta espesar.","Agregar el lomo y cocinar 15 minutos."] },
+    { id:"subanik", n:"Subanik",
+      ing:["2 lb de lomo de cinta", "1 pollo en piezas", "Tomate y miltomate", "Chile guaque, pasa y zambo", "Ajonjolí y pepitoria", "Hojas de maxán", "Cibaque"],
+      pasos:["Asar tomates, miltomates y chiles.", "Licuar con ajonjolí y pepitoria.", "Marinar las carnes en el recado 2 horas.", "Envolver en hojas de maxán y amarrar.", "Cocer al vapor 2 horas y media."] }
+  ]},
+  { id:"costilla-fresca", n:"Costilla fresca", foto:"15-costilla-fresca", precio:"Q28 / lb en tiras · Q30 / lb porción", video:true, recetas:[
+    { id:"costillas-en-chirmol", n:"Costillas en chirmol",
+      ing:["2 lb de costilla fresca","6 tomates","1 cebolla","1 chile pimiento","Ajo","Cilantro","Sal y pimienta"],
+      pasos:["Cocer la costilla con sal y ajo 40 minutos.","Asar tomates, cebolla y chile pimiento.","Licuar o machacar con cilantro.","Dorar la costilla en un poco de aceite.","Cocinarla en el chirmol 15 minutos."] }
+  ]},
+  { id:"costado-con-cuero", n:"Costado con cuero", foto:"13-costado-con-cuero", precio:"Q30 / lb", recetas:[
+    { id:"yuca-con-chicharron", n:"Yuca con chicharrón",
+      ing:["2 lb de costado con cuero","2 lb de yuca","Repollo y zanahoria","Remolacha","Vinagre y orégano","Salsa de tomate","Limón"],
+      pasos:["Cocer la yuca en agua con sal.","Cortar el costado en trozos y freírlo hasta dorar el cuero.","Mezclar el curtido con vinagre y orégano.","Servir la yuca con chicharrón y curtido.","Bañar con salsa de tomate."] }
+  ]},
+  { id:"pierna", n:"Pierna", foto:"23-pierna", precio:"Q26 / lb", recetas:[
+    { id:"pierna-navidena", n:"Pierna navideña",
+      ing:["1 pierna de 8 lb","Ajo","Naranja","Mantequilla","Romero, tomillo y orégano","Comino y pimienta","Clavos de olor"],
+      pasos:["Picar la pierna con un cuchillo.","Untar el adobo y poner los clavos.","Marinar 1 a 3 días en la refri.","Hornear tapada a 325 °F unas 4 horas.","Destapar al final para dorar."] }
+  ]},
+  { id:"posta-de-pierna", n:"Posta de pierna", foto:"26-posta-de-pierna", precio:"Q26 / lb · porción Q30 / lb", recetas:[
+    { id:"chuchitos", n:"Chuchitos",
+      ing:["1 lb de posta de pierna","2 lb de masa de maíz","½ taza de manteca","4 tomates","1 chile guaque","Tusas","Queso seco"],
+      pasos:["Cocer la carne en cubitos.","Licuar tomate y chile, cocinar con la carne.","Batir la masa con manteca y caldo.","Rellenar la tusa con masa y recado y amarrar.","Cocer al vapor 1 hora."] }
+  ]},
+  { id:"posta-de-nuca", n:"Posta de nuca", foto:"25-posta-de-nuca", precio:"Q28 / lb", recetas:[
+    { id:"pepian-de-cerdo", n:"Pepián de cerdo",
+      ing:["2 lb de posta de nuca","4 tomates y 4 miltomates","Chile guaque y pasa","Pepitoria y ajonjolí","Canela","1 tortilla tostada","Güisquil, papa y ejotes"],
+      pasos:["Cocer la carne con sal y guardar el caldo.","Tostar semillas, chiles y canela.","Asar tomates y miltomates.","Licuar todo con caldo y la tortilla.","Cocinar la salsa con carne y verduras."] }
+  ]},
+  { id:"posta-de-brazuelo", n:"Posta de brazuelo", foto:"24-posta-de-brazuelo", precio:"Q26 / lb", recetas:[
+    { id:"tamales-colorados", n:"Tamales colorados",
+      ing:["3 lb de brazuelo","5 lb de masa","1 lb de manteca","Tomate","Chile guaque y pasa","Ajonjolí y pepitoria","Hojas de plátano"],
+      pasos:["Cocer la carne y guardar el caldo.","Licuar el recado y cocinarlo.","Batir la masa con manteca y caldo.","Armar: masa, carne, recado y aceituna.","Cocer al vapor 2 horas."] }
+  ]},
+  { id:"lechon", n:"Lechón", foto:"19-lechon", precio:"Q45 / lb", recetas:[
+    { id:"lechon-al-horno", n:"Lechón al horno",
+      ing:["1 pieza de lechón de 10 lb","1 cabeza de ajo","Naranja agria","Achiote","Orégano y comino","Manteca","Sal gruesa"],
+      pasos:["Moler ajo, achiote, naranja agria y especias.","Untar el lechón por dentro y por fuera.","Marinar toda la noche en la refri.","Untar la piel con manteca y sal.","Hornear a 350 °F unas 4 horas hasta que la piel cruja."] }
+  ]},
+  { id:"cabeza-entera", n:"Cabeza entera", foto:"03-cabeza-entera", precio:"Q160 c/u", recetas:[
+    { id:"revolcado", n:"Revolcado",
+      ing:["3 lb de cabeza de cerdo","½ lb de hígado","6 tomates","6 miltomates","Chile guaque y pasa","Achiote","2 tortillas tostadas"],
+      pasos:["Cocer la carne 2 horas y picarla.","Asar tomates, miltomates y chiles.","Licuar con el hígado y las tortillas.","Freír la salsa y agregar la carne.","Cocinar 20 minutos hasta espesar."] }
+  ]},
+  { id:"patitas-de-cerdo", n:"Patitas de cerdo", foto:"22-patitas-de-cerdo", precio:"Q14 c/u", recetas:[
+    { id:"patitas-en-escabeche", n:"Patitas en escabeche",
+      ing:["4 patitas de cerdo","2 zanahorias","1 coliflor pequeña","Ejotes","Cebolla","Vinagre","Laurel, tomillo y pimienta"],
+      pasos:["Cocer las patitas 2 horas con sal y laurel.","Cocer las verduras sin que se suavicen mucho.","Sofreír la cebolla y agregar vinagre y especias.","Mezclar patitas y verduras con el escabeche.","Reposar en la refri una noche."] }
+  ]}
+];
+
+var $ = function(s){ return document.querySelector(s); };
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function findCorte(id){ return CORTES.filter(function(c){ return c.id === id; })[0]; }
+/* Absolute paths: the page is also served at /la-posta/recetas, where relative paths would break. */
+var BASE = "/demo-la-posta/";
+function imgSrc(c, r){ return BASE + "recetas/img/" + c.id + "--" + r.id + ".webp"; }
+function cutSrc(c){ return BASE + "fotos/" + c.foto + ".png"; }
+/* Same short loop clips and posters the menu uses (videos/<foto>-card.mp4). */
+var VER = "?v=8";
+function cutVideo(c){
+  return '<video class="cutvid" data-src="'+BASE+'videos/'+c.foto+'-card.mp4'+VER+'" poster="'+BASE+'videos/'+c.foto+'.jpg'+VER+'" muted loop playsinline preload="none"></video>';
+}
+/* Load a clip only when it gets near the screen; play only what is visible. */
+var vLoader = new IntersectionObserver(function(es){
+  es.forEach(function(e){ if (!e.isIntersecting) return; var v=e.target; v.src=v.dataset.src; v.load(); vLoader.unobserve(v); });
+}, {rootMargin:"400px 0px"});
+var vPlayer = new IntersectionObserver(function(es){
+  es.forEach(function(e){ var v=e.target; if (e.isIntersecting && v.src) v.play().catch(function(){}); else v.pause(); });
+}, {threshold:.5});
+function wireVideos(root){
+  root.querySelectorAll("video.cutvid").forEach(function(v){
+    v.muted = true;
+    v.addEventListener("loadeddata", function(){ var r=v.getBoundingClientRect(); if (r.top<innerHeight && r.bottom>0) v.play().catch(function(){}); });
+    vLoader.observe(v); vPlayer.observe(v);
+  });
+}
+function plural(n){ return n + (n === 1 ? " receta" : " recetas"); }
+
+/* Recipe image when it exists; otherwise the cut photo with a "próximamente" tag. */
+function recipeMedia(c, r){
+  return '<div class="media"><img class="cut" loading="lazy" src="'+cutSrc(c)+'" alt=""><span class="soon">Imagen próximamente</span>' +
+    '<img class="photo" loading="lazy" src="'+imgSrc(c, r)+'" alt="'+esc(r.n)+'" onload="var s=this.parentNode.querySelector(\'.soon\');if(s)s.remove()" onerror="this.remove()"></div>';
+}
+
+/* Home: one folder per cut that has recipes. */
+function renderCortes(){
+  var list = CORTES.filter(function(c){ return c.recetas.length; });
+  $("#view").innerHTML =
+    '<div class="view-head"><h2>Elige un corte</h2><span class="count">'+list.length+' cortes</span></div>' +
+    '<div class="grid">' + list.map(function(c){
+      return '<a class="card folder" href="#'+c.id+'" style="text-decoration:none">' +
+        '<span class="tag">'+plural(c.recetas.length)+'</span>' +
+        '<div class="media short">'+(c.video ? cutVideo(c) : '<img class="cut" loading="lazy" src="'+cutSrc(c)+'" alt="">')+'</div>' +
+        '<div class="info"><h3>'+esc(c.n)+'</h3></div></a>';
+    }).join("") + '</div>';
+  wireVideos($("#view"));
+}
+
+/* Folder: the recipes of one cut. */
+function renderCorte(c){
+  $("#view").innerHTML =
+    '<a class="back" href="#" style="text-decoration:none">← Todos los cortes</a>' +
+    '<div class="view-head"><h2>'+esc(c.n)+'</h2><span class="count">'+plural(c.recetas.length)+'</span></div>' +
+    '<div class="grid">' + c.recetas.map(function(r){
+      return '<a class="card" href="#'+c.id+'/'+r.id+'" style="text-decoration:none">' + recipeMedia(c, r) +
+        '<div class="info"><h3>'+esc(r.n)+'</h3><p>Corte: '+esc(c.n)+'</p></div></a>';
+    }).join("") + '</div>';
+}
+
+function openSheet(c, r){
+  var msg = "Hola La Posta, quiero pedir " + c.n + " para preparar " + r.n + ".";
+  $("#sheet").innerHTML =
+    '<div class="close"><button type="button" aria-label="Cerrar" id="x">×</button></div>' +
+    '<img class="full" src="'+imgSrc(c, r)+'" alt="'+esc(r.n)+'" onerror="this.remove()">' +
+    '<div class="body"><h2>'+esc(r.n)+'</h2><div class="corte">Corte: '+esc(c.n)+'</div>' +
+    '<h4>Ingredientes</h4><ul>'+r.ing.map(function(x){ return "<li>"+esc(x)+"</li>"; }).join("")+'</ul>' +
+    '<h4>Preparación</h4><ol>'+r.pasos.map(function(x){ return "<li>"+esc(x)+"</li>"; }).join("")+'</ol>' +
+    '<h4>El corte que usas</h4><div class="corte-box"><div class="cb-media">'+(c.video ? cutVideo(c) : '<img src="'+cutSrc(c)+'" alt="">')+'</div>' +
+    '<div class="cb-info"><b>'+esc(c.n)+'</b><span>'+esc(c.precio||"")+'</span></div></div>' +
+    '<a class="wa" target="_blank" rel="noopener" href="https://wa.me/'+WA+'?text='+encodeURIComponent(msg)+'">' +
+    '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.2c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.4-.7-2.8-1.1-4.6-4-4.8-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2.1 1-2.4c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.7-.1l.9-1.1c.2-.3.4-.2.7-.1l1.9.9c.3.1.5.2.5.3.1.2.1.7-.1 1.3z"/></svg>' +
+    'Pedir este corte</a></div>';
+  $("#sheet").scrollTop = 0;
+  $("#sheet").classList.add("on"); $("#veil").classList.add("on");
+  $("#x").onclick = closeSheet;
+  /* a single clip here, so load it right away (the sheet scrolls on its own) */
+  $("#sheet").querySelectorAll("video.cutvid").forEach(function(v){ v.muted = true; v.src = v.dataset.src; v.play().catch(function(){}); });
+}
+function hideSheet(){ $("#sheet").classList.remove("on"); $("#veil").classList.remove("on"); $("#sheet").querySelectorAll("video").forEach(function(v){ v.pause(); }); }
+function closeSheet(){ location.hash = location.hash.slice(1).split("/")[0]; }
+
+/* Routes: #  ·  #<corte>  ·  #<corte>/<receta>  (so a cut or recipe can be shared by link) */
+var current = null;
+function route(){
+  var parts = decodeURIComponent(location.hash.slice(1)).split("/");
+  var c = findCorte(parts[0]);
+  var r = c && c.recetas.filter(function(x){ return x.id === parts[1]; })[0];
+  var key = c ? c.id : "";
+  if (key !== current){
+    current = key;
+    if (c) renderCorte(c); else renderCortes();
+    if (!r) window.scrollTo(0, c ? $("#view").offsetTop - 10 : 0);
+  }
+  if (r) openSheet(c, r); else hideSheet();
+}
+window.addEventListener("hashchange", route);
+$("#veil").onclick = closeSheet;
+document.addEventListener("keydown", function(e){ if (e.key === "Escape" && $("#sheet").classList.contains("on")) closeSheet(); });
+route();
+</script>
+<script>
+/* Apariencia desde el panel (Editar La Posta). Con el interruptor "Usar el estilo de esta página también en
+   el menú y el recetario" encendido, toman los fondos, el color de marca y el logo del panel. El otro
+   interruptor decide si se muestra la franja de color de arriba. Si el interruptor está apagado, falla la
+   conexión o no hay datos, se queda el diseño original. */
+(function(){
+  var SB = 'https://oifgcicvnrodipjfjkso.supabase.co';
+  var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pZmdjaWN2bnJvZGlwamZqa3NvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyOTQ3OTksImV4cCI6MjEwNTg3MDc5OX0.rkGZ2UQhgqcFns4KpHocYXFbh5o5cgFhOV68OIwyNBQ';
+  function ok(u){ return /^https?:\/\//i.test(u || ''); }
+  function safe(u){ return String(u).replace(/['"()\\\s]/g, function(c){ return '%' + ('0' + c.charCodeAt(0).toString(16)).slice(-2).toUpperCase(); }); }
+  function isHex(c){ return /^#[0-9a-fA-F]{6}$/.test(c || ''); }
+  function isDark(h){ var r = parseInt(h.substr(1, 2), 16), g = parseInt(h.substr(3, 2), 16), b = parseInt(h.substr(5, 2), 16); return (r * 299 + g * 587 + b * 114) / 1000 < 150; }
+  fetch(SB + '/rest/v1/clients?slug=eq.la-posta&select=accent,logo,menu_hero,bg_in_menu,background,background_tablet,background_desktop', { headers: { apikey: KEY } })
+    .then(function(r){ return r.json(); })
+    .then(function(rows){
+      var c = rows && rows[0];
+      if(!c) return;
+      var css = '';
+      if(c.bg_in_menu === true){
+        if(ok(c.background)) css += ':root{--bg-img:url(\'' + safe(c.background) + '\')}';
+        if(ok(c.background_tablet)) css += '@media (min-width:700px){:root{--bg-img:url(\'' + safe(c.background_tablet) + '\')}}';
+        if(ok(c.background_desktop)) css += '@media (min-width:1100px){:root{--bg-img:url(\'' + safe(c.background_desktop) + '\')}}';
+      }
+      if(c.bg_in_menu === true && isHex(c.accent)){
+        css += ':root{--pink:' + c.accent + ';--pink-soft:color-mix(in srgb,' + c.accent + ' 22%,#fff);--pink-deep:color-mix(in srgb,' + c.accent + ' 82%,#7a2e2e)}';
+        if(isDark(c.accent) && c.menu_hero !== false) css += '.hero,.hero .script,.hero h1,.hero .sub{color:#fff !important}';
+        var tc = document.querySelector('meta[name="theme-color"]');
+        if(tc) tc.setAttribute('content', c.accent);
+      }
+      if(c.menu_hero === false){
+        css += '.hero{background:transparent !important;border-radius:0 !important}.hero::after{display:none}';
+      }
+      if(c.bg_in_menu === true && ok(c.logo)){
+        document.querySelectorAll('.logo img').forEach(function(i){ i.src = c.logo; });
+      }
+      if(css){ var st = document.createElement('style'); st.id = 'season-bg'; st.textContent = css; document.head.appendChild(st); }
+    })
+    .catch(function(){});
+})();
+</script>
+</body>
+</html>
