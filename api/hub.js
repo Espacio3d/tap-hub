@@ -79,6 +79,7 @@ var CSS = '\
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#121615;--surface:#1C2120;--surface-edge:#2B3230;--text:#EEF1EF;--text-dim:#9AA5A1;--accent-default:#2FD1A4;--accent-ink:#0B1413;--chip-bg:#242B29;color-scheme:dark;}}\
 :root[data-theme="dark"]{--bg:#121615;--surface:#1C2120;--surface-edge:#2B3230;--text:#EEF1EF;--text-dim:#9AA5A1;--accent-default:#2FD1A4;--accent-ink:#0B1413;--chip-bg:#242B29;color-scheme:dark;}\
 *{box-sizing:border-box;}html,body{height:100%;}\
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background-image:var(--bg-img,none);background-size:cover;background-position:center;background-repeat:no-repeat;}\
 body{margin:0;background:var(--bg);color:var(--text);font-family:"Work Sans",-apple-system,BlinkMacSystemFont,sans-serif;padding-inline:16px;padding-block:28px;}\
 img{max-width:100%;}\
 #app{max-width:480px;margin:0 auto;}\
@@ -110,16 +111,16 @@ function renderPage(client, pageUrl){
   var hubCardVar = client.card_color ? ('--hub-card:'+client.card_color+';--hub-card-text:'+contrastTextColor(client.card_color)+';') : '';
   var accentVar = '--accent:'+(client.accent || '#0E7A5F')+';';
   var bgStyle = isImageUrl(client.background)
-    ? 'background-image:url(\''+client.background+'\');background-size:cover;background-position:center;background-repeat:no-repeat;'
+    ? '--bg-img:url(\''+cssUrl(client.background)+'\');'
     : (client.background ? '--bg:'+client.background+';' : '');
 
   function cssUrl(u){ return String(u).replace(/['"()\\\s]/g, function(c){ return '%'+('0'+c.charCodeAt(0).toString(16)).slice(-2).toUpperCase(); }); }
   var deviceBgCss = '';
   if(isImageUrl(client.background_tablet)){
-    deviceBgCss += '@media (min-width:700px){body{background-image:url(\''+cssUrl(client.background_tablet)+'\') !important;background-size:cover !important;background-position:center !important;background-repeat:no-repeat !important;}}';
+    deviceBgCss += '@media (min-width:700px){body{--bg-img:url(\''+cssUrl(client.background_tablet)+'\') !important;}}';
   }
   if(isImageUrl(client.background_desktop)){
-    deviceBgCss += '@media (min-width:1100px){body{background-image:url(\''+cssUrl(client.background_desktop)+'\') !important;background-size:cover !important;background-position:center !important;background-repeat:no-repeat !important;}}';
+    deviceBgCss += '@media (min-width:1100px){body{--bg-img:url(\''+cssUrl(client.background_desktop)+'\') !important;}}';
   }
 
   var linksHtml = (client.buttons || []).map(function(b){
