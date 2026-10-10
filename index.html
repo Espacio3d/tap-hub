@@ -50,6 +50,8 @@
 
   *{box-sizing:border-box;}
   html,body{ height:100%; }
+  body::before{ content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background-image:var(--bg-img, none); background-size:cover; background-position:center; background-repeat:no-repeat; }
   body{
     margin:0;
     background:var(--bg);
@@ -544,14 +546,12 @@
 
   /* ---------------- BACKGROUND (shared by hub pages and the admin panel) ---------------- */
   function applyBackground(background, textColor){
-    document.body.style.backgroundImage = '';
     document.documentElement.style.removeProperty('--bg');
+    document.documentElement.style.removeProperty('--bg-img');
     document.documentElement.style.removeProperty('--panel-text');
     if(isImageUrl(background)){
-      document.body.style.backgroundImage = 'url("'+background+'")';
-      document.body.style.backgroundSize = 'cover';
-      document.body.style.backgroundPosition = 'center';
-      document.body.style.backgroundRepeat = 'no-repeat';
+      var safe = String(background).replace(/['"()\\\s]/g, function(c){ return '%'+('0'+c.charCodeAt(0).toString(16)).slice(-2).toUpperCase(); });
+      document.documentElement.style.setProperty('--bg-img', 'url("'+safe+'")');
     } else if(background){
       document.documentElement.style.setProperty('--bg', background);
     }
