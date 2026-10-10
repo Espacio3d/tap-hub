@@ -74,6 +74,14 @@ main{padding:18px 16px 0;max-width:980px;margin:0 auto}
 .sheet ul,.sheet ol{padding-left:20px;font-size:14px;line-height:1.6}
 .wa{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--wa);color:#fff;font-weight:700;font-size:15px;padding:14px;border-radius:14px;text-decoration:none;margin-top:22px}
 
+.media video.cutvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.corte-box{display:flex;gap:14px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px}
+.cb-media{position:relative;width:96px;height:120px;flex:0 0 auto;border-radius:12px;overflow:hidden;background:radial-gradient(circle at 50% 60%,#fff 0%,var(--pink-soft) 70%);display:grid;place-items:center}
+.cb-media video{width:100%;height:100%;object-fit:cover}
+.cb-media img{width:86%;height:70%;object-fit:contain}
+.cb-info{display:flex;flex-direction:column;gap:4px;font-size:14px}
+.cb-info b{font-size:16px}
+.cb-info span{color:var(--brown-2);font-size:13px}
 footer{text-align:center;font-size:12px;color:var(--brown-2);padding:30px 16px 10px;line-height:1.7}
 footer b{color:var(--brown)}
 </style>
@@ -107,12 +115,12 @@ var WA = "50241869362";
    tarjeta muestra la foto del corte. Para un corte nuevo, agregar un objeto
    con su foto de ../fotos/. */
 var CORTES = [
-  { id:"adobado", n:"Adobado", foto:"01-adobado", recetas:[
+  { id:"adobado", n:"Adobado", foto:"01-adobado", precio:"Q26 / lb", video:true, recetas:[
     { id:"tacos-de-adobado", n:"Tacos de adobado",
       ing:["1 lb de adobado","Tortillas pequeñas","Cebolla","Cilantro","Guacamol","Limón","Salsa de chile"],
       pasos:["Calentar la plancha con un poco de aceite.","Dorar el adobado 8 a 10 minutos.","Picarlo en trocitos.","Calentar las tortillas.","Servir con cebolla, cilantro y limón."] }
   ]},
-  { id:"carne-molida", n:"Carne molida", foto:"04-carne-molida", recetas:[
+  { id:"carne-molida", n:"Carne molida", foto:"04-carne-molida", precio:"Q25 / lb", video:true, recetas:[
     { id:"chiles-rellenos", n:"Chiles rellenos",
       ing:["5 chiles pimientos","½ lb de carne molida","Zanahoria y ejotes","Cebolla y ajo","4 huevos","Harina","Salsa de tomate"],
       pasos:["Asar y pelar los chiles.","Sofreír la carne con las verduras.","Rellenar los chiles.","Pasar por harina y huevo batido.","Freír y bañar en salsa de tomate."] },
@@ -120,7 +128,7 @@ var CORTES = [
       ing:["1 lb de carne molida", "1 huevo", "½ taza de pan molido", "Hierbabuena", "3 tomates", "Güisquil y zanahoria", "Cebolla y ajo"],
       pasos:["Mezclar carne, huevo, pan y hierbabuena.", "Formar albóndigas pequeñas.", "Licuar tomate, cebolla y ajo y freír la salsa.", "Agregar agua o caldo, güisquil y zanahoria.", "Cocinar las albóndigas en el caldo 15 minutos."] }
   ]},
-  { id:"chicharrones", n:"Chicharrones", foto:"07-chicharrones", recetas:[
+  { id:"chicharrones", n:"Chicharrones", foto:"07-chicharrones", precio:"Q75 / lb", video:true, recetas:[
     { id:"chojin", n:"Chojín",
       ing:["1 taza de chicharrón","8 rábanos","1 tomate","½ cebolla","1 chile","Hierbabuena","Naranja agria y limón"],
       pasos:["Picar finito rábanos, tomate y cebolla.","Agregar chile y hierbabuena.","Mezclar con naranja agria y limón.","Poner el chicharrón justo al servir."] },
@@ -128,12 +136,12 @@ var CORTES = [
       ing:["8 tostadas", "1 taza de chicharrón", "Frijoles volteados", "Guacamol", "Repollo picado", "Salsa de tomate", "Queso seco y perejil"],
       pasos:["Untar frijoles volteados en cada tostada.", "Agregar guacamol.", "Poner repollo y chicharrón en trocitos.", "Bañar con salsa de tomate.", "Terminar con queso seco y perejil."] }
   ]},
-  { id:"chorizo", n:"Chorizo", foto:"10-chorizo-rodaja-tubo", recetas:[
+  { id:"chorizo", n:"Chorizo", foto:"10-chorizo-rodaja-tubo", precio:"Q24 / lb en rodaja · Q20 / lb en tubo", video:true, recetas:[
     { id:"shucos", n:"Shucos",
       ing:["4 chorizos","4 panes para shuco","Guacamol","Repollo picado","Cebolla","Mostaza, mayonesa y salsa de tomate"],
       pasos:["Asar los chorizos y abrirlos a lo largo.","Tostar los panes en la plancha.","Untar guacamol en el pan.","Poner chorizo, repollo y cebolla.","Terminar con las salsas."] }
   ]},
-  { id:"longaniza-artesanal", n:"Longaniza artesanal", foto:"21-longaniza-artesanal", recetas:[
+  { id:"longaniza-artesanal", n:"Longaniza artesanal", foto:"21-longaniza-artesanal", precio:"Q2.75 c/u · Q24 / lb en rodaja", video:true, recetas:[
     { id:"longaniza-con-chirmol", n:"Longaniza con chirmol",
       ing:["4 longanizas","4 tomates","½ cebolla","Cilantro","1 chile","Limón y sal","Tortillas"],
       pasos:["Asar las longanizas a fuego medio, dándoles vuelta.","Asar los tomates y el chile en el comal.","Machacarlos en molcajete.","Agregar cebolla, cilantro, limón y sal.","Servir con frijoles y tortillas."] },
@@ -141,12 +149,12 @@ var CORTES = [
       ing:["2 longanizas", "4 huevos", "Frijoles volteados", "Plátano maduro", "Crema y queso fresco", "Chirmol", "Tortillas"],
       pasos:["Asar la longaniza y cortarla en rodajas.", "Revolver los huevos.", "Freír el plátano maduro.", "Calentar los frijoles volteados.", "Servir con crema, queso, chirmol y tortillas."] }
   ]},
-  { id:"chuleta-fresca", n:"Chuleta fresca", foto:"12-chuleta-fresca", recetas:[
+  { id:"chuleta-fresca", n:"Chuleta fresca", foto:"12-chuleta-fresca", precio:"Q25 / lb", video:true, recetas:[
     { id:"chuletas-encebolladas", n:"Chuletas encebolladas",
       ing:["4 chuletas frescas","2 cebollas","2 tomates","Ajo","Salsa inglesa","Limón","Sal y pimienta"],
       pasos:["Sazonar las chuletas con ajo, limón, sal y pimienta.","Dorarlas en un sartén 4 minutos por lado.","Sofreír la cebolla en rodajas y el tomate.","Agregar salsa inglesa y un poco de agua.","Regresar las chuletas y cocinar 10 minutos."] }
   ]},
-  { id:"lomo-de-cinta", n:"Lomo de cinta", foto:"20-lomo-de-cinta", recetas:[
+  { id:"lomo-de-cinta", n:"Lomo de cinta", foto:"20-lomo-de-cinta", precio:"Q31 / lb · medallón Q33 / lb", video:true, recetas:[
     { id:"jocon-de-cerdo", n:"Jocón de cerdo",
       ing:["2 lb de lomo de cinta","1 lb de miltomate","Cilantro y cebollín","Chile pimiento verde","Pepitoria y ajonjolí","2 tortillas tostadas","Ajo y cebolla"],
       pasos:["Cocer el lomo en trozos y guardar el caldo.","Tostar pepitoria, ajonjolí y tortillas.","Licuar con miltomate, cilantro, cebollín y chile.","Cocinar la salsa con caldo hasta espesar.","Agregar el lomo y cocinar 15 minutos."] },
@@ -154,47 +162,47 @@ var CORTES = [
       ing:["2 lb de lomo de cinta", "1 pollo en piezas", "Tomate y miltomate", "Chile guaque, pasa y zambo", "Ajonjolí y pepitoria", "Hojas de maxán", "Cibaque"],
       pasos:["Asar tomates, miltomates y chiles.", "Licuar con ajonjolí y pepitoria.", "Marinar las carnes en el recado 2 horas.", "Envolver en hojas de maxán y amarrar.", "Cocer al vapor 2 horas y media."] }
   ]},
-  { id:"costilla-fresca", n:"Costilla fresca", foto:"15-costilla-fresca", recetas:[
+  { id:"costilla-fresca", n:"Costilla fresca", foto:"15-costilla-fresca", precio:"Q28 / lb en tiras · Q30 / lb porción", video:true, recetas:[
     { id:"costillas-en-chirmol", n:"Costillas en chirmol",
       ing:["2 lb de costilla fresca","6 tomates","1 cebolla","1 chile pimiento","Ajo","Cilantro","Sal y pimienta"],
       pasos:["Cocer la costilla con sal y ajo 40 minutos.","Asar tomates, cebolla y chile pimiento.","Licuar o machacar con cilantro.","Dorar la costilla en un poco de aceite.","Cocinarla en el chirmol 15 minutos."] }
   ]},
-  { id:"costado-con-cuero", n:"Costado con cuero", foto:"13-costado-con-cuero", recetas:[
+  { id:"costado-con-cuero", n:"Costado con cuero", foto:"13-costado-con-cuero", precio:"Q30 / lb", recetas:[
     { id:"yuca-con-chicharron", n:"Yuca con chicharrón",
       ing:["2 lb de costado con cuero","2 lb de yuca","Repollo y zanahoria","Remolacha","Vinagre y orégano","Salsa de tomate","Limón"],
       pasos:["Cocer la yuca en agua con sal.","Cortar el costado en trozos y freírlo hasta dorar el cuero.","Mezclar el curtido con vinagre y orégano.","Servir la yuca con chicharrón y curtido.","Bañar con salsa de tomate."] }
   ]},
-  { id:"pierna", n:"Pierna", foto:"23-pierna", recetas:[
+  { id:"pierna", n:"Pierna", foto:"23-pierna", precio:"Q26 / lb", recetas:[
     { id:"pierna-navidena", n:"Pierna navideña",
       ing:["1 pierna de 8 lb","Ajo","Naranja","Mantequilla","Romero, tomillo y orégano","Comino y pimienta","Clavos de olor"],
       pasos:["Picar la pierna con un cuchillo.","Untar el adobo y poner los clavos.","Marinar 1 a 3 días en la refri.","Hornear tapada a 325 °F unas 4 horas.","Destapar al final para dorar."] }
   ]},
-  { id:"posta-de-pierna", n:"Posta de pierna", foto:"26-posta-de-pierna", recetas:[
+  { id:"posta-de-pierna", n:"Posta de pierna", foto:"26-posta-de-pierna", precio:"Q26 / lb · porción Q30 / lb", recetas:[
     { id:"chuchitos", n:"Chuchitos",
       ing:["1 lb de posta de pierna","2 lb de masa de maíz","½ taza de manteca","4 tomates","1 chile guaque","Tusas","Queso seco"],
       pasos:["Cocer la carne en cubitos.","Licuar tomate y chile, cocinar con la carne.","Batir la masa con manteca y caldo.","Rellenar la tusa con masa y recado y amarrar.","Cocer al vapor 1 hora."] }
   ]},
-  { id:"posta-de-nuca", n:"Posta de nuca", foto:"25-posta-de-nuca", recetas:[
+  { id:"posta-de-nuca", n:"Posta de nuca", foto:"25-posta-de-nuca", precio:"Q28 / lb", recetas:[
     { id:"pepian-de-cerdo", n:"Pepián de cerdo",
       ing:["2 lb de posta de nuca","4 tomates y 4 miltomates","Chile guaque y pasa","Pepitoria y ajonjolí","Canela","1 tortilla tostada","Güisquil, papa y ejotes"],
       pasos:["Cocer la carne con sal y guardar el caldo.","Tostar semillas, chiles y canela.","Asar tomates y miltomates.","Licuar todo con caldo y la tortilla.","Cocinar la salsa con carne y verduras."] }
   ]},
-  { id:"posta-de-brazuelo", n:"Posta de brazuelo", foto:"24-posta-de-brazuelo", recetas:[
+  { id:"posta-de-brazuelo", n:"Posta de brazuelo", foto:"24-posta-de-brazuelo", precio:"Q26 / lb", recetas:[
     { id:"tamales-colorados", n:"Tamales colorados",
       ing:["3 lb de brazuelo","5 lb de masa","1 lb de manteca","Tomate","Chile guaque y pasa","Ajonjolí y pepitoria","Hojas de plátano"],
       pasos:["Cocer la carne y guardar el caldo.","Licuar el recado y cocinarlo.","Batir la masa con manteca y caldo.","Armar: masa, carne, recado y aceituna.","Cocer al vapor 2 horas."] }
   ]},
-  { id:"lechon", n:"Lechón", foto:"19-lechon", recetas:[
+  { id:"lechon", n:"Lechón", foto:"19-lechon", precio:"Q45 / lb", recetas:[
     { id:"lechon-al-horno", n:"Lechón al horno",
       ing:["1 pieza de lechón de 10 lb","1 cabeza de ajo","Naranja agria","Achiote","Orégano y comino","Manteca","Sal gruesa"],
       pasos:["Moler ajo, achiote, naranja agria y especias.","Untar el lechón por dentro y por fuera.","Marinar toda la noche en la refri.","Untar la piel con manteca y sal.","Hornear a 350 °F unas 4 horas hasta que la piel cruja."] }
   ]},
-  { id:"cabeza-entera", n:"Cabeza entera", foto:"03-cabeza-entera", recetas:[
+  { id:"cabeza-entera", n:"Cabeza entera", foto:"03-cabeza-entera", precio:"Q160 c/u", recetas:[
     { id:"revolcado", n:"Revolcado",
       ing:["3 lb de cabeza de cerdo","½ lb de hígado","6 tomates","6 miltomates","Chile guaque y pasa","Achiote","2 tortillas tostadas"],
       pasos:["Cocer la carne 2 horas y picarla.","Asar tomates, miltomates y chiles.","Licuar con el hígado y las tortillas.","Freír la salsa y agregar la carne.","Cocinar 20 minutos hasta espesar."] }
   ]},
-  { id:"patitas-de-cerdo", n:"Patitas de cerdo", foto:"22-patitas-de-cerdo", recetas:[
+  { id:"patitas-de-cerdo", n:"Patitas de cerdo", foto:"22-patitas-de-cerdo", precio:"Q14 c/u", recetas:[
     { id:"patitas-en-escabeche", n:"Patitas en escabeche",
       ing:["4 patitas de cerdo","2 zanahorias","1 coliflor pequeña","Ejotes","Cebolla","Vinagre","Laurel, tomillo y pimienta"],
       pasos:["Cocer las patitas 2 horas con sal y laurel.","Cocer las verduras sin que se suavicen mucho.","Sofreír la cebolla y agregar vinagre y especias.","Mezclar patitas y verduras con el escabeche.","Reposar en la refri una noche."] }
@@ -208,6 +216,25 @@ function findCorte(id){ return CORTES.filter(function(c){ return c.id === id; })
 var BASE = "/demo-la-posta/";
 function imgSrc(c, r){ return BASE + "recetas/img/" + c.id + "--" + r.id + ".webp"; }
 function cutSrc(c){ return BASE + "fotos/" + c.foto + ".png"; }
+/* Same short loop clips and posters the menu uses (videos/<foto>-card.mp4). */
+var VER = "?v=8";
+function cutVideo(c){
+  return '<video class="cutvid" data-src="'+BASE+'videos/'+c.foto+'-card.mp4'+VER+'" poster="'+BASE+'videos/'+c.foto+'.jpg'+VER+'" muted loop playsinline preload="none"></video>';
+}
+/* Load a clip only when it gets near the screen; play only what is visible. */
+var vLoader = new IntersectionObserver(function(es){
+  es.forEach(function(e){ if (!e.isIntersecting) return; var v=e.target; v.src=v.dataset.src; v.load(); vLoader.unobserve(v); });
+}, {rootMargin:"400px 0px"});
+var vPlayer = new IntersectionObserver(function(es){
+  es.forEach(function(e){ var v=e.target; if (e.isIntersecting && v.src) v.play().catch(function(){}); else v.pause(); });
+}, {threshold:.5});
+function wireVideos(root){
+  root.querySelectorAll("video.cutvid").forEach(function(v){
+    v.muted = true;
+    v.addEventListener("loadeddata", function(){ var r=v.getBoundingClientRect(); if (r.top<innerHeight && r.bottom>0) v.play().catch(function(){}); });
+    vLoader.observe(v); vPlayer.observe(v);
+  });
+}
 function plural(n){ return n + (n === 1 ? " receta" : " recetas"); }
 
 /* Recipe image when it exists; otherwise the cut photo with a "próximamente" tag. */
@@ -224,9 +251,10 @@ function renderCortes(){
     '<div class="grid">' + list.map(function(c){
       return '<a class="card folder" href="#'+c.id+'" style="text-decoration:none">' +
         '<span class="tag">'+plural(c.recetas.length)+'</span>' +
-        '<div class="media short"><img class="cut" loading="lazy" src="'+cutSrc(c)+'" alt=""></div>' +
+        '<div class="media short">'+(c.video ? cutVideo(c) : '<img class="cut" loading="lazy" src="'+cutSrc(c)+'" alt="">')+'</div>' +
         '<div class="info"><h3>'+esc(c.n)+'</h3></div></a>';
     }).join("") + '</div>';
+  wireVideos($("#view"));
 }
 
 /* Folder: the recipes of one cut. */
@@ -248,14 +276,18 @@ function openSheet(c, r){
     '<div class="body"><h2>'+esc(r.n)+'</h2><div class="corte">Corte: '+esc(c.n)+'</div>' +
     '<h4>Ingredientes</h4><ul>'+r.ing.map(function(x){ return "<li>"+esc(x)+"</li>"; }).join("")+'</ul>' +
     '<h4>Preparación</h4><ol>'+r.pasos.map(function(x){ return "<li>"+esc(x)+"</li>"; }).join("")+'</ol>' +
+    '<h4>El corte que usas</h4><div class="corte-box"><div class="cb-media">'+(c.video ? cutVideo(c) : '<img src="'+cutSrc(c)+'" alt="">')+'</div>' +
+    '<div class="cb-info"><b>'+esc(c.n)+'</b><span>'+esc(c.precio||"")+'</span></div></div>' +
     '<a class="wa" target="_blank" rel="noopener" href="https://wa.me/'+WA+'?text='+encodeURIComponent(msg)+'">' +
     '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.2c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.4-.7-2.8-1.1-4.6-4-4.8-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2.1 1-2.4c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.7-.1l.9-1.1c.2-.3.4-.2.7-.1l1.9.9c.3.1.5.2.5.3.1.2.1.7-.1 1.3z"/></svg>' +
-    'Pedir ' + esc(c.n) + '</a></div>';
+    'Pedir este corte</a></div>';
   $("#sheet").scrollTop = 0;
   $("#sheet").classList.add("on"); $("#veil").classList.add("on");
   $("#x").onclick = closeSheet;
+  /* a single clip here, so load it right away (the sheet scrolls on its own) */
+  $("#sheet").querySelectorAll("video.cutvid").forEach(function(v){ v.muted = true; v.src = v.dataset.src; v.play().catch(function(){}); });
 }
-function hideSheet(){ $("#sheet").classList.remove("on"); $("#veil").classList.remove("on"); }
+function hideSheet(){ $("#sheet").classList.remove("on"); $("#veil").classList.remove("on"); $("#sheet").querySelectorAll("video").forEach(function(v){ v.pause(); }); }
 function closeSheet(){ location.hash = location.hash.slice(1).split("/")[0]; }
 
 /* Routes: #  ·  #<corte>  ·  #<corte>/<receta>  (so a cut or recipe can be shared by link) */
