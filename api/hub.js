@@ -113,6 +113,15 @@ function renderPage(client, pageUrl){
     ? 'background-image:url(\''+client.background+'\');background-size:cover;background-position:center;background-repeat:no-repeat;'
     : (client.background ? '--bg:'+client.background+';' : '');
 
+  function cssUrl(u){ return String(u).replace(/['"()\\\s]/g, function(c){ return '%'+('0'+c.charCodeAt(0).toString(16)).slice(-2).toUpperCase(); }); }
+  var deviceBgCss = '';
+  if(isImageUrl(client.background_tablet)){
+    deviceBgCss += '@media (min-width:700px){body{background-image:url(\''+cssUrl(client.background_tablet)+'\') !important;background-size:cover !important;background-position:center !important;background-repeat:no-repeat !important;}}';
+  }
+  if(isImageUrl(client.background_desktop)){
+    deviceBgCss += '@media (min-width:1100px){body{background-image:url(\''+cssUrl(client.background_desktop)+'\') !important;background-size:cover !important;background-position:center !important;background-repeat:no-repeat !important;}}';
+  }
+
   var linksHtml = (client.buttons || []).map(function(b){
     var badgeStyle = b.color ?
       'background:'+escapeHtml(b.color)+';color:#fff;' :
@@ -168,6 +177,7 @@ function renderPage(client, pageUrl){
     '<meta name="twitter:description" content="'+escapeHtml(ogDesc)+'">\n'+
     FONT_LINK+'\n'+
     '<style id="app-style">'+CSS+'</style>\n'+
+    (deviceBgCss ? '<style id="device-bg">'+deviceBgCss+'</style>\n' : '')+
     '</head><body style="'+hubFontVar+hubTextVar+hubCardVar+accentVar+bgStyle+'">\n'+
     '<div id="app"><div class="hub">'+
       '<div class="hub-avatar">'+logoInner(client.logo)+'</div>'+
