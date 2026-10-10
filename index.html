@@ -1651,6 +1651,11 @@
         '</div>'+
         '<div class="field"><label>Fondo para tablet (opcional — imagen vertical, se usa en pantallas medianas)</label>'+deviceBgHtml('t', draft.background_tablet)+'</div>'+
         '<div class="field"><label>Fondo para computadora (opcional — imagen horizontal, se usa en pantallas grandes)</label>'+deviceBgHtml('d', draft.background_desktop)+'</div>'+
+        (isEdit && existing.slug === 'la-posta' ?
+          '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
+            '<input type="checkbox" id="f-bg-menu" style="width:18px;height:18px;"'+(draft.bg_in_menu?' checked':'')+'>'+
+            '<label for="f-bg-menu" style="margin:0;">Usar estos fondos también en el menú y el recetario (apagado: conservan su fondo original)</label>'+
+          '</div>' : '')+
         '<div class="field"><label>Estilo de letra de la página</label>'+
           '<select id="f-font">'+
             Object.keys(FONTS).map(function(k){
@@ -1919,6 +1924,8 @@
       var bgDesktop = document.getElementById('f-bgd-image').value.trim();
       if(bgTablet || (existing && existing.background_tablet !== undefined)){ newClient.background_tablet = bgTablet; }
       if(bgDesktop || (existing && existing.background_desktop !== undefined)){ newClient.background_desktop = bgDesktop; }
+      var bgMenuEl = document.getElementById('f-bg-menu');
+      if(bgMenuEl && (bgMenuEl.checked || (existing && existing.bg_in_menu !== undefined))){ newClient.bg_in_menu = bgMenuEl.checked; }
 
       try{
         await Storage.upsert(newClient);
