@@ -1588,6 +1588,13 @@
       );
     }
 
+    function deviceBgHtml(k, val){
+      return '<div class="link-box" id="f-bg'+k+'-status"'+(isImageUrl(val) ? '' : ' style="display:none;"')+'><span>Imagen puesta ✓</span>'+
+          '<button class="btn btn-danger btn-sm" id="f-bg'+k+'-clear" type="button">Quitar imagen</button></div>'+
+        '<input type="file" id="f-bg'+k+'-file" accept="image/png,image/jpeg,image/webp" style="font-size:12px;">'+
+        '<input type="hidden" id="f-bg'+k+'-image" value="'+escapeHtml(isImageUrl(val) ? val : '')+'">';
+    }
+
     function buttonRowHtml(b, i){
       return '<div class="button-row" data-idx="'+i+'">'+buttonRowInnerHtml(b)+'</div>';
     }
@@ -1631,7 +1638,7 @@
             '<input type="file" id="f-logo-file" accept="image/png,image/jpeg,image/webp" style="font-size:12px;">'+
           '</div>'+
         '</div>'+
-        '<div class="field"><label>Fondo de la página (color, o sube una imagen)</label>'+
+        '<div class="field"><label>Fondo de la página — celular (color, o sube una imagen)</label>'+
           (isImageUrl(draft.background) ?
             '<div class="link-box"><span>Imagen de fondo puesta ✓</span>'+
               '<button class="btn btn-danger btn-sm" id="removeBgBtn" type="button">Quitar imagen</button></div>'
@@ -1642,6 +1649,8 @@
           '</div>'+
           '<input type="hidden" id="f-bg-image" value="'+escapeHtml(isImageUrl(draft.background) ? draft.background : '')+'">'+
         '</div>'+
+        '<div class="field"><label>Fondo para tablet (opcional — imagen vertical, se usa en pantallas medianas)</label>'+deviceBgHtml('t', draft.background_tablet)+'</div>'+
+        '<div class="field"><label>Fondo para computadora (opcional — imagen horizontal, se usa en pantallas grandes)</label>'+deviceBgHtml('d', draft.background_desktop)+'</div>'+
         '<div class="field"><label>Estilo de letra de la página</label>'+
           '<select id="f-font">'+
             Object.keys(FONTS).map(function(k){
@@ -1756,6 +1765,29 @@
       }catch(err){
         toast('No se pudo subir: '+(err && err.message ? err.message : 'error'));
       }
+    });
+
+    ['t', 'd'].forEach(function(k){
+      document.getElementById('f-bg'+k+'-file').addEventListener('change', async function(e){
+        var file = e.target.files[0];
+        if(!file) return;
+        if(file.size > 10 * 1024 * 1024){ toast('La imagen debe pesar menos de 10MB'); return; }
+        toast('Subiendo imagen de fondo...');
+        try{
+          var url = await Storage.uploadLogo(file, currentSlug()+'-bg-'+k);
+          document.getElementById('f-bg'+k+'-image').value = url;
+          document.getElementById('f-bg'+k+'-status').style.display = '';
+          toast('Fondo subido');
+        }catch(err){
+          toast('No se pudo subir: '+(err && err.message ? err.message : 'error'));
+        }
+      });
+      document.getElementById('f-bg'+k+'-clear').onclick = function(){
+        document.getElementById('f-bg'+k+'-image').value = '';
+        document.getElementById('f-bg'+k+'-status').style.display = 'none';
+        document.getElementById('f-bg'+k+'-file').value = '';
+        toast('Imagen quitada — guarda para confirmar');
+      };
     });
 
     document.getElementById('f-text-auto').addEventListener('change', function(e){
@@ -1883,6 +1915,10 @@
         card_color: document.getElementById('f-card-auto').checked ? '' : document.getElementById('f-card-color').value,
         buttons: buttons
       };
+      var bgTablet = document.getElementById('f-bgt-image').value.trim();
+      var bgDesktop = document.getElementById('f-bgd-image').value.trim();
+      if(bgTablet || (existing && existing.background_tablet !== undefined)){ newClient.background_tablet = bgTablet; }
+      if(bgDesktop || (existing && existing.background_desktop !== undefined)){ newClient.background_desktop = bgDesktop; }
 
       try{
         await Storage.upsert(newClient);
