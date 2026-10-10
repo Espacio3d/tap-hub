@@ -1654,7 +1654,11 @@
         (isEdit && existing.slug === 'la-posta' ?
           '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
             '<input type="checkbox" id="f-bg-menu" style="width:18px;height:18px;"'+(draft.bg_in_menu?' checked':'')+'>'+
-            '<label for="f-bg-menu" style="margin:0;">Usar estos fondos también en el menú y el recetario (apagado: conservan su fondo original)</label>'+
+            '<label for="f-bg-menu" style="margin:0;">Usar el estilo de esta página (fondos, color de marca y logo) también en el menú y el recetario (apagado: conservan su diseño original)</label>'+
+          '</div>'+
+          '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
+            '<input type="checkbox" id="f-menu-hero" style="width:18px;height:18px;"'+(draft.menu_hero === false ? '' : ' checked')+'>'+
+            '<label for="f-menu-hero" style="margin:0;">Mostrar la franja de color arriba en el menú y el recetario (apagado: el logo y el título quedan sin franja)</label>'+
           '</div>' : '')+
         '<div class="field"><label>Estilo de letra de la página</label>'+
           '<select id="f-font">'+
@@ -1926,6 +1930,8 @@
       if(bgDesktop || (existing && existing.background_desktop !== undefined)){ newClient.background_desktop = bgDesktop; }
       var bgMenuEl = document.getElementById('f-bg-menu');
       if(bgMenuEl && (bgMenuEl.checked || (existing && existing.bg_in_menu !== undefined))){ newClient.bg_in_menu = bgMenuEl.checked; }
+      var heroEl = document.getElementById('f-menu-hero');
+      if(heroEl && (!heroEl.checked || (existing && existing.menu_hero !== undefined))){ newClient.menu_hero = heroEl.checked; }
 
       try{
         await Storage.upsert(newClient);
