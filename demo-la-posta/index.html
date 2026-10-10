@@ -168,7 +168,7 @@ var TEST = /[?&]prueba\b/.test(location.search);
 if (TEST) document.body.insertAdjacentHTML("afterbegin",
   '<div class="test-banner">🧪 MODO PRUEBA · los pedidos NO llegan a La Posta</div>');
 var V = "videos/", F = "fotos/";
-var VER = "?v=5";   // bump when video files are replaced, so browsers don't show the cached copy
+var VER = "?v=6";   // bump when video files are replaced, so browsers don't show the cached copy
 
 /* Each product: id (photo/video file name), name, category, options [label, price, unit].
    video:true means videos/<id>.mp4 exists; t = second the card video starts at (default 7). */
@@ -231,7 +231,7 @@ function mediaHtml(p, big){
        Pre-cut because iPhone browsers ignore '#t=' start times and would show the empty opening. */
     return big
       ? '<video src="'+V+p.id+'.mp4'+VER+'" poster="'+V+p.id+'.jpg'+VER+'" muted loop autoplay playsinline preload="auto"></video>'
-      : '<video src="'+V+p.id+'-card.mp4'+VER+'" poster="'+V+p.id+'.jpg'+VER+'" muted loop playsinline preload="auto"></video>';
+      : '<video data-src="'+V+p.id+'-card.mp4'+VER+'" poster="'+V+p.id+'.jpg'+VER+'" muted loop playsinline preload="none"></video>';
   }
   return '<img src="'+F+p.id+'.png" alt="'+p.n+'" loading="lazy"><div class="shine"></div>';
 }
@@ -256,13 +256,28 @@ $("#menu").innerHTML = cats.map(function(c,ci){
   return '<section id="cat'+ci+'"><h2>'+c+'</h2><div class="grid">'+cards+'</div></section>';
 }).join("");
 
-/* Play card videos only while visible (saves data and battery) */
-var io = new IntersectionObserver(function(es){
-  es.forEach(function(e){ e.isIntersecting ? e.target.play().catch(function(){}) : e.target.pause(); });
-}, {threshold:.4});
+/* Card videos: download a clip only when its card gets near the screen, and play only
+   the ones actually on screen. Loading all of them at once made phones stutter. */
+var loader = new IntersectionObserver(function(es){
+  es.forEach(function(e){
+    if (!e.isIntersecting) return;
+    var v = e.target; v.src = v.dataset.src; v.preload = "auto"; v.load();
+    loader.unobserve(v);
+  });
+}, {rootMargin:"400px 0px"});
+var player = new IntersectionObserver(function(es){
+  es.forEach(function(e){
+    var v = e.target;
+    if (e.isIntersecting && v.src) v.play().catch(function(){}); else v.pause();
+  });
+}, {threshold:.5});
 document.querySelectorAll("#menu video").forEach(function(v){
   v.muted = true;   // iOS only autoplays when the muted *property* is set
-  io.observe(v);
+  v.addEventListener("loadeddata", function(){
+    var r = v.getBoundingClientRect();
+    if (r.top < innerHeight && r.bottom > 0) v.play().catch(function(){});
+  });
+  loader.observe(v); player.observe(v);
 });
 
 /* Category chips: jump + highlight current section */
