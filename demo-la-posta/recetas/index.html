@@ -1,313 +1,1944 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>La Posta · Recetas</title>
-<meta name="description" content="Recetas guatemaltecas con los cortes de cerdo de La Posta. Pide tus cortes por WhatsApp hasta la puerta de tu casa.">
-<meta name="theme-color" content="#F7AFAF">
-<meta property="og:title" content="La Posta · Recetas">
-<meta property="og:description" content="Recetas guatemaltecas con nuestros cortes de cerdo.">
-<meta property="og:image" content="https://www.espacio3dgt.com/demo-la-posta/logo.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<title>Espacio3d.gt</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Allura&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>
-:root{
-  --pink:#F7AFAF; --pink-soft:#FDE8E8; --pink-deep:#E98A8A;
-  --brown:#3B2622; --brown-2:#6B4E48; --cream:#FFFAF8; --line:#F1D6D3;
-  --wa:#25D366;
-}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:Montserrat,system-ui,sans-serif;background:var(--cream);color:var(--brown);padding-bottom:40px}
-button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
-a{color:inherit}
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Work+Sans:wght@400;500;600&family=Poppins:wght@500;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@500;600;700&family=Bebas+Neue&family=Fraunces:wght@600;700&family=Quicksand:wght@500;600;700&family=Oswald:wght@500;600;700&family=Abril+Fatface&family=DM+Serif+Display&family=Righteous&family=Pacifico&family=Caveat:wght@600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style id="app-style">
+  :root{
+    --bg:#F6F5F2;
+    --surface:#FFFFFF;
+    --surface-edge:#E6E3DB;
+    --text:#181C1B;
+    --text-dim:#666F6C;
+    --accent-default:#0E7A5F;
+    --accent-ink:#FFFFFF;
+    --danger:#C24A3B;
+    --chip-bg:#EFEDE6;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#121615;
+      --surface:#1C2120;
+      --surface-edge:#2B3230;
+      --text:#EEF1EF;
+      --text-dim:#9AA5A1;
+      --accent-default:#2FD1A4;
+      --accent-ink:#0B1413;
+      --danger:#E17A6B;
+      --chip-bg:#242B29;
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#121615;
+    --surface:#1C2120;
+    --surface-edge:#2B3230;
+    --text:#EEF1EF;
+    --text-dim:#9AA5A1;
+    --accent-default:#2FD1A4;
+    --accent-ink:#0B1413;
+    --danger:#E17A6B;
+    --chip-bg:#242B29;
+    color-scheme:dark;
+  }
 
-/* ---------- Hero ---------- */
-.hero{position:relative;background:var(--pink);padding:28px 16px 34px;text-align:center;overflow:hidden;border-radius:0 0 32px 32px}
-.hero::after{content:"";position:absolute;right:-60px;top:-40px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.18)}
-.logo{width:104px;height:104px;border-radius:50%;background:#fff;margin:0 auto 10px;overflow:hidden;box-shadow:0 10px 30px rgba(59,38,34,.15);position:relative;z-index:1}
-.logo img{width:100%;height:100%;object-fit:contain;padding:6px}
-.hero .script{font-family:Allura,cursive;font-size:44px;line-height:1;position:relative;z-index:1}
-.hero h1{font-size:26px;font-weight:700;letter-spacing:.06em;margin-top:-4px;position:relative;z-index:1}
-.hero .sub{font-size:11px;letter-spacing:.32em;text-transform:uppercase;margin-top:6px;color:var(--brown-2);position:relative;z-index:1}
+  *{box-sizing:border-box;}
+  html,body{ height:100%; }
+  body::before{ content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background-image:var(--bg-img, none); background-size:cover; background-position:center; background-repeat:no-repeat; }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:"Work Sans",-apple-system,BlinkMacSystemFont,sans-serif;
+    padding-inline:16px;
+    padding-block:28px;
+  }
+  h1,h2,h3{ font-family:"Outfit",-apple-system,sans-serif; text-wrap:balance; margin:0; }
+  button{ font-family:inherit; }
+  input,select{ font-family:inherit; }
+  img{ max-width:100%; }
 
-/* ---------- Views ---------- */
-main{padding:18px 16px 0;max-width:980px;margin:0 auto}
-.view-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
-.view-head h2{font-family:Allura,cursive;font-weight:400;font-size:38px;line-height:1}
-.view-head .count{font-size:12px;color:var(--brown-2)}
-.back{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;background:#fff;border:1px solid var(--line);padding:8px 12px;border-radius:99px;margin-bottom:12px}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-@media(min-width:640px){.grid{grid-template-columns:repeat(3,1fr)}}
-@media(min-width:900px){.grid{grid-template-columns:repeat(4,1fr)}}
-.card{background:#fff;border-radius:20px;overflow:hidden;border:1px solid var(--line);text-align:left;display:flex;flex-direction:column;transition:transform .2s, box-shadow .2s;position:relative}
-.card:active{transform:scale(.97)}
-@media(hover:hover){.card:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(59,38,34,.1)}}
-.media{position:relative;aspect-ratio:4/5;background:radial-gradient(circle at 50% 60%,#fff 0%,var(--pink-soft) 70%);overflow:hidden;display:grid;place-items:center}
-.media.short{aspect-ratio:1/1}
-.media img.photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.media img.cut{width:78%;height:66%;object-fit:contain;filter:drop-shadow(0 14px 14px rgba(59,38,34,.18))}
-.soon{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:rgba(255,255,255,.85);padding:5px 9px;border-radius:99px}
-.info{padding:10px 12px 12px}
-.info h3{font-family:Allura,cursive;font-weight:400;font-size:26px;line-height:1.05}
-.info p{font-size:12px;color:var(--brown-2);margin-top:4px}
+  #app{ max-width:480px; margin:0 auto; display:flex; flex-direction:column; gap:20px; }
 
-/* Folder card: a tab on top and a recipe counter */
-.folder{border-top-left-radius:6px}
-.folder::before{content:"";position:absolute;top:0;left:0;width:44%;height:8px;background:var(--pink-deep);border-radius:0 0 10px 0;z-index:2}
-.folder .info h3{font-family:Montserrat,sans-serif;font-size:14px;font-weight:600;line-height:1.25}
-.folder .tag{position:absolute;top:16px;right:10px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--brown);color:#fff;padding:5px 8px;border-radius:99px;z-index:2}
+  /* ---- shared bits ---- */
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    border:none; border-radius:12px; padding:12px 18px;
+    font-size:15px; font-weight:600; cursor:pointer;
+    font-family:"Outfit",sans-serif;
+  }
+  .btn-primary{ background:var(--accent, var(--accent-default)); color:var(--accent-ink); }
+  .btn-ghost{ background:var(--chip-bg); color:var(--text); }
+  .btn-danger{ background:transparent; color:var(--danger); }
+  .btn-sm{ padding:8px 12px; font-size:13px; border-radius:9px; }
+  .btn:active{ transform:translateY(1px); }
+  .icon{ width:18px; height:18px; flex:0 0 auto; }
+  .icon path, .icon circle, .icon rect{ stroke:currentColor; }
 
-/* ---------- Detail ---------- */
-.veil{position:fixed;inset:0;background:rgba(59,38,34,.45);opacity:0;pointer-events:none;transition:opacity .25s;z-index:40}
-.veil.on{opacity:1;pointer-events:auto}
-.sheet{position:fixed;left:0;right:0;bottom:0;max-height:92vh;overflow-y:auto;background:var(--cream);border-radius:26px 26px 0 0;transform:translateY(100%);transition:transform .3s ease;z-index:50;max-width:620px;margin:0 auto}
-.sheet.on{transform:none}
-.sheet .close{position:sticky;top:0;display:flex;justify-content:flex-end;padding:10px 12px 0;background:linear-gradient(var(--cream) 70%,transparent)}
-.sheet .close button{width:36px;height:36px;border-radius:50%;background:#fff;border:1px solid var(--line);font-size:20px;line-height:1}
-.sheet .full{display:block;width:calc(100% - 32px);margin:0 16px;border-radius:18px;border:1px solid var(--line)}
-.sheet .body{padding:16px 20px 24px}
-.sheet h2{font-family:Allura,cursive;font-weight:400;font-size:40px;line-height:1}
-.sheet .corte{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--brown-2);margin-top:4px}
-.sheet h4{font-size:12px;letter-spacing:.14em;text-transform:uppercase;margin:18px 0 6px}
-.sheet ul,.sheet ol{padding-left:20px;font-size:14px;line-height:1.6}
-.wa{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--wa);color:#fff;font-weight:700;font-size:15px;padding:14px;border-radius:14px;text-decoration:none;margin-top:22px}
+  /* ================= ADMIN ================= */
+  .admin-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .admin-header h1{ color:var(--panel-text, var(--text)); }
+  .admin-header p{ color:var(--panel-text, var(--text-dim)); }
 
-.media video.cutvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.corte-box{display:flex;gap:14px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px}
-.cb-media{position:relative;width:96px;height:120px;flex:0 0 auto;border-radius:12px;overflow:hidden;background:radial-gradient(circle at 50% 60%,#fff 0%,var(--pink-soft) 70%);display:grid;place-items:center}
-.cb-media video{width:100%;height:100%;object-fit:cover}
-.cb-media img{width:86%;height:70%;object-fit:contain}
-.cb-info{display:flex;flex-direction:column;gap:4px;font-size:14px}
-.cb-info b{font-size:16px}
-.cb-info span{color:var(--brown-2);font-size:13px}
-footer{text-align:center;font-size:12px;color:var(--brown-2);padding:30px 16px 10px;line-height:1.7}
-footer b{color:var(--brown)}
+  .client-card{
+    background:var(--surface); border:1px solid var(--surface-edge); border-radius:16px;
+    padding:16px; display:flex; align-items:center; gap:12px;
+  }
+  .client-avatar{
+    width:44px; height:44px; border-radius:12px; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center;
+    font-size:20px; font-weight:700; font-family:"Outfit",sans-serif;
+    overflow:hidden;
+  }
+  .client-meta{ flex:1; min-width:0; }
+  .client-meta .name{ font-weight:600; font-size:15px; }
+  .client-meta .slug{ color:var(--text-dim); font-size:13px; font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .client-actions{ display:flex; gap:6px; flex:0 0 auto; }
+
+  .empty{
+    text-align:center; color:var(--text-dim); font-size:14px;
+    padding-block:32px; border:1px dashed var(--surface-edge); border-radius:16px;
+  }
+
+  /* ---- form ---- */
+  .form-card{
+    background:var(--surface); border:1px solid var(--surface-edge); border-radius:16px;
+    padding:20px; display:flex; flex-direction:column; gap:16px;
+  }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field label{ font-size:13px; font-weight:600; color:var(--text-dim); }
+  .field input[type="text"], .field input[type="url"]{
+    background:var(--bg); border:1px solid var(--surface-edge); border-radius:10px;
+    padding:10px 12px; font-size:15px; color:var(--text);
+  }
+  .row2{ display:flex; gap:12px; }
+  .row2 .field{ flex:1; min-width:0; }
+  .color-field{ display:flex; align-items:center; gap:10px; }
+  .color-field input[type="color"]{
+    width:40px; height:40px; border-radius:10px; border:1px solid var(--surface-edge); padding:2px; background:var(--bg);
+  }
+
+  .buttons-editor{ display:flex; flex-direction:column; gap:10px; }
+  .button-row{
+    display:flex; flex-direction:column; gap:6px;
+    background:var(--bg); border:1px solid var(--surface-edge); border-radius:12px; padding:8px;
+  }
+  .button-row-main{ display:flex; gap:8px; align-items:center; }
+  .button-row-icon-upload{
+    display:flex; align-items:center; gap:8px; padding-left:38px;
+    font-size:12px; color:var(--text-dim);
+  }
+  .button-row-icon-upload input[type="file"]{
+    font-size:11px; background:none; border:none; padding:0; color:var(--text-dim); flex:none;
+  }
+  .button-row select{
+    background:var(--surface); border:1px solid var(--surface-edge); border-radius:8px;
+    padding:8px; font-size:13px; color:var(--text); flex:0 0 auto; width:120px;
+  }
+  .button-row input{
+    background:var(--surface); border:1px solid var(--surface-edge); border-radius:8px;
+    padding:8px 10px; font-size:13px; color:var(--text); min-width:0;
+  }
+  .button-row .label-input{ flex:1; }
+  .button-row .url-input{ flex:1.4; }
+  .button-row .row-color{
+    flex:0 0 auto; width:30px; height:30px; padding:2px; border-radius:8px;
+    border:1px solid var(--surface-edge); background:var(--surface);
+  }
+  .row-remove{
+    flex:0 0 auto; width:30px; height:30px; border-radius:8px; border:none;
+    background:transparent; color:var(--danger); font-size:16px; cursor:pointer;
+  }
+  .add-row-btn{ align-self:flex-start; }
+
+  .form-actions{ display:flex; gap:10px; justify-content:flex-end; padding-top:4px; border-top:1px solid var(--surface-edge); }
+
+  .link-box{
+    display:flex; align-items:center; gap:8px; background:var(--chip-bg);
+    border-radius:10px; padding:8px 10px; font-size:12px; font-family:monospace;
+    overflow:hidden;
+  }
+  .link-box span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+  .qr-box{
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    padding-top:8px;
+  }
+  .qr-box canvas{ border-radius:10px; border:1px solid var(--surface-edge); }
+  .templates-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .stat-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--bg); border:1px solid var(--surface-edge); border-radius:10px;
+    padding:8px 12px; font-size:13px;
+  }
+  .template-swatch{
+    width:44px; height:44px; border-radius:10px; border:1px solid var(--surface-edge);
+    color:#fff; font-weight:700; font-size:15px; cursor:pointer;
+  }
+  .template-swatch:hover{ outline:2px solid var(--accent-default); outline-offset:2px; }
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:var(--text); color:var(--bg); padding:10px 18px; border-radius:999px;
+    font-size:13px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .25s;
+    z-index:50;
+  }
+  .toast.show{ opacity:1; }
+
+  /* ================= PUBLIC HUB ================= */
+  .hub{ display:flex; flex-direction:column; gap:20px; align-items:center; padding-top:8px; font-family:var(--hub-font, inherit); }
+  .hub-avatar{
+    width:76px; height:76px; border-radius:22px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:34px; font-weight:700; color:var(--accent-ink);
+    background:var(--accent, var(--accent-default));
+    overflow:hidden;
+  }
+  .hub h1{ font-size:24px; text-align:center; font-family:var(--hub-font, "Outfit"), -apple-system, sans-serif; color:var(--hub-text, var(--text)); }
+  .hub .tagline{ color:var(--hub-text, var(--text-dim)); font-size:14px; text-align:center; margin-top:-8px; }
+  .hub-links{ width:100%; display:flex; flex-direction:column; gap:10px; }
+  .hub-link{
+    display:flex; align-items:center; gap:12px;
+    background:var(--hub-card, var(--surface)); border:1px solid var(--surface-edge); border-radius:14px;
+    padding:15px 16px; text-decoration:none; color:var(--hub-card-text, var(--text)); font-weight:500; font-size:15px;
+  }
+  .hub-link .icon-badge{
+    width:34px; height:34px; border-radius:10px; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--chip-bg); color:var(--accent, var(--accent-default));
+  }
+  .hub-link .chev{ margin-left:auto; color:var(--hub-card-text, var(--text-dim)); width:16px; height:16px; }
+  .hub-footer{ color:var(--text-dim); font-size:12px; text-align:center; padding-top:8px; }
+  .capture-box{
+    width:100%; background:var(--surface); border:1px solid var(--surface-edge); border-radius:14px;
+    padding:14px 16px; display:flex; flex-direction:column; gap:8px; font-size:13px; color:var(--text-dim);
+  }
+  .capture-row{ display:flex; gap:8px; }
+  .capture-row input{
+    flex:1; min-width:0; background:var(--bg); border:1px solid var(--surface-edge); border-radius:10px;
+    padding:10px 12px; font-size:14px; color:var(--text);
+  }
+  .hub-footer a{ color:inherit; }
+  .not-found{ text-align:center; padding-block:60px; color:var(--text-dim); }
+
+  .login-footer{ display:flex; justify-content:flex-end; }
 </style>
 </head>
 <body>
-
-<header class="hero">
-  <div class="logo"><img src="/demo-la-posta/logo.png" alt="La Posta"></div>
-  <div class="script">Recetas</div>
-  <h1>CHAPINAS</h1>
-  <div class="sub">con nuestros cortes de cerdo</div>
-</header>
-
-<main id="view"></main>
-
-<footer>
-  <b>¡Hasta la puerta de tu casa!</b><br>
-  Entregas de lunes a sábado<br>
-  WhatsApp <b>4186 9362</b>
-</footer>
-
-<div class="veil" id="veil"></div>
-<div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
 
 <script>
-var WA = "50241869362";
+(function(){
+  "use strict";
 
-/* Cada corte es una carpeta con sus recetas.
-   Para agregar una receta: guardar la imagen como img/<corte>--<receta>.webp y
-   agregar la receta dentro de su corte. Si la imagen todavía no existe, la
-   tarjeta muestra la foto del corte. Para un corte nuevo, agregar un objeto
-   con su foto de ../fotos/. */
-var CORTES = [
-  { id:"adobado", n:"Adobado", foto:"01-adobado", precio:"Q26 / lb", video:true, recetas:[
-    { id:"tacos-de-adobado", n:"Tacos de adobado",
-      ing:["1 lb de adobado","Tortillas pequeñas","Cebolla","Cilantro","Guacamol","Limón","Salsa de chile"],
-      pasos:["Calentar la plancha con un poco de aceite.","Dorar el adobado 8 a 10 minutos.","Picarlo en trocitos.","Calentar las tortillas.","Servir con cebolla, cilantro y limón."] }
-  ]},
-  { id:"carne-molida", n:"Carne molida", foto:"04-carne-molida", precio:"Q25 / lb", video:true, recetas:[
-    { id:"chiles-rellenos", n:"Chiles rellenos",
-      ing:["5 chiles pimientos","½ lb de carne molida","Zanahoria y ejotes","Cebolla y ajo","4 huevos","Harina","Salsa de tomate"],
-      pasos:["Asar y pelar los chiles.","Sofreír la carne con las verduras.","Rellenar los chiles.","Pasar por harina y huevo batido.","Freír y bañar en salsa de tomate."] },
-    { id:"sopa-de-albondigas", n:"Sopa de albóndigas",
-      ing:["1 lb de carne molida", "1 huevo", "½ taza de pan molido", "Hierbabuena", "3 tomates", "Güisquil y zanahoria", "Cebolla y ajo"],
-      pasos:["Mezclar carne, huevo, pan y hierbabuena.", "Formar albóndigas pequeñas.", "Licuar tomate, cebolla y ajo y freír la salsa.", "Agregar agua o caldo, güisquil y zanahoria.", "Cocinar las albóndigas en el caldo 15 minutos."] }
-  ]},
-  { id:"chicharrones", n:"Chicharrones", foto:"07-chicharrones", precio:"Q75 / lb", video:true, recetas:[
-    { id:"chojin", n:"Chojín",
-      ing:["1 taza de chicharrón","8 rábanos","1 tomate","½ cebolla","1 chile","Hierbabuena","Naranja agria y limón"],
-      pasos:["Picar finito rábanos, tomate y cebolla.","Agregar chile y hierbabuena.","Mezclar con naranja agria y limón.","Poner el chicharrón justo al servir."] },
-    { id:"tostadas-de-chicharron", n:"Tostadas de chicharrón",
-      ing:["8 tostadas", "1 taza de chicharrón", "Frijoles volteados", "Guacamol", "Repollo picado", "Salsa de tomate", "Queso seco y perejil"],
-      pasos:["Untar frijoles volteados en cada tostada.", "Agregar guacamol.", "Poner repollo y chicharrón en trocitos.", "Bañar con salsa de tomate.", "Terminar con queso seco y perejil."] }
-  ]},
-  { id:"chorizo", n:"Chorizo", foto:"10-chorizo-rodaja-tubo", precio:"Q24 / lb en rodaja · Q20 / lb en tubo", video:true, recetas:[
-    { id:"shucos", n:"Shucos",
-      ing:["4 chorizos","4 panes para shuco","Guacamol","Repollo picado","Cebolla","Mostaza, mayonesa y salsa de tomate"],
-      pasos:["Asar los chorizos y abrirlos a lo largo.","Tostar los panes en la plancha.","Untar guacamol en el pan.","Poner chorizo, repollo y cebolla.","Terminar con las salsas."] }
-  ]},
-  { id:"longaniza-artesanal", n:"Longaniza artesanal", foto:"21-longaniza-artesanal", precio:"Q2.75 c/u · Q24 / lb en rodaja", video:true, recetas:[
-    { id:"longaniza-con-chirmol", n:"Longaniza con chirmol",
-      ing:["4 longanizas","4 tomates","½ cebolla","Cilantro","1 chile","Limón y sal","Tortillas"],
-      pasos:["Asar las longanizas a fuego medio, dándoles vuelta.","Asar los tomates y el chile en el comal.","Machacarlos en molcajete.","Agregar cebolla, cilantro, limón y sal.","Servir con frijoles y tortillas."] },
-    { id:"desayuno-chapin", n:"Desayuno chapín",
-      ing:["2 longanizas", "4 huevos", "Frijoles volteados", "Plátano maduro", "Crema y queso fresco", "Chirmol", "Tortillas"],
-      pasos:["Asar la longaniza y cortarla en rodajas.", "Revolver los huevos.", "Freír el plátano maduro.", "Calentar los frijoles volteados.", "Servir con crema, queso, chirmol y tortillas."] }
-  ]},
-  { id:"chuleta-fresca", n:"Chuleta fresca", foto:"12-chuleta-fresca", precio:"Q25 / lb", video:true, recetas:[
-    { id:"chuletas-encebolladas", n:"Chuletas encebolladas",
-      ing:["4 chuletas frescas","2 cebollas","2 tomates","Ajo","Salsa inglesa","Limón","Sal y pimienta"],
-      pasos:["Sazonar las chuletas con ajo, limón, sal y pimienta.","Dorarlas en un sartén 4 minutos por lado.","Sofreír la cebolla en rodajas y el tomate.","Agregar salsa inglesa y un poco de agua.","Regresar las chuletas y cocinar 10 minutos."] }
-  ]},
-  { id:"lomo-de-cinta", n:"Lomo de cinta", foto:"20-lomo-de-cinta", precio:"Q31 / lb · medallón Q33 / lb", video:true, recetas:[
-    { id:"jocon-de-cerdo", n:"Jocón de cerdo",
-      ing:["2 lb de lomo de cinta","1 lb de miltomate","Cilantro y cebollín","Chile pimiento verde","Pepitoria y ajonjolí","2 tortillas tostadas","Ajo y cebolla"],
-      pasos:["Cocer el lomo en trozos y guardar el caldo.","Tostar pepitoria, ajonjolí y tortillas.","Licuar con miltomate, cilantro, cebollín y chile.","Cocinar la salsa con caldo hasta espesar.","Agregar el lomo y cocinar 15 minutos."] },
-    { id:"subanik", n:"Subanik",
-      ing:["2 lb de lomo de cinta", "1 pollo en piezas", "Tomate y miltomate", "Chile guaque, pasa y zambo", "Ajonjolí y pepitoria", "Hojas de maxán", "Cibaque"],
-      pasos:["Asar tomates, miltomates y chiles.", "Licuar con ajonjolí y pepitoria.", "Marinar las carnes en el recado 2 horas.", "Envolver en hojas de maxán y amarrar.", "Cocer al vapor 2 horas y media."] }
-  ]},
-  { id:"costilla-fresca", n:"Costilla fresca", foto:"15-costilla-fresca", precio:"Q28 / lb en tiras · Q30 / lb porción", video:true, recetas:[
-    { id:"costillas-en-chirmol", n:"Costillas en chirmol",
-      ing:["2 lb de costilla fresca","6 tomates","1 cebolla","1 chile pimiento","Ajo","Cilantro","Sal y pimienta"],
-      pasos:["Cocer la costilla con sal y ajo 40 minutos.","Asar tomates, cebolla y chile pimiento.","Licuar o machacar con cilantro.","Dorar la costilla en un poco de aceite.","Cocinarla en el chirmol 15 minutos."] }
-  ]},
-  { id:"costado-con-cuero", n:"Costado con cuero", foto:"13-costado-con-cuero", precio:"Q30 / lb", recetas:[
-    { id:"yuca-con-chicharron", n:"Yuca con chicharrón",
-      ing:["2 lb de costado con cuero","2 lb de yuca","Repollo y zanahoria","Remolacha","Vinagre y orégano","Salsa de tomate","Limón"],
-      pasos:["Cocer la yuca en agua con sal.","Cortar el costado en trozos y freírlo hasta dorar el cuero.","Mezclar el curtido con vinagre y orégano.","Servir la yuca con chicharrón y curtido.","Bañar con salsa de tomate."] }
-  ]},
-  { id:"pierna", n:"Pierna", foto:"23-pierna", precio:"Q26 / lb", recetas:[
-    { id:"pierna-navidena", n:"Pierna navideña",
-      ing:["1 pierna de 8 lb","Ajo","Naranja","Mantequilla","Romero, tomillo y orégano","Comino y pimienta","Clavos de olor"],
-      pasos:["Picar la pierna con un cuchillo.","Untar el adobo y poner los clavos.","Marinar 1 a 3 días en la refri.","Hornear tapada a 325 °F unas 4 horas.","Destapar al final para dorar."] }
-  ]},
-  { id:"posta-de-pierna", n:"Posta de pierna", foto:"26-posta-de-pierna", precio:"Q26 / lb · porción Q30 / lb", recetas:[
-    { id:"chuchitos", n:"Chuchitos",
-      ing:["1 lb de posta de pierna","2 lb de masa de maíz","½ taza de manteca","4 tomates","1 chile guaque","Tusas","Queso seco"],
-      pasos:["Cocer la carne en cubitos.","Licuar tomate y chile, cocinar con la carne.","Batir la masa con manteca y caldo.","Rellenar la tusa con masa y recado y amarrar.","Cocer al vapor 1 hora."] }
-  ]},
-  { id:"posta-de-nuca", n:"Posta de nuca", foto:"25-posta-de-nuca", precio:"Q28 / lb", recetas:[
-    { id:"pepian-de-cerdo", n:"Pepián de cerdo",
-      ing:["2 lb de posta de nuca","4 tomates y 4 miltomates","Chile guaque y pasa","Pepitoria y ajonjolí","Canela","1 tortilla tostada","Güisquil, papa y ejotes"],
-      pasos:["Cocer la carne con sal y guardar el caldo.","Tostar semillas, chiles y canela.","Asar tomates y miltomates.","Licuar todo con caldo y la tortilla.","Cocinar la salsa con carne y verduras."] }
-  ]},
-  { id:"posta-de-brazuelo", n:"Posta de brazuelo", foto:"24-posta-de-brazuelo", precio:"Q26 / lb", recetas:[
-    { id:"tamales-colorados", n:"Tamales colorados",
-      ing:["3 lb de brazuelo","5 lb de masa","1 lb de manteca","Tomate","Chile guaque y pasa","Ajonjolí y pepitoria","Hojas de plátano"],
-      pasos:["Cocer la carne y guardar el caldo.","Licuar el recado y cocinarlo.","Batir la masa con manteca y caldo.","Armar: masa, carne, recado y aceituna.","Cocer al vapor 2 horas."] }
-  ]},
-  { id:"lechon", n:"Lechón", foto:"19-lechon", precio:"Q45 / lb", recetas:[
-    { id:"lechon-al-horno", n:"Lechón al horno",
-      ing:["1 pieza de lechón de 10 lb","1 cabeza de ajo","Naranja agria","Achiote","Orégano y comino","Manteca","Sal gruesa"],
-      pasos:["Moler ajo, achiote, naranja agria y especias.","Untar el lechón por dentro y por fuera.","Marinar toda la noche en la refri.","Untar la piel con manteca y sal.","Hornear a 350 °F unas 4 horas hasta que la piel cruja."] }
-  ]},
-  { id:"cabeza-entera", n:"Cabeza entera", foto:"03-cabeza-entera", precio:"Q160 c/u", recetas:[
-    { id:"revolcado", n:"Revolcado",
-      ing:["3 lb de cabeza de cerdo","½ lb de hígado","6 tomates","6 miltomates","Chile guaque y pasa","Achiote","2 tortillas tostadas"],
-      pasos:["Cocer la carne 2 horas y picarla.","Asar tomates, miltomates y chiles.","Licuar con el hígado y las tortillas.","Freír la salsa y agregar la carne.","Cocinar 20 minutos hasta espesar."] }
-  ]},
-  { id:"patitas-de-cerdo", n:"Patitas de cerdo", foto:"22-patitas-de-cerdo", precio:"Q14 c/u", recetas:[
-    { id:"patitas-en-escabeche", n:"Patitas en escabeche",
-      ing:["4 patitas de cerdo","2 zanahorias","1 coliflor pequeña","Ejotes","Cebolla","Vinagre","Laurel, tomillo y pimienta"],
-      pasos:["Cocer las patitas 2 horas con sal y laurel.","Cocer las verduras sin que se suavicen mucho.","Sofreír la cebolla y agregar vinagre y especias.","Mezclar patitas y verduras con el escabeche.","Reposar en la refri una noche."] }
-  ]}
-];
+  var ICONS = {
+    menu:      '<path d="M4 5h16M4 12h16M4 19h10" stroke-width="2" stroke-linecap="round"/>',
+    review:    '<path d="M12 3l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1L6.6 19.3l1.3-6-4.6-4.1 6.1-.6z" stroke-width="1.6" stroke-linejoin="round" fill="none"/>',
+    wifi:      '<path d="M3 8.5a17 17 0 0 1 18 0M6.2 12.3a12 12 0 0 1 11.6 0M9.6 16a7 7 0 0 1 4.8 0" stroke-width="2" stroke-linecap="round" fill="none"/><circle cx="12" cy="19.3" r="1.3" fill="currentColor" stroke="none"/>',
+    rewards:   '<path d="M12 21s-7-4.4-9.5-8.8C.7 8.6 2.3 5 6 5c2 0 3.3 1 4 2.2 0-.1 0-.1 0 0C10.7 6 12 5 14 5c3.7 0 5.3 3.6 3.5 7.2C19 16.6 12 21 12 21z" stroke-width="1.6" stroke-linejoin="round" fill="none"/>',
+    app:       '<rect x="7" y="2.5" width="10" height="19" rx="2" stroke-width="1.6" fill="none"/><path d="M11 18.5h2" stroke-width="1.6" stroke-linecap="round"/>',
+    giftcard:  '<rect x="3" y="7" width="18" height="13" rx="2" stroke-width="1.6" fill="none"/><path d="M3 12h18M12 7v13M8.5 7c-1.4 0-2.5-1-2.5-2.2C6 3.6 7 3 8 3.4c1.3.5 2.5 2 3 3.6-1 0-2.5 0-2.5 0zm7 0c1.4 0 2.5-1 2.5-2.2C18 3.6 17 3 16 3.4c-1.3.5-2.5 2-3 3.6 1 0 2.5 0 2.5 0z" stroke-width="1.4" stroke-linejoin="round" fill="none"/>',
+    instagram: '<rect x="3" y="3" width="18" height="18" rx="5" stroke-width="1.6" fill="none"/><circle cx="12" cy="12" r="4" stroke-width="1.6" fill="none"/><circle cx="17.3" cy="6.7" r="1" fill="currentColor" stroke="none"/>',
+    facebook:  '<path d="M14 21v-7h2.5l.5-3H14V9c0-.9.3-1.5 1.7-1.5H17V4.8C16.6 4.7 15.6 4.6 14.5 4.6c-2.4 0-4 1.4-4 4.1V11H8v3h2.5v7z" stroke-width="1.2" stroke-linejoin="round" fill="none"/>',
+    linkedin:  '<rect x="3" y="3" width="18" height="18" rx="4" stroke-width="1.6" fill="none"/><circle cx="8" cy="8.2" r="1.3" fill="currentColor" stroke="none"/><path d="M8 11v6" stroke-width="1.8" stroke-linecap="round"/><path d="M12 17v-6M12 12.4c0-1 .9-1.8 2-1.8 1.2 0 2.1.9 2.1 2.3V17" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+    recetario: '<path d="M12 6.5C10.5 5.3 8.2 4.8 4 5v13c4.2-.2 6.5.3 8 1.5 1.5-1.2 3.8-1.7 8-1.5V5c-4.2-.2-6.5.3-8 1.5z" stroke-width="1.6" stroke-linejoin="round" fill="none"/><path d="M12 6.5v13M7 9h2.5M7 12h2.5M14.5 9H17M14.5 12H17" stroke-width="1.5" stroke-linecap="round"/>',
+    website:   '<circle cx="12" cy="12" r="9" stroke-width="1.6" fill="none"/><path d="M3 12h18M12 3c2.5 2.5 3.8 6 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-6-3.8-9s1.3-6.5 3.8-9z" stroke-width="1.4" fill="none"/>',
+    calendar:  '<rect x="3.5" y="5" width="17" height="16" rx="2" stroke-width="1.6" fill="none"/><path d="M8 3v4M16 3v4M3.5 10h17" stroke-width="1.6" stroke-linecap="round"/>',
+    phone:     '<path d="M6.5 3.5h3l1.3 4.5-2.2 1.7a13 13 0 0 0 5.7 5.7l1.7-2.2 4.5 1.3v3c0 1.2-1 2-2.1 1.9C10.8 19 5 13.2 4.6 5.6 4.5 4.5 5.3 3.5 6.5 3.5z" stroke-width="1.5" stroke-linejoin="round" fill="none"/>',
+    game:      '<rect x="2.5" y="8" width="19" height="9" rx="4" stroke-width="1.6" fill="none"/><path d="M7 10.5v4M5 12.5h4" stroke-width="1.5" stroke-linecap="round"/><circle cx="16" cy="11" r="1" fill="currentColor" stroke="none"/><circle cx="18.2" cy="13.2" r="1" fill="currentColor" stroke="none"/>',
+    offer:     '<path d="M20 12.2 12.6 20l-9-9L4 4l7 .4z" stroke-width="1.6" stroke-linejoin="round" fill="none"/><circle cx="8.3" cy="8.3" r="1.4" stroke-width="1.4" fill="none"/>',
+    whatsapp:  '<path d="M12 3a9 9 0 0 0-7.7 13.6L3 21l4.6-1.2A9 9 0 1 0 12 3z" stroke-width="1.5" fill="none"/><path d="M8.3 8.7c-.2.9.1 2 1.3 3.5s2.5 2.2 3.6 2.3c1 .1 1.6-.5 1.8-1l-1.7-1.1c-.3.3-.7.6-1.1.4-.6-.3-1.6-1.1-2.1-2.1-.2-.4.1-.7.4-1l-.9-1.6c-.5-.1-1.1.1-1.3.6z" fill="currentColor" stroke="none"/>',
+    survey:    '<rect x="4" y="3" width="16" height="18" rx="2" stroke-width="1.6" fill="none"/><path d="M8 8h8M8 12l1.6 1.6L12.5 10M8 16h5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+    support:   '<circle cx="12" cy="12" r="8.5" stroke-width="1.6" fill="none"/><circle cx="12" cy="12" r="3.2" stroke-width="1.5" fill="none"/><path d="M6.2 6.2l3.3 3.3M17.8 6.2l-3.3 3.3M6.2 17.8l3.3-3.3M17.8 17.8l-3.3-3.3" stroke-width="1.4" stroke-linecap="round"/>',
+    contact:   '<rect x="3" y="5" width="18" height="14" rx="2" stroke-width="1.6" fill="none"/><circle cx="9" cy="11" r="2" stroke-width="1.5" fill="none"/><path d="M6 16c0-1.7 1.3-3 3-3s3 1.3 3 3M14 9h4M14 13h4" stroke-width="1.5" stroke-linecap="round"/>'
+  };
+  var ICON_LABELS = {
+    menu:"Menú", review:"Reseña", wifi:"WiFi", rewards:"Recompensas", app:"Descargar app",
+    giftcard:"Gift card", instagram:"Instagram", facebook:"Facebook", linkedin:"LinkedIn", recetario:"Recetario", website:"Sitio web",
+    calendar:"Reservar/Agendar", phone:"Llamar", game:"Juego", offer:"Ofertas", whatsapp:"WhatsApp",
+    survey:"Encuesta", support:"Servicio al cliente", contact:"Contacto"
+  };
 
-var $ = function(s){ return document.querySelector(s); };
-function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
-function findCorte(id){ return CORTES.filter(function(c){ return c.id === id; })[0]; }
-/* Absolute paths: the page is also served at /la-posta/recetas, where relative paths would break. */
-var BASE = "/demo-la-posta/";
-function imgSrc(c, r){ return BASE + "recetas/img/" + c.id + "--" + r.id + ".webp"; }
-function cutSrc(c){ return BASE + "fotos/" + c.foto + ".png"; }
-/* Same short loop clips and posters the menu uses (videos/<foto>-card.mp4). */
-var VER = "?v=8";
-function cutVideo(c){
-  return '<video class="cutvid" data-src="'+BASE+'videos/'+c.foto+'-card.mp4'+VER+'" poster="'+BASE+'videos/'+c.foto+'.jpg'+VER+'" muted loop playsinline preload="none"></video>';
-}
-/* Load a clip only when it gets near the screen; play only what is visible. */
-var vLoader = new IntersectionObserver(function(es){
-  es.forEach(function(e){ if (!e.isIntersecting) return; var v=e.target; v.src=v.dataset.src; v.load(); vLoader.unobserve(v); });
-}, {rootMargin:"400px 0px"});
-var vPlayer = new IntersectionObserver(function(es){
-  es.forEach(function(e){ var v=e.target; if (e.isIntersecting && v.src) v.play().catch(function(){}); else v.pause(); });
-}, {threshold:.5});
-function wireVideos(root){
-  root.querySelectorAll("video.cutvid").forEach(function(v){
-    v.muted = true;
-    v.addEventListener("loadeddata", function(){ var r=v.getBoundingClientRect(); if (r.top<innerHeight && r.bottom>0) v.play().catch(function(){}); });
-    vLoader.observe(v); vPlayer.observe(v);
-  });
-}
-function plural(n){ return n + (n === 1 ? " receta" : " recetas"); }
+  var FONTS = {
+    default:    { label:"Predeterminada", css:null },
+    poppins:    { label:"Poppins", css:"'Poppins',sans-serif" },
+    playfair:   { label:"Playfair Display (elegante)", css:"'Playfair Display',serif" },
+    montserrat: { label:"Montserrat", css:"'Montserrat',sans-serif" },
+    bebas:      { label:"Bebas Neue (grande y bold)", css:"'Bebas Neue',sans-serif" },
+    fraunces:   { label:"Fraunces (con carácter)", css:"'Fraunces',serif" },
+    quicksand:  { label:"Quicksand (redondeada)", css:"'Quicksand',sans-serif" },
+    oswald:     { label:"Oswald (condensada)", css:"'Oswald',sans-serif" },
+    abril:      { label:"Abril Fatface (dramática)", css:"'Abril Fatface',serif" },
+    dmserif:    { label:"DM Serif Display (elegante)", css:"'DM Serif Display',serif" },
+    righteous:  { label:"Righteous (divertida)", css:"'Righteous',sans-serif" },
+    pacifico:   { label:"Pacifico (manuscrita casual)", css:"'Pacifico',cursive" },
+    caveat:     { label:"Caveat (manuscrita)", css:"'Caveat',cursive" }
+  };
 
-/* Recipe image when it exists; otherwise the cut photo with a "próximamente" tag. */
-function recipeMedia(c, r){
-  return '<div class="media"><img class="cut" loading="lazy" src="'+cutSrc(c)+'" alt=""><span class="soon">Imagen próximamente</span>' +
-    '<img class="photo" loading="lazy" src="'+imgSrc(c, r)+'" alt="'+esc(r.n)+'" onload="var s=this.parentNode.querySelector(\'.soon\');if(s)s.remove()" onerror="this.remove()"></div>';
-}
+  var TEMPLATES = [
+    { key:"clasico",    label:"Clásico verde",    accent:"#0E7A5F", font:"default" },
+    { key:"nocturno",   label:"Elegante nocturno", accent:"#C9A227", font:"playfair" },
+    { key:"vibrante",   label:"Vibrante rosa",     accent:"#E23FA0", font:"quicksand" },
+    { key:"corporativo",label:"Corporativo azul",  accent:"#1D4ED8", font:"montserrat" },
+    { key:"rustico",    label:"Rústico cálido",    accent:"#B5651D", font:"fraunces" }
+  ];
 
-/* Home: one folder per cut that has recipes. */
-function renderCortes(){
-  var list = CORTES.filter(function(c){ return c.recetas.length; });
-  $("#view").innerHTML =
-    '<div class="view-head"><h2>Elige un corte</h2><span class="count">'+list.length+' cortes</span></div>' +
-    '<div class="grid">' + list.map(function(c){
-      return '<a class="card folder" href="#'+c.id+'" style="text-decoration:none">' +
-        '<span class="tag">'+plural(c.recetas.length)+'</span>' +
-        '<div class="media short">'+(c.video ? cutVideo(c) : '<img class="cut" loading="lazy" src="'+cutSrc(c)+'" alt="">')+'</div>' +
-        '<div class="info"><h3>'+esc(c.n)+'</h3></div></a>';
-    }).join("") + '</div>';
-  wireVideos($("#view"));
-}
-
-/* Folder: the recipes of one cut. */
-function renderCorte(c){
-  $("#view").innerHTML =
-    '<a class="back" href="#" style="text-decoration:none">← Todos los cortes</a>' +
-    '<div class="view-head"><h2>'+esc(c.n)+'</h2><span class="count">'+plural(c.recetas.length)+'</span></div>' +
-    '<div class="grid">' + c.recetas.map(function(r){
-      return '<a class="card" href="#'+c.id+'/'+r.id+'" style="text-decoration:none">' + recipeMedia(c, r) +
-        '<div class="info"><h3>'+esc(r.n)+'</h3><p>Corte: '+esc(c.n)+'</p></div></a>';
-    }).join("") + '</div>';
-}
-
-function openSheet(c, r){
-  var msg = "Hola La Posta, quiero pedir " + c.n + " para preparar " + r.n + ".";
-  $("#sheet").innerHTML =
-    '<div class="close"><button type="button" aria-label="Cerrar" id="x">×</button></div>' +
-    '<img class="full" src="'+imgSrc(c, r)+'" alt="'+esc(r.n)+'" onerror="this.remove()">' +
-    '<div class="body"><h2>'+esc(r.n)+'</h2><div class="corte">Corte: '+esc(c.n)+'</div>' +
-    '<h4>Ingredientes</h4><ul>'+r.ing.map(function(x){ return "<li>"+esc(x)+"</li>"; }).join("")+'</ul>' +
-    '<h4>Preparación</h4><ol>'+r.pasos.map(function(x){ return "<li>"+esc(x)+"</li>"; }).join("")+'</ol>' +
-    '<h4>El corte que usas</h4><div class="corte-box"><div class="cb-media">'+(c.video ? cutVideo(c) : '<img src="'+cutSrc(c)+'" alt="">')+'</div>' +
-    '<div class="cb-info"><b>'+esc(c.n)+'</b><span>'+esc(c.precio||"")+'</span></div></div>' +
-    '<a class="wa" target="_blank" rel="noopener" href="https://wa.me/'+WA+'?text='+encodeURIComponent(msg)+'">' +
-    '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.2c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.4-.7-2.8-1.1-4.6-4-4.8-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2.1 1-2.4c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.7-.1l.9-1.1c.2-.3.4-.2.7-.1l1.9.9c.3.1.5.2.5.3.1.2.1.7-.1 1.3z"/></svg>' +
-    'Pedir este corte</a></div>';
-  $("#sheet").scrollTop = 0;
-  $("#sheet").classList.add("on"); $("#veil").classList.add("on");
-  $("#x").onclick = closeSheet;
-  /* a single clip here, so load it right away (the sheet scrolls on its own) */
-  $("#sheet").querySelectorAll("video.cutvid").forEach(function(v){ v.muted = true; v.src = v.dataset.src; v.play().catch(function(){}); });
-}
-function hideSheet(){ $("#sheet").classList.remove("on"); $("#veil").classList.remove("on"); $("#sheet").querySelectorAll("video").forEach(function(v){ v.pause(); }); }
-function closeSheet(){ location.hash = location.hash.slice(1).split("/")[0]; }
-
-/* Routes: #  ·  #<corte>  ·  #<corte>/<receta>  (so a cut or recipe can be shared by link) */
-var current = null;
-function route(){
-  var parts = decodeURIComponent(location.hash.slice(1)).split("/");
-  var c = findCorte(parts[0]);
-  var r = c && c.recetas.filter(function(x){ return x.id === parts[1]; })[0];
-  var key = c ? c.id : "";
-  if (key !== current){
-    current = key;
-    if (c) renderCorte(c); else renderCortes();
-    if (!r) window.scrollTo(0, c ? $("#view").offsetTop - 10 : 0);
+  function svgIcon(key, cls){
+    return '<svg class="'+(cls||'icon')+'" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">'+(ICONS[key]||ICONS.website)+'</svg>';
   }
-  if (r) openSheet(c, r); else hideSheet();
-}
-window.addEventListener("hashchange", route);
-$("#veil").onclick = closeSheet;
-document.addEventListener("keydown", function(e){ if (e.key === "Escape" && $("#sheet").classList.contains("on")) closeSheet(); });
-route();
+
+  /* ============================================================
+     DATA LAYER — talks to Supabase (Postgres + Auth). Real security
+     lives in the database's Row Level Security policies (anyone can
+     read, only a logged-in user can write) — this file never has to
+     enforce that itself, it just reflects whatever the DB allows.
+     ============================================================ */
+  var SUPABASE_URL = "https://oifgcicvnrodipjfjkso.supabase.co";
+  var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pZmdjaWN2bnJvZGlwamZqa3NvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyOTQ3OTksImV4cCI6MjEwNTg3MDc5OX0.rkGZ2UQhgqcFns4KpHocYXFbh5o5cgFhOV68OIwyNBQ";
+
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  var Storage = {
+    load: async function(){
+      var res = await sb.from('clients').select('*').order('created_at');
+      if(res.error){ console.error(res.error); toast('No se pudieron cargar los clientes'); return []; }
+      return res.data;
+    },
+    loadOne: async function(slug){
+      var res = await sb.from('clients').select('*').eq('slug', slug).maybeSingle();
+      if(res.error){ console.error(res.error); return null; }
+      return res.data;
+    },
+    upsert: async function(client){
+      var res = await sb.from('clients').upsert(client, {onConflict:'slug'});
+      if(res.error) throw res.error;
+    },
+    bulkUpsert: async function(clientsArray){
+      var res = await sb.from('clients').upsert(clientsArray, {onConflict:'slug'});
+      if(res.error) throw res.error;
+    },
+    remove: async function(slug){
+      var res = await sb.from('clients').delete().eq('slug', slug);
+      if(res.error) throw res.error;
+    },
+    uploadLogo: async function(file, slugHint){
+      var ext = (file.name.split('.').pop() || 'png').toLowerCase();
+      var path = (slugHint || 'logo') + '-' + Date.now() + '.' + ext;
+      var res = await sb.storage.from('logos').upload(path, file, { upsert: true });
+      if(res.error) throw res.error;
+      var pub = sb.storage.from('logos').getPublicUrl(path);
+      return pub.data.publicUrl;
+    },
+    loadPanelSettings: async function(){
+      for(var attempt=0; attempt<3; attempt++){
+        var res = await sb.from('app_settings').select('*').eq('id', 1).maybeSingle();
+        if(!res.error){ return res.data || { background: '' }; }
+        console.error(res.error);
+        if(attempt < 2){ await new Promise(function(resolve){ setTimeout(resolve, 500); }); }
+      }
+      return { background: '' };
+    },
+    savePanelSettings: async function(background, textColor){
+      var res = await sb.from('app_settings').update({ background: background, text_color: textColor }).eq('id', 1);
+      if(res.error) throw res.error;
+    },
+    logEvent: function(slug, type, buttonLabel){
+      sb.from('events').insert({ client_slug: slug, type: type, button_label: buttonLabel || null })
+        .then(function(res){ if(res.error) console.error(res.error); });
+    },
+    loadStats: async function(slug){
+      var events = await sb.from('events').select('type,button_label,device,created_at').eq('client_slug', slug).order('created_at', {ascending:false});
+      var leads = await sb.from('leads').select('contact,created_at').eq('client_slug', slug).order('created_at', {ascending:false});
+      var rows = events.data || [];
+      var views = rows.filter(function(r){ return r.type==='view'; }).length;
+      var clicks = {};
+      rows.filter(function(r){ return r.type==='click'; }).forEach(function(r){
+        var k = r.button_label || '(sin nombre)';
+        clicks[k] = (clicks[k]||0) + 1;
+      });
+      var devices = {};
+      rows.filter(function(r){ return r.type==='view'; }).forEach(function(r){
+        var k = r.device || 'desconocido';
+        devices[k] = (devices[k]||0) + 1;
+      });
+      return { views: views, clicks: clicks, devices: devices, leads: leads.data || [], recent: rows.slice(0,25) };
+    },
+    submitLead: async function(slug, contact){
+      var res = await sb.from('leads').insert({ client_slug: slug, contact: contact });
+      if(res.error) throw res.error;
+    },
+    resetStats: async function(slug){
+      var res = await sb.from('events').delete().eq('client_slug', slug);
+      if(res.error) throw res.error;
+    }
+  };
+
+  var Auth = {
+    getSession: async function(){
+      var res = await sb.auth.getSession();
+      return res.data.session;
+    },
+    signIn: function(email, password){
+      return sb.auth.signInWithPassword({ email: email, password: password });
+    },
+    signOut: function(){
+      return sb.auth.signOut();
+    }
+  };
+
+  function slugify(s){
+    return (s||'').toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g,'')
+      .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,48) || 'cliente';
+  }
+
+  function uniqueSlug(base, clients, ignoreSlug){
+    var s = slugify(base), n = 2;
+    while(clients.some(function(c){ return c.slug===s && c.slug!==ignoreSlug; })){
+      s = slugify(base)+'-'+n; n++;
+    }
+    return s;
+  }
+
+  function parseCsvLine(line){
+    var result = [], cur = '', inQuotes = false;
+    for(var i=0;i<line.length;i++){
+      var ch = line[i];
+      if(inQuotes){
+        if(ch === '"'){
+          if(line[i+1] === '"'){ cur += '"'; i++; }
+          else { inQuotes = false; }
+        } else { cur += ch; }
+      } else {
+        if(ch === '"'){ inQuotes = true; }
+        else if(ch === ','){ result.push(cur); cur = ''; }
+        else { cur += ch; }
+      }
+    }
+    result.push(cur);
+    return result;
+  }
+
+  function parseClientsCsv(text, existingClients){
+    var lines = text.split(/\r?\n/).filter(function(l){ return l.trim().length; });
+    if(!lines.length) return [];
+    var header = parseCsvLine(lines[0]).map(function(h){ return h.trim().toLowerCase(); });
+    var idx = {};
+    header.forEach(function(h,i){ idx[h] = i; });
+    var out = [];
+    var working = existingClients.slice();
+    for(var i=1;i<lines.length;i++){
+      var cols = parseCsvLine(lines[i]);
+      var name = (cols[idx.name]||'').trim();
+      if(!name) continue;
+      var buttonsRaw = (cols[idx.buttons]||'').trim();
+      var buttons = buttonsRaw ? buttonsRaw.split(';').map(function(part){
+        var p = part.split('|');
+        return { icon:(p[0]||'website').trim(), label:(p[1]||'').trim(), url:(p[2]||'').trim(), color:'', iconImage:'' };
+      }).filter(function(b){ return b.label && b.url; }) : [];
+      if(!buttons.length) buttons = [{icon:'website',label:'Sitio web',url:'https://',color:'',iconImage:''}];
+      var slug = uniqueSlug(name, working);
+      var newClient = {
+        slug: slug, name: name,
+        tagline: (cols[idx.tagline]||'').trim(),
+        phone: (cols[idx.phone]||'').trim(),
+        accent: (cols[idx.accent]||'').trim() || '#0E7A5F',
+        logo: name.slice(0,1).toUpperCase(),
+        background: '',
+        font: (cols[idx.font]||'').trim() || 'default',
+        buttons: buttons,
+        capture_leads: false, capture_type: 'email',
+        whatsapp_enabled: false, save_contact_enabled: false
+      };
+      out.push(newClient);
+      working.push(newClient);
+    }
+    return out;
+  }
+
+  function isImageUrl(s){
+    return /^https?:\/\//i.test(s||'');
+  }
+
+  function contrastTextColor(hex){
+    var h = (hex||'').replace('#','');
+    if(h.length === 3){ h = h.split('').map(function(c){ return c+c; }).join(''); }
+    var r = parseInt(h.substr(0,2),16), g = parseInt(h.substr(2,2),16), b = parseInt(h.substr(4,2),16);
+    if(isNaN(r) || isNaN(g) || isNaN(b)) return '';
+    var brightness = (r*299 + g*587 + b*114) / 1000;
+    return brightness >= 150 ? '#181C1B' : '#FFFFFF';
+  }
+
+  function logoInner(logo){
+    if(isImageUrl(logo)){
+      return '<img src="'+escapeHtml(logo)+'" alt="" style="width:100%;height:100%;object-fit:contain;">';
+    }
+    return escapeHtml(logo||'•');
+  }
+
+  function escapeHtml(s){
+    return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function toast(msg){
+    var t=document.getElementById('toast');
+    t.textContent=msg; t.classList.add('show');
+    clearTimeout(toast._h);
+    toast._h=setTimeout(function(){ t.classList.remove('show'); },1800);
+  }
+
+  function baseUrl(){
+    return location.origin + location.pathname;
+  }
+
+  /* ---------------- ROUTING ---------------- */
+  async function route(){
+    var hash = decodeURIComponent(location.hash.slice(1));
+    if(hash){
+      var c = await Storage.loadOne(hash);
+      if(c){ renderHub(c); } else { renderNotFound(); }
+      return;
+    }
+    var settings = await Storage.loadPanelSettings();
+    var session = await Auth.getSession();
+    if(session){
+      var clients = await Storage.load();
+      renderAdmin(clients, settings);
+    } else {
+      renderLogin(settings);
+    }
+  }
+  window.addEventListener('hashchange', function(){ route(); });
+
+  /* ---------------- LOGIN VIEW ---------------- */
+  function renderLogin(settings){
+    document.documentElement.style.removeProperty('--accent');
+    document.documentElement.style.removeProperty('--hub-font');
+    document.documentElement.style.removeProperty('--hub-text');
+    document.documentElement.style.removeProperty('--hub-card');
+    document.documentElement.style.removeProperty('--hub-card-text');
+    applyBackground(settings && settings.background, settings && settings.text_color);
+    document.getElementById('app').innerHTML =
+      '<div class="admin-header"><div><h1>Espacio3d.gt</h1><p>Inicia sesión para administrar tus clientes</p></div></div>'+
+      '<div class="form-card">'+
+        '<div class="field"><label>Correo</label><input type="text" id="l-email" placeholder="tu@correo.com"></div>'+
+        '<div class="field"><label>Contraseña</label><input type="password" id="l-pass" placeholder="••••••••"></div>'+
+        '<button class="btn btn-primary" id="loginBtn" type="button">Entrar</button>'+
+      '</div>';
+    document.getElementById('loginBtn').onclick = async function(){
+      var email = document.getElementById('l-email').value.trim();
+      var pass = document.getElementById('l-pass').value;
+      if(!email || !pass){ toast('Completa correo y contraseña'); return; }
+      var res = await Auth.signIn(email, pass);
+      if(res.error){ toast('No se pudo entrar: correo o contraseña incorrectos'); return; }
+      route();
+    };
+  }
+
+  /* ---------------- BACKGROUND (shared by hub pages and the admin panel) ---------------- */
+  function applyBackground(background, textColor){
+    document.documentElement.style.removeProperty('--bg');
+    document.documentElement.style.removeProperty('--bg-img');
+    document.documentElement.style.removeProperty('--panel-text');
+    if(isImageUrl(background)){
+      var safe = String(background).replace(/['"()\\\s]/g, function(c){ return '%'+('0'+c.charCodeAt(0).toString(16)).slice(-2).toUpperCase(); });
+      document.documentElement.style.setProperty('--bg-img', 'url("'+safe+'")');
+    } else if(background){
+      document.documentElement.style.setProperty('--bg', background);
+    }
+    if(textColor){ document.documentElement.style.setProperty('--panel-text', textColor); }
+  }
+
+  /* ---------------- PUBLIC HUB VIEW ---------------- */
+
+  function renderHub(client){
+    document.documentElement.style.setProperty('--accent', client.accent || '');
+    applyBackground(client.background);
+    var fontDef = FONTS[client.font];
+    if(fontDef && fontDef.css){ document.documentElement.style.setProperty('--hub-font', fontDef.css); }
+    else { document.documentElement.style.removeProperty('--hub-font'); }
+    if(client.text_color){ document.documentElement.style.setProperty('--hub-text', client.text_color); }
+    else { document.documentElement.style.removeProperty('--hub-text'); }
+    if(client.card_color){
+      document.documentElement.style.setProperty('--hub-card', client.card_color);
+      document.documentElement.style.setProperty('--hub-card-text', contrastTextColor(client.card_color));
+    } else {
+      document.documentElement.style.removeProperty('--hub-card');
+      document.documentElement.style.removeProperty('--hub-card-text');
+    }
+    var app = document.getElementById('app');
+    var linksHtml = (client.buttons||[]).map(function(b){
+      var badgeStyle = b.color ?
+        'background:'+escapeHtml(b.color)+';color:#fff;' :
+        'background:var(--chip-bg);color:var(--accent, var(--accent-default));';
+      var badgeInner = b.iconImage ?
+        '<img src="'+escapeHtml(b.iconImage)+'" alt="" style="width:20px;height:20px;object-fit:contain;border-radius:4px;">' :
+        svgIcon(b.icon);
+      return '<a class="hub-link" href="'+escapeHtml(b.url)+'" target="_blank" rel="noopener">'+
+        '<span class="icon-badge" style="'+badgeStyle+'">'+badgeInner+'</span>'+
+        '<span>'+escapeHtml(b.label)+'</span>'+
+        '<svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
+      '</a>';
+    }).join('');
+    var contactHtml = (client.phone && client.save_contact_enabled) ?
+      '<a class="hub-link" data-tap-extra="1" href="'+baseUrl()+client.slug+'/vcard">'+
+        '<span class="icon-badge" style="background:var(--accent, var(--accent-default));color:#fff;">'+svgIcon('contact')+'</span>'+
+        '<span>Guardar Contacto</span>'+
+        '<svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
+      '</a>' : '';
+    var whatsappHtml = (client.phone && client.whatsapp_enabled) ?
+      '<a class="hub-link" data-tap-extra="1" href="https://wa.me/'+client.phone.replace(/[^0-9]/g,'')+'" target="_blank" rel="noopener">'+
+        '<span class="icon-badge" style="background:#25D366;color:#fff;">'+svgIcon('whatsapp')+'</span>'+
+        '<span>Escribir por WhatsApp</span>'+
+        '<svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
+      '</a>' : '';
+    var isPhoneCapture = client.capture_type === 'phone';
+    var captureHtml = client.capture_leads ?
+      '<div class="capture-box">'+
+        '<span>'+(isPhoneCapture ? 'Déjanos tu teléfono' : 'Déjanos tu correo')+'</span>'+
+        '<div class="capture-row">'+
+          '<input type="'+(isPhoneCapture ? 'tel' : 'email')+'" id="leadInput" placeholder="'+(isPhoneCapture ? '+502 1234 5678' : 'tu@correo.com')+'">'+
+          '<button class="btn btn-primary btn-sm" id="leadSendBtn" type="button">Enviar</button>'+
+        '</div>'+
+      '</div>' : '';
+    app.innerHTML =
+      '<div class="hub">'+
+        '<div class="hub-avatar">'+logoInner(client.logo)+'</div>'+
+        '<h1>'+escapeHtml(client.name)+'</h1>'+
+        (client.tagline ? '<div class="tagline">'+escapeHtml(client.tagline)+'</div>' : '')+
+        '<div class="hub-links">'+contactHtml+whatsappHtml+linksHtml+'</div>'+
+        captureHtml+
+        '<div class="hub-footer">Creado con Espacio3d.gt</div>'+
+      '</div>';
+
+    Storage.logEvent(client.slug, 'view');
+    app.querySelectorAll('.hub-links a[href]:not([download]):not([data-tap-extra])').forEach(function(a, i){
+      var label = (client.buttons[i] || {}).label;
+      a.addEventListener('click', function(){ Storage.logEvent(client.slug, 'click', label); });
+    });
+
+    var leadBtn = document.getElementById('leadSendBtn');
+    if(leadBtn){
+      leadBtn.onclick = async function(){
+        var val = document.getElementById('leadInput').value.trim();
+        if(!val){ toast('Escribe tu correo o teléfono'); return; }
+        try{
+          await Storage.submitLead(client.slug, val);
+          document.querySelector('.capture-box').innerHTML = '<span>¡Gracias! Ya quedó registrado.</span>';
+        }catch(e){
+          toast('No se pudo enviar, intenta de nuevo');
+        }
+      };
+    }
+  }
+
+  function renderNotFound(){
+    document.getElementById('app').innerHTML =
+      '<div class="not-found"><h2>Enlace no encontrado</h2><p>Este tag o QR no corresponde a ningún negocio activo.</p></div>';
+  }
+
+  /* ---------------- ADMIN VIEW ---------------- */
+  function renderAdmin(clients, settings){
+    document.documentElement.style.removeProperty('--accent');
+    document.documentElement.style.removeProperty('--hub-font');
+    document.documentElement.style.removeProperty('--hub-text');
+    document.documentElement.style.removeProperty('--hub-card');
+    document.documentElement.style.removeProperty('--hub-card-text');
+    applyBackground(settings && settings.background, settings && settings.text_color);
+    var app = document.getElementById('app');
+    function clientCardHtml(c){
+      return '<div class="client-card">'+
+        '<div class="client-avatar" style="background:'+escapeHtml(c.accent||'#0E7A5F')+';color:#fff;">'+logoInner(c.logo)+'</div>'+
+        '<div class="client-meta"><div class="name">'+escapeHtml(c.name)+'</div>'+
+          '<div class="slug">#'+escapeHtml(c.slug)+' · '+(c.buttons?c.buttons.length:0)+' enlaces</div></div>'+
+        '<div class="client-actions">'+
+          '<button class="btn btn-ghost btn-sm" data-act="stats" data-slug="'+escapeHtml(c.slug)+'">📊</button>'+
+          '<button class="btn btn-ghost btn-sm" data-act="loyalty" data-slug="'+escapeHtml(c.slug)+'" title="Tarjeta de sellos">🎟️</button>'+
+          '<button class="btn btn-ghost btn-sm" data-act="edit" data-slug="'+escapeHtml(c.slug)+'">Editar</button>'+
+        '</div>'+
+      '</div>';
+    }
+    var cardsHtml = clients.length ? clients.map(clientCardHtml).join('') : '<div class="empty">Todavía no hay clientes. Crea el primero.</div>';
+
+    app.innerHTML =
+      '<div class="admin-header"><div><h1>Espacio3d.gt</h1><p>Panel de clientes — cada uno con su propia página de enlaces</p></div>'+
+        '<div style="display:flex;gap:6px;">'+
+          '<button class="btn btn-ghost btn-sm" id="nfcWriterBtn" type="button">✍️ Escribir NFC</button>'+
+          '<button class="btn btn-ghost btn-sm" id="settingsBtn" type="button">⚙️ Ajustes</button>'+
+          '<button class="btn btn-ghost btn-sm" id="logoutBtn" type="button">Cerrar sesión</button>'+
+        '</div></div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
+        '<button class="btn btn-primary" id="newClientBtn" style="flex:1;">+ Nuevo cliente</button>'+
+        '<button class="btn btn-ghost" id="importCsvBtn" type="button">📥 Importar CSV</button>'+
+        '<input type="file" id="csvFileInput" accept=".csv" style="display:none;">'+
+      '</div>'+
+      '<a href="#" id="downloadTemplateLink" style="font-size:12px;color:var(--text-dim);text-align:center;">Descargar plantilla CSV de ejemplo</a>'+
+      '<button class="btn btn-ghost" id="toggleClientsBtn" type="button">Clientes</button>'+
+      '<div id="clientsSection" style="display:none;flex-direction:column;gap:10px;">'+
+        '<input type="text" id="clientSearchInput" placeholder="Buscar cliente por nombre..." style="padding:10px 12px;font-size:14px;border:1px solid var(--surface-edge);border-radius:10px;background:var(--surface);color:var(--text);">'+
+        '<div id="clientList" style="display:flex;flex-direction:column;gap:10px;">'+cardsHtml+'</div>'+
+      '</div>';
+
+    document.getElementById('newClientBtn').onclick = function(){ renderForm(null, clients, settings); };
+    document.getElementById('nfcWriterBtn').onclick = function(){ renderNfcWriter(clients, settings); };
+    document.getElementById('settingsBtn').onclick = function(){ renderSettings(clients, settings); };
+    document.getElementById('logoutBtn').onclick = async function(){
+      await Auth.signOut();
+      route();
+    };
+    document.getElementById('downloadTemplateLink').onclick = function(e){
+      e.preventDefault();
+      var csv = 'name,tagline,phone,accent,font,buttons\n'+
+        '"Romano\'s Pizza","Pizza artesanal desde 1998","+502 1234 5678","#0E7A5F","default","menu|Ver Menú|https://example.com/menu;instagram|Instagram|https://instagram.com/x"\n';
+      var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'plantilla-tap-hub.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    };
+    document.getElementById('importCsvBtn').onclick = function(){
+      document.getElementById('csvFileInput').click();
+    };
+    document.getElementById('csvFileInput').addEventListener('change', async function(e){
+      var file = e.target.files[0];
+      if(!file) return;
+      try{
+        var text = await file.text();
+        var newClients = parseClientsCsv(text, clients);
+        if(!newClients.length){ toast('No se encontraron filas válidas en el CSV'); return; }
+        toast('Importando '+newClients.length+' clientes...');
+        await Storage.bulkUpsert(newClients);
+        toast(newClients.length+' clientes importados');
+        renderAdmin(await Storage.load(), settings);
+      }catch(err){
+        toast('No se pudo importar: '+(err && err.message ? err.message : 'error en el archivo'));
+      }
+    });
+    function bindClientCardActions(){
+      app.querySelectorAll('[data-act="edit"]').forEach(function(btn){
+        btn.onclick = function(){
+          var slug = btn.getAttribute('data-slug');
+          var c = clients.find(function(x){ return x.slug===slug; });
+          renderForm(c, clients, settings);
+        };
+      });
+      app.querySelectorAll('[data-act="loyalty"]').forEach(function(btn){
+        btn.onclick = function(){
+          var slug = btn.getAttribute('data-slug');
+          var c = clients.find(function(x){ return x.slug===slug; });
+          renderLoyalty(c, clients, settings);
+        };
+      });
+      app.querySelectorAll('[data-act="stats"]').forEach(function(btn){
+        btn.onclick = function(){
+          var slug = btn.getAttribute('data-slug');
+          var c = clients.find(function(x){ return x.slug===slug; });
+          renderStats(c, clients, settings);
+        };
+      });
+    }
+    bindClientCardActions();
+    document.getElementById('toggleClientsBtn').onclick = function(){
+      var section = document.getElementById('clientsSection');
+      section.style.display = (section.style.display === 'none') ? 'flex' : 'none';
+    };
+    document.getElementById('clientSearchInput').addEventListener('input', function(e){
+      var q = e.target.value.trim().toLowerCase();
+      var filtered = q ? clients.filter(function(c){ return (c.name||'').toLowerCase().indexOf(q) !== -1; }) : clients;
+      document.getElementById('clientList').innerHTML = filtered.length ? filtered.map(clientCardHtml).join('') : '<div class="empty">No se encontraron clientes.</div>';
+      bindClientCardActions();
+    });
+  }
+
+  /* ---------------- STATS VIEW ---------------- */
+  async function renderStats(client, clients, settings){
+    var app = document.getElementById('app');
+    app.innerHTML = '<div class="admin-header"><h1>Estadísticas</h1></div><p style="color:var(--text-dim);">Cargando...</p>';
+    var stats = await Storage.loadStats(client.slug);
+    var clickRows = Object.keys(stats.clicks).sort(function(a,b){ return stats.clicks[b]-stats.clicks[a]; });
+    var clicksHtml = clickRows.length ? clickRows.map(function(k){
+      return '<div class="stat-row"><span>'+escapeHtml(k)+'</span><b>'+stats.clicks[k]+'</b></div>';
+    }).join('') : '<p style="color:var(--text-dim);font-size:13px;">Todavía no hay clics registrados.</p>';
+    var leadsHtml = stats.leads.length ? stats.leads.map(function(l){
+      return '<div class="stat-row"><span>'+escapeHtml(l.contact)+'</span><span style="color:var(--text-dim);font-size:12px;">'+new Date(l.created_at).toLocaleDateString()+'</span></div>';
+    }).join('') : '<p style="color:var(--text-dim);font-size:13px;">Todavía no hay contactos capturados.</p>';
+    var deviceLabels = { movil:'📱 Móvil', tablet:'📱 Tablet', escritorio:'💻 Computadora', desconocido:'❓ Desconocido' };
+    var deviceRows = Object.keys(stats.devices).sort(function(a,b){ return stats.devices[b]-stats.devices[a]; });
+    var devicesHtml = deviceRows.length ? deviceRows.map(function(k){
+      return '<div class="stat-row"><span>'+(deviceLabels[k]||k)+'</span><b>'+stats.devices[k]+'</b></div>';
+    }).join('') : '<p style="color:var(--text-dim);font-size:13px;">Todavía no hay datos.</p>';
+    var recentHtml = stats.recent.length ? stats.recent.map(function(r){
+      var when = new Date(r.created_at).toLocaleString('es-GT', {day:'numeric', month:'short', hour:'numeric', minute:'2-digit'});
+      var label = r.type==='view' ? 'Vista de la página' : 'Clic: '+escapeHtml(r.button_label||'(sin nombre)');
+      return '<div class="stat-row"><span>'+label+'</span><span style="color:var(--text-dim);font-size:12px;">'+when+'</span></div>';
+    }).join('') : '<p style="color:var(--text-dim);font-size:13px;">Todavía no hay actividad registrada.</p>';
+
+    app.innerHTML =
+      '<div class="admin-header"><h1>'+escapeHtml(client.name)+'</h1></div>'+
+      '<div class="form-card">'+
+        '<div class="field"><label>Vistas totales</label><div style="font-size:32px;font-weight:700;font-family:Outfit,sans-serif;">'+stats.views+'</div></div>'+
+        '<div class="field"><label>Clics por opción</label>'+clicksHtml+'</div>'+
+        '<div class="field"><label>Desde qué tipo de dispositivo</label>'+devicesHtml+'</div>'+
+        '<div class="field"><label>Actividad reciente (fecha y hora, últimos 25)</label>'+recentHtml+'</div>'+
+        (client.capture_leads ? '<div class="field"><label>Contactos capturados</label>'+leadsHtml+'</div>' : '')+
+        '<div class="form-actions">'+
+          '<button class="btn btn-ghost" id="statsBackBtn" type="button">Volver</button>'+
+          '<button class="btn btn-danger" id="statsResetBtn" type="button">Reiniciar estadísticas</button>'+
+        '</div>'+
+      '</div>';
+    document.getElementById('statsBackBtn').onclick = function(){ renderAdmin(clients, settings); };
+    document.getElementById('statsResetBtn').onclick = async function(){
+      var ok = confirm('¿Seguro que quieres borrar todas las vistas y clics de "'+client.name+'"? Los contactos capturados NO se borran. Esto no se puede deshacer.');
+      if(!ok) return;
+      try{
+        await Storage.resetStats(client.slug);
+        toast('Estadísticas reiniciadas');
+        renderStats(client, clients, settings);
+      }catch(err){
+        toast('No se pudo reiniciar: '+(err && err.message ? err.message : 'error'));
+      }
+    };
+  }
+
+  /* ---------------- LOYALTY (TARJETA DE SELLOS) VIEW ----------------
+     Only the admin sees this. Business clients never get panel
+     access: they only receive their caja link + PIN (sent by
+     WhatsApp from here). All rules are enforced by the database
+     functions in docs/supabase/03-fidelizacion.sql — this view
+     just edits loyalty_programs and reads the history tables. */
+  async function renderLoyalty(client, clients, settings){
+    var app = document.getElementById('app');
+    app.innerHTML = '<div class="admin-header"><h1>Tarjeta de sellos</h1></div><p style="color:var(--text-dim);">Cargando...</p>';
+
+    var progRes = await sb.from('loyalty_programs').select('*').eq('client_slug', client.slug).maybeSingle();
+    if(progRes.error){
+      console.error(progRes.error);
+      app.innerHTML = '<div class="admin-header"><h1>Tarjeta de sellos</h1></div>'+
+        '<div class="form-card"><p>No se pudo cargar. ¿Ya corriste <b>docs/supabase/03-fidelizacion.sql</b> en Supabase?</p>'+
+        '<div class="form-actions"><button class="btn btn-ghost" id="loyBackBtn" type="button">Volver</button></div></div>';
+      document.getElementById('loyBackBtn').onclick = function(){ renderAdmin(clients, settings); };
+      return;
+    }
+    var prog = progRes.data || {
+      client_slug: client.slug, enabled: false, stamps_needed: 8, reward: 'Premio gratis', cooldown_hours: 24,
+      ask_email: false, require_geo_qr: false, lat: null, lng: null, geo_radius_m: 150,
+      nfc_require_counter: false, caja_token: null, caja_pin_hash: null, design: {},
+      caja_promos: false, birthday_msg: null
+    };
+    var design = Object.assign({}, prog.design || {});
+    var isNew = !progRes.data;
+
+    var stats = { customers: 0, stamps: 0, redemptions: 0, suspicious: [], recent: [] };
+    if(!isNew){
+      var r1 = await sb.from('loyalty_customers').select('id', { count:'exact', head:true }).eq('client_slug', client.slug);
+      var r2 = await sb.from('loyalty_stamps').select('id', { count:'exact', head:true }).eq('client_slug', client.slug);
+      var r3 = await sb.from('loyalty_redemptions').select('id', { count:'exact', head:true }).eq('client_slug', client.slug);
+      var r4 = await sb.from('loyalty_stamps').select('via,suspicious,note,distance_m,created_at,loyalty_customers(name,phone)')
+        .eq('client_slug', client.slug).order('created_at', { ascending:false }).limit(30);
+      stats.customers = r1.count || 0;
+      stats.stamps = r2.count || 0;
+      stats.redemptions = r3.count || 0;
+      stats.recent = r4.data || [];
+      stats.suspicious = stats.recent.filter(function(s){ return s.suspicious; });
+    }
+
+    var site = location.origin + '/';   // /:slug/sello and /caja/:token are root routes (vercel.json)
+    var cardUrl = site + client.slug + '/sello';
+    var nfcUrl = cardUrl + '?via=nfc';
+    var qrUrl = cardUrl + '?via=qr';
+    var cajaUrl = prog.caja_token ? site + 'caja/' + prog.caja_token : '';
+    var viaLabels = { nfc:'NFC', qr:'QR', pin:'PIN en celular', caja:'Caja' };
+
+    function chk(id, on, label){
+      return '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
+        '<input type="checkbox" id="'+id+'" style="width:18px;height:18px;"'+(on?' checked':'')+'>'+
+        '<label for="'+id+'" style="margin:0;">'+label+'</label></div>';
+    }
+    function designColorField(id, label, value, fallback){
+      var auto = !value;
+      return '<div class="field"><label>'+label+'</label>'+
+        '<div style="display:flex;align-items:center;gap:10px;">'+
+          '<input type="checkbox" id="'+id+'-auto" style="width:18px;height:18px;"'+(auto?' checked':'')+'>'+
+          '<label for="'+id+'-auto" style="margin:0;font-weight:400;">Igual que la página</label>'+
+          '<input type="color" id="'+id+'" value="'+escapeHtml(value || fallback)+'" style="width:40px;height:40px;border-radius:10px;border:1px solid var(--surface-edge);padding:2px;'+(auto?'display:none;':'')+'">'+
+        '</div></div>';
+    }
+    function linkRow(label, url, id){
+      return '<div class="field"><label>'+label+'</label>'+
+        '<div class="link-box"><span>'+escapeHtml(url)+'</span>'+
+        '<button class="btn btn-ghost btn-sm" data-copy="'+escapeHtml(url)+'" type="button">Copiar</button></div></div>';
+    }
+    var recentHtml = stats.recent.length ? stats.recent.map(function(s){
+      var who = s.loyalty_customers ? escapeHtml(s.loyalty_customers.name) : '—';
+      var when = new Date(s.created_at).toLocaleString('es-GT', { day:'numeric', month:'short', hour:'numeric', minute:'2-digit' });
+      return '<div class="stat-row"><span>'+(s.suspicious ? '⚠️ ' : '')+who+' · '+(viaLabels[s.via]||s.via)+
+        (s.note ? ' <span style="color:var(--danger);font-size:12px;">('+escapeHtml(s.note)+(s.distance_m!=null?', '+s.distance_m+' m':'')+')</span>' : '')+
+        '</span><span style="color:var(--text-dim);font-size:12px;">'+when+'</span></div>';
+    }).join('') : '<p style="color:var(--text-dim);font-size:13px;">Todavía no hay sellos.</p>';
+
+    app.innerHTML =
+      '<div class="admin-header"><div><h1>Tarjeta de sellos</h1><p>'+escapeHtml(client.name)+'</p></div></div>'+
+      (isNew ? '' : '<button class="btn btn-primary" id="l-promos" type="button">📣 Promociones por WhatsApp</button>')+
+
+      '<div class="form-card">'+
+        chk('l-enabled', prog.enabled, '<b>Servicio de fidelización activo</b> (si lo apagas, la tarjeta y la caja se pausan; no se borra nada)')+
+        '<div class="row2">'+
+          '<div class="field"><label>Sellos para el premio</label><input type="text" inputmode="numeric" id="l-needed" value="'+prog.stamps_needed+'"></div>'+
+          '<div class="field"><label>Horas de bloqueo entre sellos</label><input type="text" inputmode="numeric" id="l-cooldown" value="'+prog.cooldown_hours+'"></div>'+
+        '</div>'+
+        '<div class="field"><label>Premio</label><input type="text" id="l-reward" value="'+escapeHtml(prog.reward)+'" placeholder="Café gratis"></div>'+
+        chk('l-email', prog.ask_email, 'Pedir correo en el registro (opcional para el cliente)')+
+        chk('l-caja-promos', prog.caja_promos, '<b>Cumpleaños y Promos en la Caja</b>: el negocio puede enviar saludos y promos por WhatsApp desde su Caja (solo a clientes que aceptaron promociones)')+
+        '<div class="field"><label>Mensaje de cumpleaños predeterminado ({nombre} y {negocio} se cambian solos)</label>'+
+          '<textarea id="l-bday-msg" rows="3" style="background:var(--bg);border:1px solid var(--surface-edge);border-radius:10px;padding:10px 12px;font-size:15px;color:var(--text);font-family:inherit;resize:vertical;" placeholder="¡Feliz cumpleaños, {nombre}! 🎂 En {negocio} queremos celebrarte: visítanos esta semana y recibe un regalo especial. ¡Te esperamos!">'+escapeHtml(prog.birthday_msg || '')+'</textarea>'+
+          '<p style="margin:0;font-size:12px;color:var(--text-dim);">Si lo dejas vacío se usa el mensaje de ejemplo.</p>'+
+        '</div>'+
+      '</div>'+
+
+      '<div class="form-card">'+
+        '<h3 style="font-size:16px;">Diseño de la tarjeta</h3>'+
+        '<p style="margin:0;font-size:12px;color:var(--text-dim);">Lo que marques como "Igual que la página" usa el diseño de la página del negocio.</p>'+
+        '<div id="d-preview"></div>'+
+        '<div class="field"><label>Texto bajo el nombre</label><input type="text" id="d-subtitle" maxlength="60" value="'+escapeHtml(design.subtitle||'')+'" placeholder="Tarjeta de sellos"></div>'+
+        '<div class="field"><label>Ícono de los sellos (emoji o imagen)</label>'+
+          '<div class="row2"><input type="text" id="d-icon" value="'+escapeHtml(isImageUrl(design.stamp_icon) ? '' : (design.stamp_icon||''))+'" placeholder="✓ (vacío = palomita)" maxlength="8">'+
+          '<input type="file" id="d-icon-file" accept="image/png,image/jpeg,image/webp" style="font-size:12px;min-width:0;max-width:100%;flex:1;"></div>'+
+          '<input type="hidden" id="d-icon-img" value="'+escapeHtml(isImageUrl(design.stamp_icon) ? design.stamp_icon : '')+'">'+
+          '<div class="templates-row" id="d-emojis">'+['☕','🍕','🍔','🌮','🍦','🍺','🥩','🐷','💈','✂️','💅','⭐','❤️','🎁'].map(function(e){
+            return '<button class="btn btn-ghost btn-sm" type="button" data-emoji="'+e+'" style="font-size:18px;padding:6px 9px;">'+e+'</button>';
+          }).join('')+'</div>'+
+          '<button class="btn btn-danger btn-sm" id="d-icon-clear" type="button" style="align-self:flex-start;">Quitar ícono (usar palomita)</button>'+
+        '</div>'+
+        '<div class="row2">'+
+          '<div class="field"><label>Forma de los sellos</label><select id="d-shape">'+
+            [['circle','Círculo'],['rounded','Redondeado'],['square','Cuadrado']].map(function(o){
+              return '<option value="'+o[0]+'"'+((design.shape||'circle')===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')+
+          '</select></div>'+
+          '<div class="field"><label>Sellos vacíos</label><select id="d-empty">'+
+            '<option value="number"'+(design.empty_style!=='faded'?' selected':'')+'>Con número</option>'+
+            '<option value="faded"'+(design.empty_style==='faded'?' selected':'')+'>Ícono en gris</option>'+
+          '</select></div>'+
+        '</div>'+
+        designColorField('d-accent', 'Color principal (botones y sellos)', design.accent, client.accent || '#0E7A5F')+
+        designColorField('d-card', 'Color de los cuadros', design.card_color, client.card_color || '#FFFFFF')+
+        designColorField('d-text', 'Color del nombre y texto de arriba', design.text_color, client.text_color || '#181C1B')+
+        '<div class="field"><label>Fondo</label>'+
+          chk('d-bg-auto', !design.bg, 'Igual que la página')+
+          '<div id="d-bg-box" class="row2" style="'+(design.bg?'':'display:none;')+'">'+
+            '<input type="color" id="d-bg-color" value="'+escapeHtml(design.bg && !isImageUrl(design.bg) ? design.bg : '#F6F5F2')+'" style="width:40px;height:40px;border-radius:10px;border:1px solid var(--surface-edge);padding:2px;">'+
+            '<input type="file" id="d-bg-file" accept="image/png,image/jpeg,image/webp" style="font-size:12px;min-width:0;max-width:100%;flex:1;">'+
+          '</div>'+
+          '<input type="hidden" id="d-bg-img" value="'+escapeHtml(isImageUrl(design.bg) ? design.bg : '')+'">'+
+          '<button class="btn btn-danger btn-sm" id="d-bg-img-clear" type="button" style="align-self:flex-start;'+(isImageUrl(design.bg)?'':'display:none;')+'">Quitar imagen de fondo</button>'+
+        '</div>'+
+        '<div class="field"><label>Letra de los títulos</label><select id="d-font">'+
+          '<option value="">Igual que la página</option>'+
+          Object.keys(FONTS).filter(function(k){ return k !== 'default'; }).map(function(k){
+            return '<option value="'+k+'"'+(design.font===k?' selected':'')+' style="font-family:'+FONTS[k].css+';">'+FONTS[k].label+'</option>';
+          }).join('')+
+        '</select></div>'+
+        '<p style="margin:0;font-size:12px;color:var(--text-dim);">Recuerda tocar <b>Guardar</b> (abajo) para aplicar el diseño.</p>'+
+      '</div>'+
+
+      '<div class="form-card">'+
+        '<h3 style="font-size:16px;">Protección del QR impreso</h3>'+
+        chk('l-geo', prog.require_geo_qr, 'Exigir que el cliente esté en el negocio para sellar por QR (pide ubicación)')+
+        '<div class="row2">'+
+          '<div class="field"><label>Latitud</label><input type="text" id="l-lat" value="'+(prog.lat==null?'':prog.lat)+'" placeholder="14.6349"></div>'+
+          '<div class="field"><label>Longitud</label><input type="text" id="l-lng" value="'+(prog.lng==null?'':prog.lng)+'" placeholder="-90.5069"></div>'+
+        '</div>'+
+        '<div class="row2">'+
+          '<div class="field"><label>Radio permitido (metros)</label><input type="text" inputmode="numeric" id="l-radius" value="'+prog.geo_radius_m+'"></div>'+
+          '<div class="field"><label>&nbsp;</label><button class="btn btn-ghost btn-sm" id="l-here" type="button">📍 Usar mi ubicación actual</button></div>'+
+        '</div>'+
+        '<p style="color:var(--text-dim);font-size:12px;margin:0;">Tip: pon la ubicación estando dentro del negocio, o cópiala de Google Maps (clic derecho → coordenadas).</p>'+
+      '</div>'+
+
+      '<div class="form-card">'+
+        '<h3 style="font-size:16px;">Protección del sticker NFC</h3>'+
+        chk('l-ctr', prog.nfc_require_counter, 'Exigir contador NFC (solo si TODOS los stickers de este negocio tienen el "mirror" de UID + contador activado)')+
+        '<p style="color:var(--text-dim);font-size:12px;margin:0;">Si no estás seguro, déjalo apagado: el bloqueo por horas sigue funcionando igual.</p>'+
+        '<div class="form-actions">'+
+          '<button class="btn btn-ghost" id="loyBackBtn" type="button">Volver</button>'+
+          '<button class="btn btn-primary" id="loySaveBtn" type="button">Guardar</button>'+
+        '</div>'+
+      '</div>'+
+
+      (isNew ? '<div class="form-card"><p style="margin:0;color:var(--text-dim);">Guarda primero para generar los enlaces, el PIN y la caja.</p></div>' :
+      '<div class="form-card">'+
+        '<h3 style="font-size:16px;">Enlaces para grabar e imprimir</h3>'+
+        linkRow('Enlace para el sticker NFC (grábalo con NFC Tools)', nfcUrl)+
+        linkRow('Enlace para el QR impreso', qrUrl)+
+        '<div class="qr-box"><div id="loyQr" style="width:140px;height:140px;"></div>'+
+          '<button class="btn btn-ghost btn-sm" id="loyQrBtn" type="button">Descargar QR</button></div>'+
+        linkRow('Enlace corto (para escribirlo a mano, WhatsApp o inicio — NO sella solo)', cardUrl)+
+      '</div>'+
+
+      '<div class="form-card">'+
+        '<h3 style="font-size:16px;">Caja del negocio</h3>'+
+        '<div class="field"><label>PIN de caja (4 a 8 números) '+(prog.caja_pin_hash ? '— ya hay uno puesto ✓' : '— todavía no hay PIN')+'</label>'+
+          '<div class="row2"><input type="text" inputmode="numeric" id="l-pin" maxlength="8" placeholder="Nuevo PIN" autocomplete="off">'+
+          '<button class="btn btn-ghost btn-sm" id="l-pin-save" type="button">Guardar PIN</button></div>'+
+          '<p style="color:var(--text-dim);font-size:12px;margin:0;">Cambiar el PIN desconecta todos los celulares de caja.</p></div>'+
+        (cajaUrl ? linkRow('Enlace de caja (secreto — solo para el negocio)', cajaUrl) : '<p style="margin:0;color:var(--text-dim);font-size:13px;">Todavía no hay enlace de caja.</p>')+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
+          '<button class="btn btn-ghost btn-sm" id="l-caja-new" type="button">'+(cajaUrl ? '🔄 Regenerar enlace (el viejo deja de servir)' : '➕ Generar enlace de caja')+'</button>'+
+          (cajaUrl ? '<button class="btn btn-ghost btn-sm" id="l-caja-wa" type="button">📲 Mandar por WhatsApp</button>' : '')+
+        '</div>'+
+      '</div>'+
+
+      '<div class="form-card">'+
+        '<h3 style="font-size:16px;">Estadísticas</h3>'+
+        '<div class="row2">'+
+          '<div class="field"><label>Clientes</label><div style="font-size:28px;font-weight:700;font-family:Outfit,sans-serif;">'+stats.customers+'</div></div>'+
+          '<div class="field"><label>Sellos</label><div style="font-size:28px;font-weight:700;font-family:Outfit,sans-serif;">'+stats.stamps+'</div></div>'+
+          '<div class="field"><label>Canjes</label><div style="font-size:28px;font-weight:700;font-family:Outfit,sans-serif;">'+stats.redemptions+'</div></div>'+
+        '</div>'+
+        (stats.suspicious.length ? '<p style="margin:0;color:var(--danger);font-size:13px;">⚠️ '+stats.suspicious.length+' sello(s) sospechoso(s) en los últimos 30.</p>' : '')+
+        '<div class="field"><label>Últimos 30 sellos</label>'+recentHtml+'</div>'+
+        '<button class="btn btn-ghost btn-sm" id="l-export" type="button" style="align-self:flex-start;">📥 Exportar clientes (CSV)</button>'+
+      '</div>'+
+
+      '<button class="btn btn-ghost btn-sm" id="l-advanced" type="button" style="align-self:center;color:var(--text-dim);">Opciones avanzadas</button>'+
+      '<div class="form-card" id="l-danger" style="display:none;border-color:var(--danger);">'+
+        '<h3 style="font-size:16px;color:var(--danger);">Borrar la tarjeta de sellos</h3>'+
+        '<p style="margin:0;font-size:13px;color:var(--text-dim);">Borra para siempre los clientes, sellos, canjes, PIN y enlace de caja de este negocio. '+
+          'La página normal del negocio no se toca. <b>No se puede deshacer.</b> Si solo quieres pausarla, desmarca "Servicio activo" arriba.</p>'+
+        (prog.enabled
+          ? '<p style="margin:0;font-size:13px;">🔒 Primero apaga el servicio (desmarca "Servicio de fidelización activo" y guarda) para poder borrar.</p>'
+          : '<button class="btn btn-danger btn-sm" id="l-delete" type="button" style="align-self:flex-start;border:1px solid var(--danger);">🗑️ Borrar todo</button>')+
+      '</div>');
+
+    app.querySelectorAll('[data-copy]').forEach(function(btn){
+      btn.onclick = function(){
+        var text = btn.getAttribute('data-copy');
+        (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
+          .then(function(){ toast('Copiado'); }, function(){ prompt('Copia el enlace:', text); });
+      };
+    });
+    document.getElementById('loyBackBtn').onclick = function(){ renderAdmin(clients, settings); };
+
+    /* ---- Diseño de la tarjeta: read form → design object, live preview ---- */
+    function readDesign(){
+      function v(id){ return document.getElementById(id).value; }
+      function color(id){ return document.getElementById(id+'-auto').checked ? '' : v(id); }
+      var bgAuto = document.getElementById('d-bg-auto').checked;
+      var out = {
+        subtitle: v('d-subtitle').trim(),
+        stamp_icon: v('d-icon-img') || v('d-icon').trim(),
+        shape: v('d-shape'),
+        empty_style: v('d-empty'),
+        accent: color('d-accent'),
+        card_color: color('d-card'),
+        text_color: color('d-text'),
+        bg: bgAuto ? '' : (v('d-bg-img') || v('d-bg-color')),
+        font: v('d-font')
+      };
+      Object.keys(out).forEach(function(k){ if(!out[k] || out[k] === 'circle' || out[k] === 'number') delete out[k]; });
+      return out;
+    }
+    function updatePreview(){
+      var d = readDesign();
+      var accent = d.accent || client.accent || '#0E7A5F';
+      var bg = d.bg || client.background || '#F6F5F2';
+      var card = d.card_color || client.card_color || '#FFFFFF';
+      var cardText = contrastTextColor(card) || '#181C1B';
+      var head = d.text_color || client.text_color || (isImageUrl(bg) ? '#FFFFFF' : (contrastTextColor(bg) || '#181C1B'));
+      var fontKey = d.font || client.font;
+      var font = (FONTS[fontKey] && FONTS[fontKey].css) || "'Outfit',sans-serif";
+      var radius = d.shape === 'square' ? '4px' : (d.shape === 'rounded' ? '10px' : '50%');
+      var icon = d.stamp_icon ? (isImageUrl(d.stamp_icon)
+        ? '<img src="'+escapeHtml(d.stamp_icon)+'" style="width:70%;height:70%;object-fit:contain;">'
+        : '<span style="font-size:20px;">'+escapeHtml(d.stamp_icon)+'</span>') : '✓';
+      var dots = '';
+      for(var i = 0; i < 8; i++){
+        var on = i < 4;
+        var faded = !on && d.empty_style === 'faded' && d.stamp_icon;
+        dots += '<div style="width:40px;height:40px;border-radius:'+radius+';display:flex;align-items:center;justify-content:center;overflow:hidden;font-weight:700;font-size:12px;'+
+          (on ? 'background:'+accent+';color:'+(contrastTextColor(accent)||'#fff')+';' : 'border:2px dashed '+cardText+'33;color:'+cardText+'88;')+'">'+
+          (on ? icon : (faded ? '<span style="opacity:.28;filter:grayscale(1);display:flex;align-items:center;justify-content:center;width:100%;height:100%;">'+icon+'</span>' : (i+1)))+'</div>';
+      }
+      var bgCss = isImageUrl(bg) ? 'background:url(\''+bg.replace(/'/g,'%27')+'\') center/cover;' : 'background:'+bg+';';
+      document.getElementById('d-preview').innerHTML =
+        '<div style="'+bgCss+'border-radius:16px;padding:18px 14px;display:flex;flex-direction:column;gap:12px;border:1px solid var(--surface-edge);">'+
+          '<div style="text-align:center;color:'+head+';">'+
+            '<div style="width:48px;height:48px;border-radius:14px;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:22px;background:'+accent+';overflow:hidden;">'+logoInner(client.logo)+'</div>'+
+            '<div style="font-family:'+font+';font-size:20px;font-weight:700;">'+escapeHtml(client.name)+'</div>'+
+            '<div style="font-size:12px;opacity:.75;">'+escapeHtml(d.subtitle || 'Tarjeta de sellos')+'</div>'+
+          '</div>'+
+          '<div style="background:'+card+';color:'+cardText+';border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;">'+
+            '<div style="display:flex;justify-content:space-between;font-size:13px;"><span>Hola, <b>María</b></span><b style="font-family:'+font+';font-size:18px;">4/8</b></div>'+
+            '<div style="display:grid;grid-template-columns:repeat(4,40px);gap:8px;justify-content:center;">'+dots+'</div>'+
+            '<div style="background:'+accent+';color:'+(contrastTextColor(accent)||'#fff')+';border-radius:10px;padding:9px;text-align:center;font-family:'+font+';font-weight:600;font-size:14px;">Botón de ejemplo</div>'+
+          '</div>'+
+        '</div>';
+    }
+    ['d-subtitle','d-icon','d-shape','d-empty','d-accent','d-card','d-text','d-bg-color','d-font'].forEach(function(id){
+      document.getElementById(id).addEventListener('input', updatePreview);
+      document.getElementById(id).addEventListener('change', updatePreview);
+    });
+    ['d-accent','d-card','d-text'].forEach(function(id){
+      document.getElementById(id+'-auto').addEventListener('change', function(){
+        document.getElementById(id).style.display = this.checked ? 'none' : '';
+        updatePreview();
+      });
+    });
+    document.getElementById('d-bg-auto').addEventListener('change', function(){
+      document.getElementById('d-bg-box').style.display = this.checked ? 'none' : 'flex';
+      updatePreview();
+    });
+    document.getElementById('d-icon').addEventListener('input', function(){ document.getElementById('d-icon-img').value = ''; });
+    document.querySelectorAll('#d-emojis [data-emoji]').forEach(function(btn){
+      btn.onclick = function(){
+        document.getElementById('d-icon').value = btn.getAttribute('data-emoji');
+        document.getElementById('d-icon-img').value = '';
+        updatePreview();
+      };
+    });
+    document.getElementById('d-icon-clear').onclick = function(){
+      document.getElementById('d-icon').value = '';
+      document.getElementById('d-icon-img').value = '';
+      updatePreview();
+    };
+    async function uploadDesignImage(file, hiddenId, label){
+      if(!file) return;
+      if(file.size > 10 * 1024 * 1024){ toast('La imagen debe pesar menos de 10MB'); return; }
+      toast('Subiendo imagen...');
+      try{
+        var url = await Storage.uploadLogo(file, client.slug + '-sellos');
+        document.getElementById(hiddenId).value = url;
+        toast(label + ' subida — guarda para confirmar');
+        updatePreview();
+      }catch(err){
+        toast('No se pudo subir: '+(err && err.message ? err.message : 'error'));
+      }
+    }
+    document.getElementById('d-icon-file').addEventListener('change', function(e){
+      uploadDesignImage(e.target.files[0], 'd-icon-img', 'Ícono');
+    });
+    document.getElementById('d-bg-file').addEventListener('change', async function(e){
+      await uploadDesignImage(e.target.files[0], 'd-bg-img', 'Imagen de fondo');
+      if(document.getElementById('d-bg-img').value) document.getElementById('d-bg-img-clear').style.display = '';
+    });
+    document.getElementById('d-bg-color').addEventListener('input', function(){ document.getElementById('d-bg-img').value = ''; });
+    document.getElementById('d-bg-img-clear').onclick = function(){
+      document.getElementById('d-bg-img').value = '';
+      this.style.display = 'none';
+      updatePreview();
+    };
+    updatePreview();
+
+    document.getElementById('l-here').onclick = function(){
+      if(!navigator.geolocation){ toast('Este navegador no da la ubicación'); return; }
+      toast('Obteniendo ubicación...');
+      navigator.geolocation.getCurrentPosition(function(pos){
+        document.getElementById('l-lat').value = pos.coords.latitude.toFixed(6);
+        document.getElementById('l-lng').value = pos.coords.longitude.toFixed(6);
+        toast('Ubicación puesta (precisión ~'+Math.round(pos.coords.accuracy)+' m) — guarda para confirmar');
+      }, function(){ toast('No se pudo obtener la ubicación'); }, { enableHighAccuracy:true, timeout:15000 });
+    };
+
+    document.getElementById('loySaveBtn').onclick = async function(){
+      function num(id){ var v = document.getElementById(id).value.trim().replace(',', '.'); return v === '' ? null : Number(v); }
+      var row = {
+        client_slug: client.slug,
+        enabled: document.getElementById('l-enabled').checked,
+        stamps_needed: num('l-needed'),
+        cooldown_hours: num('l-cooldown'),
+        reward: document.getElementById('l-reward').value.trim(),
+        ask_email: document.getElementById('l-email').checked,
+        require_geo_qr: document.getElementById('l-geo').checked,
+        lat: num('l-lat'),
+        lng: num('l-lng'),
+        geo_radius_m: num('l-radius'),
+        nfc_require_counter: document.getElementById('l-ctr').checked,
+        design: readDesign(),
+        caja_promos: document.getElementById('l-caja-promos').checked,
+        birthday_msg: document.getElementById('l-bday-msg').value.trim() || null,
+        updated_at: new Date().toISOString()
+      };
+      if(!(row.stamps_needed >= 1 && row.stamps_needed <= 50)){ toast('Los sellos deben ser entre 1 y 50'); return; }
+      if(!(row.cooldown_hours >= 0 && row.cooldown_hours <= 720)){ toast('Las horas de bloqueo deben ser entre 0 y 720'); return; }
+      if(!row.reward){ toast('Escribe el premio'); return; }
+      if(row.lat != null && !(row.lat >= -90 && row.lat <= 90)){ toast('Latitud no válida'); return; }
+      if(row.lng != null && !(row.lng >= -180 && row.lng <= 180)){ toast('Longitud no válida'); return; }
+      if(!(row.geo_radius_m >= 20)){ row.geo_radius_m = 150; }
+      if(row.require_geo_qr && (row.lat == null || row.lng == null)){ toast('Para exigir ubicación, pon la latitud y longitud del negocio'); return; }
+      var res = await sb.from('loyalty_programs').upsert(row, { onConflict:'client_slug' });
+      if(res.error){ console.error(res.error); toast('No se pudo guardar: '+res.error.message); return; }
+      toast('Guardado');
+      renderLoyalty(client, clients, settings);
+    };
+
+    if(isNew) return;
+
+    document.getElementById('l-promos').onclick = function(){ renderPromos(client, clients, settings, prog); };
+
+    if(window.QRCode){
+      new QRCode(document.getElementById('loyQr'), { text: qrUrl, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
+    }
+    document.getElementById('loyQrBtn').onclick = function(){
+      var canvas = document.querySelector('#loyQr canvas');
+      if(!canvas){ toast('El QR todavía está cargando, intenta de nuevo'); return; }
+      var a = document.createElement('a');
+      a.download = client.slug + '-sellos-qr.png';
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    };
+
+    document.getElementById('l-pin-save').onclick = async function(){
+      var pin = document.getElementById('l-pin').value.trim();
+      if(!/^\d{4,8}$/.test(pin)){ toast('El PIN debe tener de 4 a 8 números'); return; }
+      var res = await sb.rpc('loyalty_admin_set_pin', { p_slug: client.slug, p_pin: pin });
+      if(res.error){ console.error(res.error); toast('No se pudo guardar el PIN: '+res.error.message); return; }
+      toast('PIN guardado. Anótalo: no se puede volver a ver.');
+      prog.caja_pin_hash = 'set';
+      document.getElementById('l-pin').value = '';
+    };
+
+    document.getElementById('l-caja-new').onclick = async function(){
+      if(cajaUrl && !confirm('El enlace actual dejará de funcionar y los celulares de caja tendrán que entrar con el enlace nuevo. ¿Continuar?')) return;
+      var res = await sb.rpc('loyalty_admin_new_caja_link', { p_slug: client.slug });
+      if(res.error){ console.error(res.error); toast('No se pudo generar: '+res.error.message); return; }
+      toast('Enlace de caja listo');
+      renderLoyalty(client, clients, settings);
+    };
+
+    if(document.getElementById('l-caja-wa')){
+      document.getElementById('l-caja-wa').onclick = function(){
+        var msg = 'Hola 👋 Este es el acceso de CAJA de la tarjeta de sellos de '+client.name+':\n'+cajaUrl+
+          '\n\nGuárdalo en el celular de la caja (Compartir → Agregar a inicio). Te pedirá el PIN una sola vez. No lo compartas.';
+        var phone = (client.phone || '').replace(/[^0-9]/g, '');
+        window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(msg), '_blank');
+      };
+    }
+
+    document.getElementById('l-advanced').onclick = function(){
+      var box = document.getElementById('l-danger');
+      box.style.display = box.style.display === 'none' ? 'flex' : 'none';
+    };
+
+    if(document.getElementById('l-delete')){
+      document.getElementById('l-delete').onclick = async function(){
+        // Double confirmation: a yes/no dialog, then typing the exact slug.
+        if(!confirm('¿Borrar para siempre la tarjeta de sellos de "'+client.name+'"?\n\nSe borran '+stats.customers+' clientes, '+stats.stamps+' sellos y '+stats.redemptions+' canjes. No se puede deshacer.')) return;
+        var typed = prompt('Para confirmar, escribe exactamente: '+client.slug);
+        if(typed === null) return;
+        if(typed.trim() !== client.slug){ toast('No coincide. No se borró nada.'); return; }
+        var res = await sb.from('loyalty_programs').delete().eq('client_slug', client.slug).eq('enabled', false);
+        if(res.error){ console.error(res.error); toast('No se pudo borrar: '+res.error.message); return; }
+        toast('Tarjeta de sellos borrada');
+        renderAdmin(clients, settings);
+      };
+    }
+
+    document.getElementById('l-export').onclick = async function(){
+      var res = await sb.from('loyalty_customers')
+        .select('name,phone,birthday,email,marketing_ok,balance,total_stamps,last_stamp_at,created_at')
+        .eq('client_slug', client.slug).order('created_at');
+      if(res.error){ toast('No se pudo exportar'); return; }
+      var cols = ['name','phone','birthday','email','marketing_ok','balance','total_stamps','last_stamp_at','created_at'];
+      var head = ['Nombre','Teléfono','Nacimiento','Correo','Acepta promociones','Sellos actuales','Sellos totales','Último sello','Registrado'];
+      var csv = head.join(',') + '\n' + res.data.map(function(r){
+        return cols.map(function(k){ var v = r[k] == null ? '' : String(r[k]); return '"' + v.replace(/"/g, '""') + '"'; }).join(',');
+      }).join('\n');
+      var blob = new Blob(['﻿' + csv], { type:'text/csv;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = client.slug + '-clientes-sellos.csv';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    };
+  }
+
+  /* ---------------- PROMOCIONES (WHATSAPP) VIEW ----------------
+     Free, semi-automatic campaigns: write one message, filter the
+     customers who accepted promotions, and send it one by one — each
+     "Enviar" opens WhatsApp with the text already personalised. Only
+     customers with marketing_ok = true are ever listed. */
+  async function renderPromos(client, clients, settings, prog){
+    var app = document.getElementById('app');
+    app.innerHTML = '<div class="admin-header"><h1>Promociones</h1></div><p style="color:var(--text-dim);">Cargando...</p>';
+    var res = await sb.from('loyalty_customers')
+      .select('id,name,phone,birthday,balance,last_stamp_at,marketing_ok,created_at')
+      .eq('client_slug', client.slug).order('name');
+    if(res.error){ console.error(res.error); toast('No se pudieron cargar los clientes'); renderLoyalty(client, clients, settings); return; }
+    var all = res.data || [];
+    var optedIn = all.filter(function(c){ return c.marketing_ok; });
+    var need = prog.stamps_needed;
+    var cardUrl = location.origin + '/' + client.slug + '/sello';
+    var sent = {};   // ids sent in this session, so you can see your progress
+
+    var TEMPLATES = [
+      { label:'Promo general', text:'Hola {nombre} 👋 Esta semana en {negocio} tenemos una promoción especial para ti. ¡Te esperamos!' },
+      { label:'Cumpleaños', text:'¡Feliz cumpleaños, {nombre}! 🎂 En {negocio} te queremos consentir: ven esta semana y recibe un regalo especial.' },
+      { label:'Falta 1 sello', text:'Hola {nombre} 👋 ¡Solo te falta {faltan} sello para tu {premio} en {negocio}! Te esperamos ☕' },
+      { label:'Premio listo', text:'Hola {nombre} 🎉 ¡Ya completaste tu tarjeta en {negocio}! Pasa a canjear tu {premio}.' },
+      { label:'Te extrañamos', text:'Hola {nombre}, ¡te extrañamos en {negocio}! 😊 Llevas {sellos} de {total} sellos. Ven pronto y sigue juntando.' }
+    ];
+    var FILTERS = [
+      { key:'all',     label:'Todos los que aceptaron' },
+      { key:'bday7',   label:'🎂 Cumpleaños en los próximos 7 días' },
+      { key:'bdaymon', label:'🎂 Cumpleaños este mes' },
+      { key:'one',     label:'⏳ Les falta 1 sello' },
+      { key:'ready',   label:'🎁 Premio listo sin canjear' },
+      { key:'away',    label:'💤 No vienen hace más de 30 días' }
+    ];
+
+    function gtToday(){
+      // Today's date in Guatemala, as a UTC-midnight Date
+      var p = new Intl.DateTimeFormat('en-CA', { timeZone:'America/Guatemala', year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date()).split('-');
+      return new Date(Date.UTC(+p[0], +p[1]-1, +p[2]));
+    }
+    function daysToBirthday(iso){
+      if(!iso) return 999;
+      var t = gtToday(), b = iso.split('-');
+      var next = new Date(Date.UTC(t.getUTCFullYear(), +b[1]-1, +b[2]));
+      if(next < t) next = new Date(Date.UTC(t.getUTCFullYear()+1, +b[1]-1, +b[2]));
+      return Math.round((next - t) / 864e5);
+    }
+    function matches(c, key){
+      if(key === 'bday7') return daysToBirthday(c.birthday) <= 7;
+      if(key === 'bdaymon') return c.birthday && +c.birthday.split('-')[1] === gtToday().getUTCMonth()+1;
+      if(key === 'one') return c.balance === need - 1;
+      if(key === 'ready') return c.balance >= need;
+      if(key === 'away') return !c.last_stamp_at || (Date.now() - new Date(c.last_stamp_at)) > 30*864e5;
+      return true;
+    }
+    function fill(text, c){
+      var first = (c.name || '').trim().split(/\s+/)[0] || '';
+      var have = Math.min(c.balance, need);
+      return text
+        .replace(/\{nombre\}/g, first)
+        .replace(/\{negocio\}/g, client.name || '')
+        .replace(/\{premio\}/g, prog.reward || '')
+        .replace(/\{sellos\}/g, String(have))
+        .replace(/\{total\}/g, String(need))
+        .replace(/\{faltan\}/g, String(Math.max(need - c.balance, 0)))
+        .replace(/\{enlace\}/g, cardUrl);
+    }
+    function prettyPhone(p){ return p && p.length === 11 && p.indexOf('502') === 0 ? '+502 ' + p.slice(3,7) + ' ' + p.slice(7) : '+' + p; }
+
+    app.innerHTML =
+      '<div class="admin-header"><div><h1>Promociones</h1><p>'+escapeHtml(client.name)+' · por WhatsApp</p></div></div>'+
+      '<div class="form-card">'+
+        '<p style="margin:0;font-size:13px;color:var(--text-dim);">Solo aparecen los clientes que marcaron <b>"Acepto recibir promociones"</b>: '+
+          '<b>'+optedIn.length+'</b> de '+all.length+'. Cada botón <b>Enviar</b> abre WhatsApp con el mensaje listo; tú solo tocas enviar.</p>'+
+        '<div class="field"><label>1. ¿A quiénes?</label><select id="p-filter">'+
+          FILTERS.map(function(f){ return '<option value="'+f.key+'">'+f.label+'</option>'; }).join('')+
+        '</select></div>'+
+        '<div class="field"><label>2. Mensaje</label>'+
+          '<div class="templates-row">'+TEMPLATES.map(function(t, i){
+            return '<button class="btn btn-ghost btn-sm" type="button" data-tpl="'+i+'">'+escapeHtml(t.label)+'</button>'; }).join('')+'</div>'+
+          '<textarea id="p-text" rows="5" style="background:var(--bg);border:1px solid var(--surface-edge);border-radius:10px;padding:10px 12px;font-size:15px;color:var(--text);font-family:inherit;resize:vertical;">'+escapeHtml(TEMPLATES[0].text)+'</textarea>'+
+          '<p style="margin:0;font-size:12px;color:var(--text-dim);">Se reemplazan solos: <b>{nombre}</b> <b>{negocio}</b> <b>{premio}</b> <b>{sellos}</b> <b>{total}</b> <b>{faltan}</b> <b>{enlace}</b> (su tarjeta)</p>'+
+        '</div>'+
+        '<div class="field"><label>Así le llega al primero de la lista</label>'+
+          '<div id="p-sample" style="background:#DCF8C6;color:#111;border-radius:12px;padding:10px 12px;font-size:14px;white-space:pre-wrap;"></div></div>'+
+      '</div>'+
+      '<div class="form-card">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;"><label style="font-size:13px;font-weight:600;color:var(--text-dim);">3. Enviar</label>'+
+          '<span id="p-progress" style="font-size:13px;color:var(--text-dim);"></span></div>'+
+        '<div id="p-list" style="display:flex;flex-direction:column;gap:8px;"></div>'+
+      '</div>'+
+      '<div class="form-actions" style="border-top:none;"><button class="btn btn-ghost" id="p-back" type="button">Volver</button></div>';
+
+    function render(){
+      var key = document.getElementById('p-filter').value;
+      var text = document.getElementById('p-text').value;
+      var list = optedIn.filter(function(c){ return matches(c, key); });
+      if(key === 'bday7') list.sort(function(a, b){ return daysToBirthday(a.birthday) - daysToBirthday(b.birthday); });
+      document.getElementById('p-sample').textContent = list.length ? fill(text, list[0]) : fill(text, { name:'María', balance: need - 1 });
+      var done = list.filter(function(c){ return sent[c.id]; }).length;
+      document.getElementById('p-progress').textContent = list.length ? done + ' de ' + list.length + ' enviados' : '';
+      document.getElementById('p-list').innerHTML = list.length ? list.map(function(c){
+        var extra = key === 'bday7' || key === 'bdaymon'
+          ? (daysToBirthday(c.birthday) === 0 ? ' · 🎂 ¡hoy!' : ' · 🎂 en ' + daysToBirthday(c.birthday) + ' días')
+          : ' · ' + Math.min(c.balance, need) + '/' + need + ' sellos';
+        return '<div class="stat-row" style="align-items:center;gap:10px;'+(sent[c.id] ? 'opacity:.55;' : '')+'">'+
+          '<span style="flex:1;min-width:0;"><b>'+escapeHtml(c.name)+'</b><br><span style="font-size:12px;color:var(--text-dim);">'+escapeHtml(prettyPhone(c.phone))+extra+'</span></span>'+
+          '<button class="btn '+(sent[c.id] ? 'btn-ghost' : 'btn-primary')+' btn-sm" type="button" data-send="'+escapeHtml(c.id)+'">'+(sent[c.id] ? '✓ Enviado' : 'Enviar')+'</button>'+
+        '</div>';
+      }).join('') : '<p style="color:var(--text-dim);font-size:13px;margin:0;">Nadie cumple con este filtro por ahora.</p>';
+      document.querySelectorAll('[data-send]').forEach(function(btn){
+        btn.onclick = function(){
+          var c = optedIn.find(function(x){ return x.id === btn.getAttribute('data-send'); });
+          window.open('https://wa.me/' + c.phone + '?text=' + encodeURIComponent(fill(document.getElementById('p-text').value, c)), '_blank');
+          sent[c.id] = true;
+          render();
+        };
+      });
+    }
+    document.getElementById('p-filter').onchange = render;
+    document.getElementById('p-text').oninput = render;
+    document.querySelectorAll('[data-tpl]').forEach(function(btn){
+      btn.onclick = function(){ document.getElementById('p-text').value = TEMPLATES[+btn.getAttribute('data-tpl')].text; render(); };
+    });
+    document.getElementById('p-back').onclick = function(){ renderLoyalty(client, clients, settings); };
+    render();
+  }
+
+  /* ---------------- NFC WRITER VIEW ----------------
+     Uses the Web NFC API (NDEFReader), which ONLY exists on Android
+     with Google Chrome. It is not implemented by Safari/iOS or by
+     desktop browsers — there is no workaround for that, it's a
+     platform restriction. On any unsupported device we show an
+     explanation instead of a broken tool. */
+  function renderNfcWriter(clients, settings){
+    var app = document.getElementById('app');
+    var supported = ('NDEFReader' in window);
+
+    if(!supported){
+      app.innerHTML =
+        '<div class="admin-header"><h1>Escribir NFC</h1></div>'+
+        '<div class="form-card">'+
+          '<p style="color:var(--text-dim);font-size:14px;line-height:1.5;">'+
+            'Esta herramienta solo funciona en un teléfono <b>Android</b> usando el navegador <b>Google Chrome</b>. '+
+            'Tu dispositivo o navegador actual no lo soporta (en iPhone nunca va a funcionar, es una restricción de Apple, no nuestra).'+
+          '</p>'+
+          '<p style="color:var(--text-dim);font-size:14px;line-height:1.5;">'+
+            'Mientras tanto, puedes seguir usando la app <b>NFC Tools</b> para programar tus tags.'+
+          '</p>'+
+          '<div class="form-actions"><button class="btn btn-ghost" id="nfcBackBtn" type="button">Volver</button></div>'+
+        '</div>';
+      document.getElementById('nfcBackBtn').onclick = function(){ renderAdmin(clients, settings); };
+      return;
+    }
+
+    if(!clients.length){
+      app.innerHTML =
+        '<div class="admin-header"><h1>Escribir NFC</h1></div>'+
+        '<div class="form-card">'+
+          '<p style="color:var(--text-dim);font-size:14px;">Todavía no tienes ningún cliente creado. Crea uno primero para poder escribir su link en un tag.</p>'+
+          '<div class="form-actions"><button class="btn btn-ghost" id="nfcBackBtn" type="button">Volver</button></div>'+
+        '</div>';
+      document.getElementById('nfcBackBtn').onclick = function(){ renderAdmin(clients, settings); };
+      return;
+    }
+
+    app.innerHTML =
+      '<div class="admin-header"><h1>Escribir NFC</h1></div>'+
+      '<div class="form-card">'+
+        '<p style="color:var(--text-dim);font-size:13px;line-height:1.5;">'+
+          'Elige el cliente, toca "Escribir tag", y cuando el teléfono te avise, acerca el sticker NFC en blanco a la parte de atrás del celular sin moverlo hasta que aparezca el mensaje de listo.'+
+        '</p>'+
+        '<div class="field"><label>Cliente</label>'+
+          '<select id="nfcClientSelect">'+
+            clients.map(function(c){ return '<option value="'+escapeHtml(c.slug)+'">'+escapeHtml(c.name)+'</option>'; }).join('')+
+          '</select>'+
+        '</div>'+
+        '<div class="field"><label>Link que se va a escribir</label>'+
+          '<div class="link-box"><span id="nfcLinkPreview"></span></div>'+
+        '</div>'+
+        '<button class="btn btn-primary" id="nfcWriteActionBtn" type="button">📡 Escribir tag</button>'+
+        '<p id="nfcStatus" style="font-size:14px;min-height:20px;"></p>'+
+        '<div class="form-actions"><button class="btn btn-ghost" id="nfcBackBtn" type="button">Volver</button></div>'+
+      '</div>';
+
+    document.getElementById('nfcBackBtn').onclick = function(){ renderAdmin(clients, settings); };
+
+    function updateLinkPreview(){
+      var slug = document.getElementById('nfcClientSelect').value;
+      document.getElementById('nfcLinkPreview').textContent = baseUrl() + slug;
+    }
+    document.getElementById('nfcClientSelect').addEventListener('change', updateLinkPreview);
+    updateLinkPreview();
+
+    document.getElementById('nfcWriteActionBtn').onclick = async function(){
+      var slug = document.getElementById('nfcClientSelect').value;
+      var link = baseUrl() + slug;
+      var statusEl = document.getElementById('nfcStatus');
+      statusEl.style.color = 'var(--text-dim)';
+      statusEl.textContent = 'Acerca el tag NFC en blanco a la parte de atrás del teléfono y no lo muevas...';
+      try{
+        var ndef = new NDEFReader();
+        await ndef.write({ records: [{ recordType: 'url', data: link }] });
+        statusEl.style.color = 'var(--accent-default)';
+        statusEl.textContent = '✅ ¡Listo! Se escribió: ' + link;
+        toast('Tag escrito correctamente');
+      }catch(err){
+        var name = err && err.name;
+        var msg = 'No se pudo escribir el tag.';
+        if(name === 'NotAllowedError'){ msg = 'Permiso de NFC denegado. Revisa que el NFC esté encendido en Ajustes del teléfono y vuelve a intentar.'; }
+        else if(name === 'NotSupportedError'){ msg = 'Este tag no se puede escribir — puede estar bloqueado, dañado, o no ser compatible.'; }
+        else if(name === 'NetworkError'){ msg = 'Se perdió el contacto con el tag antes de terminar. No lo alejes del teléfono hasta ver el mensaje de listo — intenta de nuevo.'; }
+        else if(name === 'AbortError'){ msg = 'No se detectó ningún tag a tiempo. Intenta de nuevo y acércalo más rápido.'; }
+        statusEl.style.color = 'var(--danger)';
+        statusEl.textContent = '❌ '+msg+(err && err.message ? ' ('+err.message+')' : '');
+        toast('No se pudo escribir el tag');
+      }
+    };
+  }
+
+  /* ---------------- PANEL SETTINGS VIEW ---------------- */
+  function renderSettings(clients, settings){
+    var bg = (settings && settings.background) || '';
+    var textColor = (settings && settings.text_color) || '';
+    var app = document.getElementById('app');
+    app.innerHTML =
+      '<div class="admin-header"><h1>Ajustes del panel</h1></div>'+
+      '<div class="form-card">'+
+        '<div class="field"><label>Fondo de TU panel (color, o sube una imagen)</label>'+
+          (isImageUrl(bg) ?
+            '<div class="link-box"><span>Imagen de fondo puesta ✓</span>'+
+              '<button class="btn btn-danger btn-sm" id="removeSettingsBgBtn" type="button">Quitar imagen</button></div>'
+            : '')+
+          '<div class="row2">'+
+            '<input type="color" id="s-bg-color" value="'+escapeHtml(isImageUrl(bg) ? '#F6F5F2' : (bg || '#F6F5F2'))+'" style="width:40px;height:40px;border-radius:10px;border:1px solid var(--surface-edge);padding:2px;">'+
+            '<input type="file" id="s-bg-file" accept="image/png,image/jpeg,image/webp" style="font-size:12px;">'+
+          '</div>'+
+          '<input type="hidden" id="s-bg-image" value="'+escapeHtml(isImageUrl(bg) ? bg : '')+'">'+
+        '</div>'+
+        '<div class="field"><label>Color de letra del panel</label>'+
+          '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
+            '<input type="checkbox" id="s-text-auto" style="width:18px;height:18px;"'+(textColor?'':' checked')+'>'+
+            '<label for="s-text-auto" style="margin:0;">Automático (recomendado si no subiste imagen de fondo)</label>'+
+          '</div>'+
+          '<input type="color" id="s-text-color" value="'+escapeHtml(textColor||'#181C1B')+'" style="width:40px;height:40px;border-radius:10px;border:1px solid var(--surface-edge);padding:2px;'+(textColor?'':'display:none;')+'">'+
+        '</div>'+
+        '<div class="form-actions">'+
+          '<button class="btn btn-ghost" id="settingsCancelBtn" type="button">Volver</button>'+
+          '<button class="btn btn-primary" id="settingsSaveBtn" type="button">Guardar</button>'+
+        '</div>'+
+      '</div>';
+
+    document.getElementById('settingsCancelBtn').onclick = function(){ renderAdmin(clients, settings); };
+
+    var removeBtn = document.getElementById('removeSettingsBgBtn');
+    if(removeBtn){
+      removeBtn.onclick = function(){
+        document.getElementById('s-bg-image').value = '';
+        removeBtn.parentElement.remove();
+        toast('Imagen quitada — guarda para confirmar');
+      };
+    }
+
+    document.getElementById('s-bg-file').addEventListener('change', async function(e){
+      var file = e.target.files[0];
+      if(!file) return;
+      if(file.size > 10 * 1024 * 1024){ toast('La imagen debe pesar menos de 10MB'); return; }
+      toast('Subiendo imagen...');
+      try{
+        var url = await Storage.uploadLogo(file, 'panel-bg');
+        document.getElementById('s-bg-image').value = url;
+        toast('Imagen subida');
+      }catch(err){
+        toast('No se pudo subir: '+(err && err.message ? err.message : 'error'));
+      }
+    });
+
+    document.getElementById('s-text-auto').addEventListener('change', function(e){
+      document.getElementById('s-text-color').style.display = e.target.checked ? 'none' : '';
+    });
+
+    document.getElementById('settingsSaveBtn').onclick = async function(){
+      var newBg = document.getElementById('s-bg-image').value.trim() || document.getElementById('s-bg-color').value;
+      var newTextColor = document.getElementById('s-text-auto').checked ? '' : document.getElementById('s-text-color').value;
+      try{
+        await Storage.savePanelSettings(newBg, newTextColor);
+        toast('Ajustes guardados');
+        renderAdmin(clients, { background: newBg, text_color: newTextColor });
+      }catch(err){
+        toast('No se pudo guardar: '+(err && err.message ? err.message : 'error'));
+      }
+    };
+  }
+
+  function renderForm(existing, clients, settings){
+    var isEdit = !!existing;
+    var draft = existing ? JSON.parse(JSON.stringify(existing)) : {
+      slug:'', name:'', tagline:'', accent:'#0E7A5F', logo:'★',
+      buttons:[{icon:'menu',label:'Ver Menú',url:''},{icon:'review',label:'Dejar Reseña',url:''}]
+    };
+
+    var app = document.getElementById('app');
+
+    function buttonRowInnerHtml(b){
+      var opts = Object.keys(ICONS).map(function(k){
+        return '<option value="'+k+'"'+(k===b.icon?' selected':'')+'>'+ICON_LABELS[k]+'</option>';
+      }).join('');
+      var hasCustomIcon = !!b.iconImage;
+      return (
+        '<div class="button-row-main">'+
+          '<input type="color" class="row-color" title="Color de esta opción" value="'+escapeHtml(b.color||'#0E7A5F')+'">'+
+          '<select class="row-icon"'+(hasCustomIcon ? ' style="display:none;"' : '')+'>'+opts+'</select>'+
+          '<input class="label-input" type="text" placeholder="Texto (ej. Ver Menú)" value="'+escapeHtml(b.label)+'">'+
+          '<input class="url-input" type="url" placeholder="https://..." value="'+escapeHtml(b.url)+'">'+
+          '<button class="row-remove" type="button" title="Quitar">&times;</button>'+
+        '</div>'+
+        '<div class="button-row-icon-upload">'+
+          (hasCustomIcon ?
+            '<span class="row-icon-status">Ícono propio puesto ✓</span><button class="btn btn-danger btn-sm row-remove-icon" type="button">Quitar</button>'
+            : '<span class="row-icon-status">o sube tu propio ícono:</span><input type="file" class="row-icon-file" accept="image/png,image/jpeg,image/webp,image/svg+xml">')+
+          '<input type="hidden" class="row-icon-image" value="'+escapeHtml(b.iconImage||'')+'">'+
+        '</div>'
+      );
+    }
+
+    function deviceBgHtml(k, val){
+      return '<div class="link-box" id="f-bg'+k+'-status"'+(isImageUrl(val) ? '' : ' style="display:none;"')+'><span>Imagen puesta ✓</span>'+
+          '<button class="btn btn-danger btn-sm" id="f-bg'+k+'-clear" type="button">Quitar imagen</button></div>'+
+        '<input type="file" id="f-bg'+k+'-file" accept="image/png,image/jpeg,image/webp" style="font-size:12px;">'+
+        '<input type="hidden" id="f-bg'+k+'-image" value="'+escapeHtml(isImageUrl(val) ? val : '')+'">';
+    }
+
+    function buttonRowHtml(b, i){
+      return '<div class="button-row" data-idx="'+i+'">'+buttonRowInnerHtml(b)+'</div>';
+    }
+
+    app.innerHTML =
+      '<div class="admin-header"><h1>'+(isEdit?'Editar cliente':'Nuevo cliente')+'</h1></div>'+
+      '<div class="form-card">'+
+        '<div class="field"><label>Nombre del negocio</label><input type="text" id="f-name" value="'+escapeHtml(draft.name)+'" placeholder="Ej. Romano\'s Pizza"></div>'+
+        '<div class="field"><label>Nombre de la persona (opcional — solo si es un profesional individual, ej. Ana López)</label><input type="text" id="f-contact-name" value="'+escapeHtml(draft.contact_name||'')+'" placeholder="Déjalo vacío si es un negocio, no una persona"></div>'+
+        '<div class="field"><label>Frase corta (opcional)</label><input type="text" id="f-tagline" value="'+escapeHtml(draft.tagline||'')+'" placeholder="Ej. Pizza artesanal desde 1998"></div>'+
+        '<div class="field"><label>Teléfono (opcional — para los dos botones de abajo)</label><input type="text" id="f-phone" value="'+escapeHtml(draft.phone||'')+'" placeholder="Ej. +502 1234 5678"></div>'+
+        '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
+          '<input type="checkbox" id="f-save-contact" style="width:18px;height:18px;"'+(draft.save_contact_enabled?' checked':'')+'>'+
+          '<label for="f-save-contact" style="margin:0;">Agregar botón "Guardar Contacto" (vCard)</label>'+
+        '</div>'+
+        '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
+          '<input type="checkbox" id="f-whatsapp" style="width:18px;height:18px;"'+(draft.whatsapp_enabled?' checked':'')+'>'+
+          '<label for="f-whatsapp" style="margin:0;">Agregar botón directo de WhatsApp</label>'+
+        '</div>'+
+        '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
+          '<input type="checkbox" id="f-capture" style="width:18px;height:18px;"'+(draft.capture_leads?' checked':'')+'>'+
+          '<label for="f-capture" style="margin:0;">Mostrar formulario para capturar un dato de contacto</label>'+
+        '</div>'+
+        '<div class="field"><label>¿Qué le pides al visitante?</label>'+
+          '<select id="f-capture-type">'+
+            '<option value="email"'+((draft.capture_type||'email')==='email'?' selected':'')+'>Solo correo</option>'+
+            '<option value="phone"'+(draft.capture_type==='phone'?' selected':'')+'>Solo teléfono</option>'+
+          '</select>'+
+        '</div>'+
+        '<div class="field"><label>Plantilla rápida (opcional, ajusta color y letra)</label>'+
+          '<div class="templates-row">'+
+            TEMPLATES.map(function(t){
+              return '<button type="button" class="template-swatch" data-key="'+t.key+'" title="'+t.label+'" style="background:'+t.accent+';font-family:'+(FONTS[t.font].css||'inherit')+';">Aa</button>';
+            }).join('')+
+          '</div>'+
+        '</div>'+
+        '<div class="row2">'+
+          '<div class="field"><label>Color de marca</label><div class="color-field"><input type="color" id="f-accent" value="'+escapeHtml(draft.accent||'#0E7A5F')+'"></div></div>'+
+          '<div class="field"><label>Logo (emoji, inicial, o sube una imagen)</label>'+
+            '<input type="text" id="f-logo" value="'+escapeHtml(draft.logo||'')+'" placeholder="🍕 o https://...">'+
+            '<input type="file" id="f-logo-file" accept="image/png,image/jpeg,image/webp" style="font-size:12px;">'+
+          '</div>'+
+        '</div>'+
+        '<div class="field"><label>Fondo de la página — celular (color, o sube una imagen)</label>'+
+          (isImageUrl(draft.background) ?
+            '<div class="link-box"><span>Imagen de fondo puesta ✓</span>'+
+              '<button class="btn btn-danger btn-sm" id="removeBgBtn" type="button">Quitar imagen</button></div>'
+            : '')+
+          '<div class="row2">'+
+            '<input type="color" id="f-bg-color" value="'+escapeHtml(isImageUrl(draft.background) ? '#F6F5F2' : (draft.background || '#F6F5F2'))+'" style="width:40px;height:40px;border-radius:10px;border:1px solid var(--surface-edge);padding:2px;">'+
+            '<input type="file" id="f-bg-file" accept="image/png,image/jpeg,image/webp" style="font-size:12px;">'+
+          '</div>'+
+          '<input type="hidden" id="f-bg-image" value="'+escapeHtml(isImageUrl(draft.background) ? draft.background : '')+'">'+
+        '</div>'+
+        '<div class="field"><label>Fondo para tablet (opcional — imagen vertical, se usa en pantallas medianas)</label>'+deviceBgHtml('t', draft.background_tablet)+'</div>'+
+        '<div class="field"><label>Fondo para computadora (opcional — imagen horizontal, se usa en pantallas grandes)</label>'+deviceBgHtml('d', draft.background_desktop)+'</div>'+
+        (isEdit && existing.slug === 'la-posta' ?
+          '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
+            '<input type="checkbox" id="f-bg-menu" style="width:18px;height:18px;"'+(draft.bg_in_menu?' checked':'')+'>'+
+            '<label for="f-bg-menu" style="margin:0;">Usar estos fondos también en el menú y el recetario (apagado: conservan su fondo original)</label>'+
+          '</div>' : '')+
+        '<div class="field"><label>Estilo de letra de la página</label>'+
+          '<select id="f-font">'+
+            Object.keys(FONTS).map(function(k){
+              return '<option value="'+k+'"'+(k===(draft.font||'default')?' selected':'')+' style="font-family:'+(FONTS[k].css||'inherit')+';">'+FONTS[k].label+'</option>';
+            }).join('')+
+          '</select>'+
+        '</div>'+
+        '<div class="field"><label>Color de letra (nombre y frase)</label>'+
+          '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
+            '<input type="checkbox" id="f-text-auto" style="width:18px;height:18px;"'+(draft.text_color?'':' checked')+'>'+
+            '<label for="f-text-auto" style="margin:0;">Automático (se adapta solo, recomendado si no subiste una imagen de fondo)</label>'+
+          '</div>'+
+          '<input type="color" id="f-text-color" value="'+escapeHtml(draft.text_color||'#181C1B')+'" style="width:40px;height:40px;border-radius:10px;border:1px solid var(--surface-edge);padding:2px;'+(draft.text_color?'':'display:none;')+'">'+
+        '</div>'+
+        '<div class="field"><label>Color de fondo de los botones (Guardar Contacto, WhatsApp, etc.)</label>'+
+          '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
+            '<input type="checkbox" id="f-card-auto" style="width:18px;height:18px;"'+(draft.card_color?'':' checked')+'>'+
+            '<label for="f-card-auto" style="margin:0;">Automático (blanco u oscuro según el tema del visitante)</label>'+
+          '</div>'+
+          '<input type="color" id="f-card-color" value="'+escapeHtml(draft.card_color||'#FFFFFF')+'" style="width:40px;height:40px;border-radius:10px;border:1px solid var(--surface-edge);padding:2px;'+(draft.card_color?'':'display:none;')+'">'+
+        '</div>'+
+        '<div class="field"><label>Enlace de esta página</label>'+
+          '<div class="link-box"><span id="linkPreview"></span>'+
+            '<button class="btn btn-ghost btn-sm" id="copyLinkBtn" type="button">Copiar</button></div>'+
+          '<div class="qr-box">'+
+            '<div id="qrCanvas" style="width:140px;height:140px;"></div>'+
+            '<button class="btn btn-ghost btn-sm" id="downloadQrBtn" type="button">Descargar QR</button>'+
+          '</div>'+
+        '</div>'+
+        '<div class="field"><label>Opciones (botones que verá el cliente)</label>'+
+          '<div class="buttons-editor" id="buttonsEditor">'+
+            draft.buttons.map(buttonRowHtml).join('')+
+          '</div>'+
+          '<button class="btn btn-ghost btn-sm add-row-btn" id="addRowBtn" type="button">+ Agregar opción</button>'+
+        '</div>'+
+        '<div class="form-actions">'+
+          (isEdit ? '<button class="btn btn-danger" id="deleteBtn" type="button">Eliminar cliente</button>' : '')+
+          '<button class="btn btn-ghost" id="cancelBtn" type="button">Cancelar</button>'+
+          '<button class="btn btn-primary" id="saveBtn" type="button">Guardar</button>'+
+        '</div>'+
+      '</div>';
+
+    function currentSlug(){
+      return isEdit ? existing.slug : uniqueSlug(document.getElementById('f-name').value, clients);
+    }
+    var qrInstance = null;
+    function updateLinkPreview(){
+      var link = baseUrl()+currentSlug();
+      document.getElementById('linkPreview').textContent = link;
+      if(window.QRCode){
+        if(!qrInstance){
+          qrInstance = new QRCode(document.getElementById('qrCanvas'), { text: link, width: 140, height: 140 });
+        } else {
+          qrInstance.makeCode(link);
+        }
+      }
+    }
+    updateLinkPreview();
+    document.getElementById('f-name').addEventListener('input', function(){ if(!isEdit) updateLinkPreview(); });
+
+    document.getElementById('downloadQrBtn').onclick = function(){
+      var canvas = document.querySelector('#qrCanvas canvas');
+      if(!canvas){ toast('El QR todavía está cargando, intenta de nuevo'); return; }
+      var link = document.createElement('a');
+      link.download = currentSlug()+'-qr.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    };
+
+    document.querySelectorAll('.template-swatch').forEach(function(btn){
+      btn.onclick = function(){
+        var t = TEMPLATES.find(function(x){ return x.key === btn.getAttribute('data-key'); });
+        if(!t) return;
+        document.getElementById('f-accent').value = t.accent;
+        document.getElementById('f-font').value = t.font;
+        toast('Plantilla "'+t.label+'" aplicada — guarda para confirmar');
+      };
+    });
+
+    document.getElementById('f-logo-file').addEventListener('change', async function(e){
+      var file = e.target.files[0];
+      if(!file) return;
+      if(file.size > 10 * 1024 * 1024){ toast('La imagen debe pesar menos de 10MB'); return; }
+      toast('Subiendo imagen...');
+      try{
+        var url = await Storage.uploadLogo(file, currentSlug());
+        document.getElementById('f-logo').value = url;
+        toast('Logo subido');
+      }catch(err){
+        toast('No se pudo subir: '+(err && err.message ? err.message : 'error'));
+      }
+    });
+
+    var removeBgBtn = document.getElementById('removeBgBtn');
+    if(removeBgBtn){
+      removeBgBtn.onclick = function(){
+        document.getElementById('f-bg-image').value = '';
+        removeBgBtn.parentElement.remove();
+        toast('Imagen de fondo quitada — guarda para confirmar');
+      };
+    }
+
+    document.getElementById('f-bg-file').addEventListener('change', async function(e){
+      var file = e.target.files[0];
+      if(!file) return;
+      if(file.size > 10 * 1024 * 1024){ toast('La imagen debe pesar menos de 10MB'); return; }
+      toast('Subiendo imagen de fondo...');
+      try{
+        var url = await Storage.uploadLogo(file, currentSlug()+'-bg');
+        document.getElementById('f-bg-image').value = url;
+        toast('Fondo subido');
+      }catch(err){
+        toast('No se pudo subir: '+(err && err.message ? err.message : 'error'));
+      }
+    });
+
+    ['t', 'd'].forEach(function(k){
+      document.getElementById('f-bg'+k+'-file').addEventListener('change', async function(e){
+        var file = e.target.files[0];
+        if(!file) return;
+        if(file.size > 10 * 1024 * 1024){ toast('La imagen debe pesar menos de 10MB'); return; }
+        toast('Subiendo imagen de fondo...');
+        try{
+          var url = await Storage.uploadLogo(file, currentSlug()+'-bg-'+k);
+          document.getElementById('f-bg'+k+'-image').value = url;
+          document.getElementById('f-bg'+k+'-status').style.display = '';
+          toast('Fondo subido');
+        }catch(err){
+          toast('No se pudo subir: '+(err && err.message ? err.message : 'error'));
+        }
+      });
+      document.getElementById('f-bg'+k+'-clear').onclick = function(){
+        document.getElementById('f-bg'+k+'-image').value = '';
+        document.getElementById('f-bg'+k+'-status').style.display = 'none';
+        document.getElementById('f-bg'+k+'-file').value = '';
+        toast('Imagen quitada — guarda para confirmar');
+      };
+    });
+
+    document.getElementById('f-text-auto').addEventListener('change', function(e){
+      document.getElementById('f-text-color').style.display = e.target.checked ? 'none' : '';
+    });
+
+    document.getElementById('f-card-auto').addEventListener('change', function(e){
+      document.getElementById('f-card-color').style.display = e.target.checked ? 'none' : '';
+    });
+
+    document.getElementById('copyLinkBtn').onclick = function(){
+      var link = baseUrl()+currentSlug();
+      navigator.clipboard && navigator.clipboard.writeText(link).then(function(){
+        toast('Link copiado');
+      }).catch(function(){ toast(link); });
+    };
+
+    document.getElementById('addRowBtn').onclick = function(){
+      if(document.querySelectorAll('.button-row').length >= 9){ toast('Máximo 9 opciones'); return; }
+      var editor = document.getElementById('buttonsEditor');
+      var idx = editor.children.length;
+      editor.insertAdjacentHTML('beforeend', buttonRowHtml({icon:'website',label:'',url:''}, idx));
+      wireRow(editor.lastElementChild);
+    };
+
+    function readRowData(row){
+      return {
+        icon: row.querySelector('.row-icon').value,
+        color: row.querySelector('.row-color').value,
+        label: row.querySelector('.label-input').value,
+        url: row.querySelector('.url-input').value,
+        iconImage: row.querySelector('.row-icon-image').value
+      };
+    }
+
+    function wireRow(row){
+      row.querySelector('.row-remove').onclick = function(){
+        if(document.querySelectorAll('.button-row').length <= 1){ toast('Debe quedar al menos una opción'); return; }
+        row.remove();
+      };
+      var iconFile = row.querySelector('.row-icon-file');
+      if(iconFile){
+        iconFile.addEventListener('change', async function(e){
+          var file = e.target.files[0];
+          if(!file) return;
+          if(file.size > 10 * 1024 * 1024){ toast('El ícono debe pesar menos de 10MB'); return; }
+          toast('Subiendo ícono...');
+          try{
+            var data = readRowData(row);
+            data.iconImage = await Storage.uploadLogo(file, 'icon');
+            row.innerHTML = buttonRowInnerHtml(data);
+            wireRow(row);
+            toast('Ícono subido');
+          }catch(err){
+            toast('No se pudo subir: '+(err && err.message ? err.message : 'error'));
+          }
+        });
+      }
+      var removeIconBtn = row.querySelector('.row-remove-icon');
+      if(removeIconBtn){
+        removeIconBtn.onclick = function(){
+          var data = readRowData(row);
+          data.iconImage = '';
+          row.innerHTML = buttonRowInnerHtml(data);
+          wireRow(row);
+        };
+      }
+    }
+    document.querySelectorAll('.button-row').forEach(wireRow);
+
+    document.getElementById('cancelBtn').onclick = function(){ renderAdmin(clients, settings); };
+
+    if(isEdit){
+      document.getElementById('deleteBtn').onclick = async function(){
+        var ok = confirm ? confirm('¿Eliminar "'+existing.name+'"? Su link dejará de funcionar.') : true;
+        if(!ok) return;
+        try{
+          await Storage.remove(existing.slug);
+          toast('Cliente eliminado');
+          renderAdmin(await Storage.load(), settings);
+        }catch(e){
+          toast('No se pudo borrar: '+(e && e.message ? e.message : 'error'));
+        }
+      };
+    }
+
+    document.getElementById('saveBtn').onclick = async function(){
+      var name = document.getElementById('f-name').value.trim();
+      if(!name){ toast('Ponle un nombre al negocio'); return; }
+      var rows = Array.from(document.querySelectorAll('.button-row'));
+      var all = rows.map(function(r, i){
+        return {
+          pos: i + 1,
+          icon: r.querySelector('.row-icon').value,
+          color: r.querySelector('.row-color').value,
+          iconImage: r.querySelector('.row-icon-image').value.trim(),
+          label: r.querySelector('.label-input').value.trim(),
+          url: r.querySelector('.url-input').value.trim()
+        };
+      });
+      var incomplete = all.find(function(b){ return (b.label && !b.url) || (!b.label && b.url); });
+      if(incomplete){
+        toast('A la opción '+incomplete.pos+' le falta el '+(incomplete.label ? 'link' : 'texto'));
+        return;
+      }
+      var buttons = all.filter(function(b){ return b.label && b.url; });
+      if(!buttons.length){ toast('Agrega al menos una opción con texto y link'); return; }
+
+      var slug = isEdit ? existing.slug : uniqueSlug(name, clients);
+      var newClient = {
+        slug: slug,
+        name: name,
+        contact_name: document.getElementById('f-contact-name').value.trim(),
+        tagline: document.getElementById('f-tagline').value.trim(),
+        phone: document.getElementById('f-phone').value.trim(),
+        capture_leads: document.getElementById('f-capture').checked,
+        capture_type: document.getElementById('f-capture-type').value,
+        whatsapp_enabled: document.getElementById('f-whatsapp').checked,
+        save_contact_enabled: document.getElementById('f-save-contact').checked,
+        accent: document.getElementById('f-accent').value,
+        logo: document.getElementById('f-logo').value.trim() || name.slice(0,1).toUpperCase(),
+        background: document.getElementById('f-bg-image').value.trim() || document.getElementById('f-bg-color').value,
+        font: document.getElementById('f-font').value,
+        text_color: document.getElementById('f-text-auto').checked ? '' : document.getElementById('f-text-color').value,
+        card_color: document.getElementById('f-card-auto').checked ? '' : document.getElementById('f-card-color').value,
+        buttons: buttons
+      };
+      var bgTablet = document.getElementById('f-bgt-image').value.trim();
+      var bgDesktop = document.getElementById('f-bgd-image').value.trim();
+      if(bgTablet || (existing && existing.background_tablet !== undefined)){ newClient.background_tablet = bgTablet; }
+      if(bgDesktop || (existing && existing.background_desktop !== undefined)){ newClient.background_desktop = bgDesktop; }
+      var bgMenuEl = document.getElementById('f-bg-menu');
+      if(bgMenuEl && (bgMenuEl.checked || (existing && existing.bg_in_menu !== undefined))){ newClient.bg_in_menu = bgMenuEl.checked; }
+
+      try{
+        await Storage.upsert(newClient);
+        toast('Guardado');
+        renderAdmin(await Storage.load(), settings);
+      }catch(e){
+        toast('No se pudo guardar: '+(e && e.message ? e.message : 'error'));
+      }
+    };
+  }
+
+  route();
+})();
 </script>
 </body>
 </html>
