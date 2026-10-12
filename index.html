@@ -789,6 +789,11 @@
     ]
   };
 
+  /* Pages a client's saved app can include ("📲 Acceso directo" → "La app incluye"); keys match /app-tabs.js.
+     Menú and Recetas exist only for the clients listed in APP_EXTRA_PAGES; Sellos only with a stamp card. */
+  var APP_PAGES = { home:'ℹ️ Info (página principal)', menu:'🍽️ Menú', recetas:'📖 Recetas', sello:'⭐ Tarjeta de sellos' };
+  var APP_EXTRA_PAGES = { 'la-posta': ['menu', 'recetas'] };
+
   /* Draws the client's app icon (logo inside a white circle on its brand color) at 192 and 512 px and uploads both. */
   async function makeAppIcons(logo, accent, slug){
     var img = null;
@@ -1721,6 +1726,20 @@
           '<input type="checkbox" id="f-push" onchange="if(this.checked)document.getElementById(\'f-app\').checked=true" style="width:18px;height:18px;"'+(draft.push_enabled === true ? ' checked' : '')+'>'+
           '<label for="f-push" style="margin:0;"><b>🔔 Notificaciones de ofertas</b> (requiere el acceso directo; sus visitantes reciben avisos y aparece el botón 🔔 en la lista)</label>'+
         '</div>'+
+        (function(){
+          var saved = String(draft.app_tabs || 'home').split(',');
+          var keys = ['home'].concat(APP_EXTRA_PAGES[draft.slug] || [], ['sello']);
+          return '<div class="field" id="f-app-tabs" style="margin-left:26px;'+(draft.app_enabled === true || draft.push_enabled === true ? '' : 'display:none;')+'">'+
+            '<label>La app incluye</label>'+
+            '<div style="display:flex;flex-wrap:wrap;gap:6px 16px;">'+keys.map(function(k){
+              var hide = k === 'sello' && saved.indexOf('sello') < 0;   // shown once we know the client has a stamp card
+              return '<label data-page="'+k+'" style="display:'+(hide ? 'none' : 'flex')+';align-items:center;gap:6px;margin:0;font-weight:400;">'+
+                '<input type="checkbox" class="f-app-page" value="'+k+'" style="width:16px;height:16px;"'+(saved.indexOf(k) >= 0 ? ' checked' : '')+'>'+escapeHtml(APP_PAGES[k])+'</label>';
+            }).join('')+'</div>'+
+            '<label style="margin-top:10px;">La app abre en</label><select id="f-app-start"></select>'+
+            '<small style="color:var(--text-dim);">Con 2 o más páginas, la app guardada lleva una barra abajo para pasar de una a otra.</small>'+
+          '</div>';
+        })()+
         '<div class="field"><label>Nombre del negocio</label><input type="text" id="f-name" value="'+escapeHtml(draft.name)+'" placeholder="Ej. Romano\'s Pizza"></div>'+
         '<div class="field"><label>Nombre de la persona (opcional — solo si es un profesional individual, ej. Ana López)</label><input type="text" id="f-contact-name" value="'+escapeHtml(draft.contact_name||'')+'" placeholder="Déjalo vacío si es un negocio, no una persona"></div>'+
         '<div class="field"><label>Frase corta (opcional)</label><input type="text" id="f-tagline" value="'+escapeHtml(draft.tagline||'')+'" placeholder="Ej. Pizza artesanal desde 1998"></div>'+
@@ -1828,6 +1847,29 @@
           '<button class="btn btn-primary" id="saveBtn" type="button">Guardar</button>'+
         '</div>'+
       '</div>';
+
+    // "La app incluye" / "La app abre en" (under 📲 Acceso directo).
+    (function(){
+      var box = document.getElementById('f-app-tabs'), startEl = document.getElementById('f-app-start');
+      var appEl = document.getElementById('f-app'), pushEl = document.getElementById('f-push');
+      var first = String(draft.app_tabs || 'home').split(',')[0];
+      function syncStart(){
+        var on = [].slice.call(box.querySelectorAll('.f-app-page')).filter(function(c){ return c.checked; }).map(function(c){ return c.value; });
+        if(!on.length) on = ['home'];
+        var keep = startEl.value || first;
+        startEl.innerHTML = on.map(function(k){ return '<option value="'+k+'">'+escapeHtml(APP_PAGES[k])+'</option>'; }).join('');
+        startEl.value = on.indexOf(keep) >= 0 ? keep : on[0];
+      }
+      function syncBox(){ box.style.display = appEl.checked ? '' : 'none'; }
+      box.querySelectorAll('.f-app-page').forEach(function(c){ c.addEventListener('change', syncStart); });
+      appEl.addEventListener('change', syncBox); pushEl.addEventListener('change', syncBox);
+      syncStart();
+      var sello = box.querySelector('[data-page="sello"]');
+      if(isEdit && sello.style.display === 'none'){
+        sb.from('loyalty_programs').select('client_slug').eq('client_slug', existing.slug).maybeSingle()
+          .then(function(r){ if(r.data) sello.style.display = 'flex'; });
+      }
+    })();
 
     function currentSlug(){
       return isEdit ? existing.slug : uniqueSlug(document.getElementById('f-name').value, clients);
@@ -2072,6 +2114,14 @@
       var appEl = document.getElementById('f-app');
       var appOn = !!((appEl && appEl.checked) || (pushEl && pushEl.checked));
       if(appEl && (appOn || (existing && existing.app_enabled !== undefined && existing.app_enabled !== null))){ newClient.app_enabled = appOn; }
+      var tabsBox = document.getElementById('f-app-tabs');
+      if(tabsBox){
+        var tabs = [].slice.call(tabsBox.querySelectorAll('.f-app-page')).filter(function(c){ return c.checked && c.parentNode.style.display !== 'none'; }).map(function(c){ return c.value; });
+        if(!tabs.length) tabs = ['home'];
+        var startKey = document.getElementById('f-app-start').value, si = tabs.indexOf(startKey);
+        if(si > 0){ tabs.splice(si, 1); tabs.unshift(startKey); }   // first page = where the app opens
+        if(appOn || (existing && existing.app_tabs)) newClient.app_tabs = tabs.join(',');
+      }
       if(appOn){
         // Home-screen icons with the client's logo; redone when the logo or brand color changes.
         var iconKey = newClient.logo + '|' + newClient.accent;
