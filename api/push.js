@@ -48,6 +48,11 @@ module.exports = async function handler(req, res){
   if(!/^[a-z0-9-]{1,60}$/.test(slug) || !title) return res.status(400).json({error: 'datos'});
   if(url.charAt(0) !== '/') url = '/' + slug;   // only links inside this site
 
+  // A client switched off in the panel ("Cliente activo") gets no notifications.
+  var cr = await db('clients?select=active&slug=eq.' + slug, token);
+  var crow = (await cr.json().catch(function(){ return []; }))[0];
+  if(crow && crow.active === false) return res.status(409).json({ error: 'cliente_inactivo' });
+
   // The admin's own token: RLS returns rows only if this user is an administrator.
   var r = await db('push_subscriptions?select=id,endpoint,p256dh,auth&client_slug=eq.' + slug, token);
   if(r.status === 401) return res.status(401).json({error: 'login'});
