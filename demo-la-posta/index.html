@@ -666,8 +666,11 @@ var LP_AVISOS = fetch('https://oifgcicvnrodipjfjkso.supabase.co/rest/v1/clients?
   })().catch(function(){ return null; });
   var standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
   if (standalone) return;
-  var seen; try { seen = localStorage.getItem("laposta-install-visto"); } catch(e){}
-  if (seen && !/[?&]instalar\b/.test(location.search)) return;   // show once (?instalar forces it, for testing)
+  /* Safari can't tell if the app is already on the home screen, so the box shows once and then waits
+     30 days. "e3-install-la-posta" is shared with La Posta's main page, so it is not shown on both. */
+  var until = 0; try { until = +localStorage.getItem("e3-install-la-posta") || 0; if (localStorage.getItem("laposta-install-visto")) until = Math.max(until, Date.now() + 30*864e5); } catch(e){}
+  if (Date.now() < until && !/[?&]instalar\b/.test(location.search)) return;   // ?instalar forces it, for testing
+  function snooze(days){ try { localStorage.setItem("e3-install-la-posta", Date.now() + days*864e5); } catch(e){} }
   var ua = navigator.userAgent, ios = /iPhone|iPad|iPod/.test(ua);
   var inApp = /FBAN|FBAV|Instagram|WhatsApp|Line\/|GSA\//.test(ua) || (ios && !/Safari\//.test(ua));
   var deferred = null;
@@ -677,8 +680,9 @@ var LP_AVISOS = fetch('https://oifgcicvnrodipjfjkso.supabase.co/rest/v1/clients?
     box.innerHTML = '<img src="/demo-la-posta/app/icon-192.png" alt=""><div class="t"><b>Guarda el menú en tu celular</b>'+text+'</div>'+
       (btn ? '<button class="go2" type="button">'+btn+'</button>' : '')+'<button class="x" type="button" aria-label="Cerrar">×</button>';
     document.body.appendChild(box); setTimeout(function(){ box.classList.add("on"); }, 50);
+    snooze(30);   // seen once is enough
   }
-  function close(){ box.classList.remove("on"); try { localStorage.setItem("laposta-install-visto", "1"); } catch(e){} }
+  function close(){ box.classList.remove("on"); snooze(30); }
   box.addEventListener("click", function(e){
     if (e.target.closest(".x")) return close();
     if (e.target.closest(".go2") && deferred){ deferred.prompt(); deferred.userChoice.then(close); }
@@ -687,7 +691,7 @@ var LP_AVISOS = fetch('https://oifgcicvnrodipjfjkso.supabase.co/rest/v1/clients?
     e.preventDefault(); deferred = e;
     setTimeout(function(){ show("Ábrelo como una app, con un toque.", "Instalar"); }, 2500);
   });
-  window.addEventListener("appinstalled", close);
+  window.addEventListener("appinstalled", function(){ box.classList.remove("on"); snooze(3650); });
   if (ios) setTimeout(function(){
     show(inApp
       ? 'Ábrelo en <b style="display:inline;font-size:13px">Safari</b> (toca ··· → "Abrir en Safari") y luego ··· → Compartir <span style="font-size:15px">⬆️</span> → "Agregar a pantalla de inicio".'
