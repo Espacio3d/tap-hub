@@ -1742,6 +1742,14 @@
           '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
             '<input type="checkbox" id="f-menu-hero" style="width:18px;height:18px;"'+(draft.menu_hero === false ? '' : ' checked')+'>'+
             '<label for="f-menu-hero" style="margin:0;">Mostrar la franja de color arriba en el menú y el recetario (apagado: el logo y el título quedan sin franja)</label>'+
+          '</div>'+
+          '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
+            '<input type="checkbox" id="f-menu-install" style="width:18px;height:18px;"'+(draft.menu_install_prompt === false ? '' : ' checked')+'>'+
+            '<label for="f-menu-install" style="margin:0;">Mostrar en el menú el aviso “Guarda el menú en tu celular” (para agregarlo a la pantalla de inicio)</label>'+
+          '</div>'+
+          '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
+            '<input type="checkbox" id="f-menu-push" style="width:18px;height:18px;"'+(draft.menu_push_prompt === false ? '' : ' checked')+'>'+
+            '<label for="f-menu-push" style="margin:0;">Mostrar en el menú el aviso “🔔 ¿Te avisamos de las ofertas?” (notificaciones)</label>'+
           '</div>' : '')+
         '<div class="field"><label>Estilo de letra de la página</label>'+
           '<select id="f-font">'+
@@ -2017,6 +2025,10 @@
       if(!activeEl.checked || (existing && existing.active !== undefined)){ newClient.active = activeEl.checked; }
       var heroEl = document.getElementById('f-menu-hero');
       if(heroEl && (!heroEl.checked || (existing && existing.menu_hero !== undefined))){ newClient.menu_hero = heroEl.checked; }
+      var installEl = document.getElementById('f-menu-install');
+      if(installEl && (!installEl.checked || (existing && existing.menu_install_prompt !== undefined))){ newClient.menu_install_prompt = installEl.checked; }
+      var pushEl = document.getElementById('f-menu-push');
+      if(pushEl && (!pushEl.checked || (existing && existing.menu_push_prompt !== undefined))){ newClient.menu_push_prompt = pushEl.checked; }
 
       try{
         await Storage.upsert(newClient);
