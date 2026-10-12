@@ -2,6 +2,36 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<!-- "Cliente activo" switch from the panel: when it is off, this page shows "no disponible"
+     (nothing is deleted; turning it back on restores everything). The page stays hidden for a moment
+     while it checks, and is shown anyway if the check fails or takes more than 2.5 s. -->
+<style>html.lp-wait body{visibility:hidden}</style>
+<script>
+(function(){
+  var d = document.documentElement; d.classList.add("lp-wait");
+  var done = false; function show(){ if (!done){ done = true; d.classList.remove("lp-wait"); } }
+  setTimeout(show, 2500);
+  fetch("https://oifgcicvnrodipjfjkso.supabase.co/rest/v1/clients?slug=eq.la-posta&select=active",
+    { headers: { apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pZmdjaWN2bnJvZGlwamZqa3NvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyOTQ3OTksImV4cCI6MjEwNTg3MDc5OX0.rkGZ2UQhgqcFns4KpHocYXFbh5o5cgFhOV68OIwyNBQ" } })
+    .then(function(r){ return r.json(); })
+    .then(function(rows){
+      if (rows && rows[0] && rows[0].active === false){
+        window.LP_OFF = true;
+        var paint = function(){
+          document.body.innerHTML = '<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;background:#FFFAF8;color:#3B2622;font-family:Montserrat,system-ui,sans-serif">'+
+            '<img src="/demo-la-posta/logo.png" alt="La Posta" style="width:110px;height:110px;border-radius:50%;background:#fff;object-fit:contain;padding:6px;box-shadow:0 10px 30px rgba(59,38,34,.12)">'+
+            '<div style="font-size:18px;font-weight:700">No disponible por el momento</div>'+
+            '<div style="font-size:14px;color:#6B4E48;max-width:300px">Esta página está temporalmente fuera de servicio. Vuelve a intentarlo más tarde.</div></div>';
+          var st = document.createElement("style"); st.textContent = ".install,.order,.sheet,.veil{display:none!important}"; document.head.appendChild(st);
+          show();
+        };
+        if (document.body) paint(); else document.addEventListener("DOMContentLoaded", paint);
+      } else show();
+    })
+    .catch(show);
+})();
+</script>
+
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>La Posta · Recetas</title>
 <meta name="description" content="Recetas guatemaltecas con los cortes de cerdo de La Posta. Pide tus cortes por WhatsApp hasta la puerta de tu casa.">
