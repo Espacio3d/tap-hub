@@ -656,10 +656,10 @@
     applyBackground(settings && settings.background, settings && settings.text_color);
     var app = document.getElementById('app');
     function clientCardHtml(c){
-      return '<div class="client-card">'+
+      return '<div class="client-card"'+(c.active === false ? ' style="opacity:.6;"' : '')+'>'+
         '<div class="client-avatar" style="background:'+escapeHtml(c.accent||'#0E7A5F')+';color:#fff;">'+logoInner(c.logo)+'</div>'+
         '<div class="client-meta"><div class="name">'+escapeHtml(c.name)+'</div>'+
-          '<div class="slug">#'+escapeHtml(c.slug)+' · '+(c.buttons?c.buttons.length:0)+' enlaces</div></div>'+
+          '<div class="slug">#'+escapeHtml(c.slug)+' · '+(c.buttons?c.buttons.length:0)+' enlaces'+(c.active === false ? ' · <b style="color:var(--danger);">inactivo</b>' : '')+'</div></div>'+
         '<div class="client-actions">'+
           '<button class="btn btn-ghost btn-sm" data-act="stats" data-slug="'+escapeHtml(c.slug)+'">📊</button>'+
           '<button class="btn btn-ghost btn-sm" data-act="loyalty" data-slug="'+escapeHtml(c.slug)+'" title="Tarjeta de sellos">🎟️</button>'+
@@ -1602,6 +1602,10 @@
     app.innerHTML =
       '<div class="admin-header"><h1>'+(isEdit?'Editar cliente':'Nuevo cliente')+'</h1></div>'+
       '<div class="form-card">'+
+        '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
+          '<input type="checkbox" id="f-active" style="width:18px;height:18px;"'+(draft.active === false ? '' : ' checked')+'>'+
+          '<label for="f-active" style="margin:0;"><b>Cliente activo</b> (apagado: su página muestra "no disponible"; no se borra nada y se reactiva al encenderlo)</label>'+
+        '</div>'+
         '<div class="field"><label>Nombre del negocio</label><input type="text" id="f-name" value="'+escapeHtml(draft.name)+'" placeholder="Ej. Romano\'s Pizza"></div>'+
         '<div class="field"><label>Nombre de la persona (opcional — solo si es un profesional individual, ej. Ana López)</label><input type="text" id="f-contact-name" value="'+escapeHtml(draft.contact_name||'')+'" placeholder="Déjalo vacío si es un negocio, no una persona"></div>'+
         '<div class="field"><label>Frase corta (opcional)</label><input type="text" id="f-tagline" value="'+escapeHtml(draft.tagline||'')+'" placeholder="Ej. Pizza artesanal desde 1998"></div>'+
@@ -1930,6 +1934,8 @@
       if(bgDesktop || (existing && existing.background_desktop !== undefined)){ newClient.background_desktop = bgDesktop; }
       var bgMenuEl = document.getElementById('f-bg-menu');
       if(bgMenuEl && (bgMenuEl.checked || (existing && existing.bg_in_menu !== undefined))){ newClient.bg_in_menu = bgMenuEl.checked; }
+      var activeEl = document.getElementById('f-active');
+      if(!activeEl.checked || (existing && existing.active !== undefined)){ newClient.active = activeEl.checked; }
       var heroEl = document.getElementById('f-menu-hero');
       if(heroEl && (!heroEl.checked || (existing && existing.menu_hero !== undefined))){ newClient.menu_hero = heroEl.checked; }
 
