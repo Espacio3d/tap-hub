@@ -21,6 +21,10 @@
       "destination": "/demo-la-posta/recetas/index.html"
     },
     {
+      "source": "/la-posta/sw.js",
+      "destination": "/demo-la-posta/app/sw.js"
+    },
+    {
       "source": "/:slug",
       "destination": "/api/hub?slug=:slug"
     }
