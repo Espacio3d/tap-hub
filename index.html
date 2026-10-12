@@ -1043,7 +1043,6 @@
           '<div class="field"><label>Horas de bloqueo entre sellos</label><input type="text" inputmode="numeric" id="l-cooldown" value="'+prog.cooldown_hours+'"></div>'+
         '</div>'+
         '<div class="field"><label>Premio</label><input type="text" id="l-reward" value="'+escapeHtml(prog.reward)+'" placeholder="Café gratis"></div>'+
-        chk('l-email', prog.ask_email, 'Pedir correo en el registro (opcional para el cliente)')+
         chk('l-caja-promos', prog.caja_promos, '<b>Cumpleaños y Promos en la Caja</b>: el negocio puede enviar saludos y promos por WhatsApp desde su Caja (solo a clientes que aceptaron promociones)')+
         '<div class="field"><label>Mensaje de cumpleaños predeterminado ({nombre} y {negocio} se cambian solos)</label>'+
           '<textarea id="l-bday-msg" rows="3" style="background:var(--bg);border:1px solid var(--surface-edge);border-radius:10px;padding:10px 12px;font-size:15px;color:var(--text);font-family:inherit;resize:vertical;" placeholder="¡Feliz cumpleaños, {nombre}! 🎂 En {negocio} queremos celebrarte: visítanos esta semana y recibe un regalo especial. ¡Te esperamos!">'+escapeHtml(prog.birthday_msg || '')+'</textarea>'+
@@ -1302,7 +1301,7 @@
         stamps_needed: num('l-needed'),
         cooldown_hours: num('l-cooldown'),
         reward: document.getElementById('l-reward').value.trim(),
-        ask_email: document.getElementById('l-email').checked,
+        ask_email: true,   // the card always asks name, phone, birthday and an optional email
         require_geo_qr: document.getElementById('l-geo').checked,
         lat: num('l-lat'),
         lng: num('l-lng'),
