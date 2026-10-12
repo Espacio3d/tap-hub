@@ -1714,8 +1714,12 @@
           '<label for="f-active" style="margin:0;"><b>Cliente activo</b> (apagado: su página muestra "no disponible"; no se borra nada y se reactiva al encenderlo)</label>'+
         '</div>'+
         '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
-          '<input type="checkbox" id="f-push" style="width:18px;height:18px;"'+(draft.push_enabled === true ? ' checked' : '')+'>'+
-          '<label for="f-push" style="margin:0;"><b>🔔 Notificaciones de ofertas</b> (sus visitantes pueden guardar la página en el celular con su logo y recibir avisos; aparece el botón 🔔 en la lista)</label>'+
+          '<input type="checkbox" id="f-app" onchange="if(!this.checked)document.getElementById(\'f-push\').checked=false" style="width:18px;height:18px;"'+(draft.app_enabled === true || draft.push_enabled === true ? ' checked' : '')+'>'+
+          '<label for="f-app" style="margin:0;"><b>📲 Acceso directo</b> (sus visitantes pueden guardar la página en el celular, con su logo, como una app)</label>'+
+        '</div>'+
+        '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
+          '<input type="checkbox" id="f-push" onchange="if(this.checked)document.getElementById(\'f-app\').checked=true" style="width:18px;height:18px;"'+(draft.push_enabled === true ? ' checked' : '')+'>'+
+          '<label for="f-push" style="margin:0;"><b>🔔 Notificaciones de ofertas</b> (requiere el acceso directo; sus visitantes reciben avisos y aparece el botón 🔔 en la lista)</label>'+
         '</div>'+
         '<div class="field"><label>Nombre del negocio</label><input type="text" id="f-name" value="'+escapeHtml(draft.name)+'" placeholder="Ej. Romano\'s Pizza"></div>'+
         '<div class="field"><label>Nombre de la persona (opcional — solo si es un profesional individual, ej. Ana López)</label><input type="text" id="f-contact-name" value="'+escapeHtml(draft.contact_name||'')+'" placeholder="Déjalo vacío si es un negocio, no una persona"></div>'+
@@ -2064,7 +2068,11 @@
 
       var pushEl = document.getElementById('f-push');
       if(pushEl && (pushEl.checked || (existing && existing.push_enabled !== undefined && existing.push_enabled !== null))){ newClient.push_enabled = pushEl.checked; }
-      if(pushEl && pushEl.checked){
+      // Notifications need the home-screen shortcut, so push turns it on too.
+      var appEl = document.getElementById('f-app');
+      var appOn = !!((appEl && appEl.checked) || (pushEl && pushEl.checked));
+      if(appEl && (appOn || (existing && existing.app_enabled !== undefined && existing.app_enabled !== null))){ newClient.app_enabled = appOn; }
+      if(appOn){
         // Home-screen icons with the client's logo; redone when the logo or brand color changes.
         var iconKey = newClient.logo + '|' + newClient.accent;
         if(!existing || !existing.push_icon_192 || existing.push_icon_key !== iconKey){
