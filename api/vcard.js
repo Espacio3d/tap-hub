@@ -30,7 +30,7 @@ module.exports = async function handler(req, res){
     var r = await fetch(apiUrl, { headers: { apikey: SUPABASE_ANON_KEY } });
     var data = await r.json();
     var client = data && data[0];
-    if(!client || !client.phone || !client.save_contact_enabled){
+    if(!client || client.active === false || !client.phone || !client.save_contact_enabled){
       res.status(404).send('Not found');
       return;
     }

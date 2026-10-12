@@ -162,12 +162,14 @@ function renderPage(client, pageUrl){
     '</div>' : '';
 
   var ogTitle = client.name;
-  var ogDesc = client.tagline || ('Contacta a '+client.name);
+  var inactive = client.active === false;
+  var ogDesc = inactive ? 'Esta página no está disponible por el momento.' : (client.tagline || ('Contacta a '+client.name));
   var ogImage = isImageUrl(client.logo) ? client.logo : '';
 
-  return '<!doctype html>\n<html lang="es"><head>\n'+
+  var html = '<!doctype html>\n<html lang="es"><head>\n'+
     '<meta charset="utf-8">\n'+
     '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'+
+    (inactive ? '<meta name="robots" content="noindex">\n' : '')+
     '<title>'+escapeHtml(ogTitle)+'</title>\n'+
     '<meta property="og:type" content="website">\n'+
     '<meta property="og:title" content="'+escapeHtml(ogTitle)+'">\n'+
@@ -183,9 +185,8 @@ function renderPage(client, pageUrl){
     '<div id="app"><div class="hub">'+
       '<div class="hub-avatar">'+logoInner(client.logo)+'</div>'+
       '<h1>'+escapeHtml(client.name)+'</h1>'+
-      (client.tagline ? '<div class="tagline">'+escapeHtml(client.tagline)+'</div>' : '')+
-      '<div class="hub-links">'+contactHtml+whatsappHtml+linksHtml+'</div>'+
-      captureHtml+
+      (inactive ? '<div class="tagline">Esta página no está disponible por el momento.</div>' : (client.tagline ? '<div class="tagline">'+escapeHtml(client.tagline)+'</div>' : ''))+
+      (inactive ? '' : '<div class="hub-links">'+contactHtml+whatsappHtml+linksHtml+'</div>'+captureHtml)+
       '<div class="hub-footer">Creado con Espacio3d.gt</div>'+
     '</div></div>\n'+
     '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"><\/script>\n'+
@@ -214,6 +215,7 @@ function renderPage(client, pageUrl){
     '})();\n'+
     '<\/script>\n'+
     '</body></html>';
+  return inactive ? html.replace(/<script[\s\S]*?<\/script>\n?/g, '') : html;
 }
 
 function renderNotFound(){
