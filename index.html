@@ -648,6 +648,7 @@
 
   /* ---------------- ADMIN VIEW ---------------- */
   function renderAdmin(clients, settings){
+    refreshAppIcons(clients);
     document.documentElement.style.removeProperty('--accent');
     document.documentElement.style.removeProperty('--hub-font');
     document.documentElement.style.removeProperty('--hub-text');
@@ -793,6 +794,26 @@
      Menú and Recetas exist only for the clients listed in APP_EXTRA_PAGES; Sellos only with a stamp card. */
   var APP_PAGES = { home:'ℹ️ Info (página principal)', menu:'🍽️ Menú', recetas:'📖 Recetas', sello:'⭐ Tarjeta de sellos' };
   var APP_EXTRA_PAGES = { 'la-posta': ['menu', 'recetas'] };
+
+  /* App icons made before they adapted to the logo (key without "v2|") are redone once, in the
+     background, when the admin list opens. Only the icon columns are written. Hand-made icons stay. */
+  var appIconsChecked = false;
+  async function refreshAppIcons(clients){
+    if(appIconsChecked) return; appIconsChecked = true;
+    for(var i = 0; i < (clients || []).length; i++){
+      var c = clients[i];
+      if(c.app_enabled !== true && c.push_enabled !== true) continue;
+      if(/\/demo-la-posta\//.test(c.push_icon_192 || '')) continue;
+      var key = 'v2|' + c.logo + '|' + c.accent;
+      if(c.push_icon_key === key) continue;
+      try{
+        var icons = await makeAppIcons(c.logo, c.accent, c.slug);
+        var res = await sb.from('clients').update({ push_icon_192: icons[0], push_icon_512: icons[1], push_icon_key: key }).eq('slug', c.slug);
+        if(res.error) throw res.error;
+        c.push_icon_192 = icons[0]; c.push_icon_512 = icons[1]; c.push_icon_key = key;
+      }catch(e){ console.error('app icon', c.slug, e); }
+    }
+  }
 
   /* Looks at a logo: does it bring its own background (opaque along the edges, corners ignored so
      rounded squares count), which color is that background, and is the drawing dark or light. */
