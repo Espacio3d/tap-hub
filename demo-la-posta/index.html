@@ -634,6 +634,56 @@ function refreshOrder(){
       : 'Toca <b style="display:inline;font-size:13px">···</b> abajo, luego Compartir <span style="font-size:15px">⬆️</span> y elige <b style="display:inline;font-size:13px">"Agregar a pantalla de inicio"</b>.');
   }, 2500);
 })();
+
+/* ---------- Ofertas en el celular (push notifications) ---------- */
+(function(){
+  var SLUG = "la-posta";
+  var VAPID = "BBCVMr_Y4R-XzRca_vn4i8zVYMz7cSe2fgBbVlTdCXwW4ooetiyN_slc83y5rOFgY4gsj_VuqISd-IdlbBFO4-Q";
+  var SB = "https://oifgcicvnrodipjfjkso.supabase.co", KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pZmdjaWN2bnJvZGlwamZqa3NvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyOTQ3OTksImV4cCI6MjEwNTg3MDc5OX0.rkGZ2UQhgqcFns4KpHocYXFbh5o5cgFhOV68OIwyNBQ";
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return;
+  if (Notification.permission === "denied") return;
+  var ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  var standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  if (ios && !standalone) return;            // iPhone only allows push from the saved app
+  var later; try { later = +localStorage.getItem("laposta-push-despues") || 0; } catch(e){}
+  var force = /[?&]avisos/.test(location.search);
+  if (!force && Date.now() < later) return;
+  function b64(s){ s = s.replace(/-/g,"+").replace(/_/g,"/"); var raw = atob(s + "===".slice((s.length+3)%4)); var a = new Uint8Array(raw.length); for (var i=0;i<raw.length;i++) a[i]=raw.charCodeAt(i); return a; }
+  function save(sub){
+    var j = sub.toJSON();
+    return fetch(SB + "/rest/v1/push_subscriptions?on_conflict=endpoint", { method:"POST",
+      headers:{ apikey:KEY, Authorization:"Bearer "+KEY, "Content-Type":"application/json", Prefer:"resolution=ignore-duplicates,return=minimal" },
+      body: JSON.stringify({ client_slug:SLUG, endpoint:j.endpoint, p256dh:j.keys.p256dh, auth:j.keys.auth, user_agent:navigator.userAgent.slice(0,200) }) });
+  }
+  navigator.serviceWorker.ready.then(function(reg){
+    return reg.pushManager.getSubscription().then(function(sub){
+      if (sub){ save(sub); return; }       // already subscribed: just make sure it is stored
+      var box = document.createElement("div"); box.className = "install";
+      box.innerHTML = '<img src="/demo-la-posta/app/icon-192.png" alt=""><div class="t"><b>🔔 ¿Te avisamos de las ofertas?</b>Recibe las promociones de La Posta en tu celular.</div>'+
+        '<button class="go2" type="button">Sí, avísame</button><button class="x" type="button" aria-label="Ahora no">×</button>';
+      setTimeout(function(){ if (document.querySelector(".install.on")) return; document.body.appendChild(box); setTimeout(function(){ box.classList.add("on"); }, 50); }, force ? 800 : 4000);
+      box.addEventListener("click", function(e){
+        if (e.target.closest(".x")){ box.classList.remove("on"); try { localStorage.setItem("laposta-push-despues", Date.now() + 14*864e5); } catch(err){} return; }
+        if (!e.target.closest(".go2")) return;
+        Notification.requestPermission().then(function(p){
+          if (p !== "granted"){ box.classList.remove("on"); return; }
+          return reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:b64(VAPID) }).then(save).then(function(){
+            box.querySelector(".t").innerHTML = "<b>✅ ¡Listo!</b>Te avisaremos de las ofertas.";
+            box.querySelector(".go2").remove();
+            setTimeout(function(){ box.classList.remove("on"); }, 2500);
+          });
+        }).catch(function(){ box.classList.remove("on"); });
+      });
+    });
+  });
+})();
+
+/* Notifications can open a product directly: /la-posta/menu?p=<product id> */
+(function(){
+  var m = location.search.match(/[?&]p=([a-z0-9-]+)/); if (!m) return;
+  var i = PRODUCTS.findIndex(function(p){ return p.id === m[1] || p.id.replace(/^\d+-/,"") === m[1]; });
+  if (i >= 0) setTimeout(function(){ openSheet(i); }, 400);
+})();
 </script>
 </body>
 </html>
