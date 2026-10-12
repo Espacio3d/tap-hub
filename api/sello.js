@@ -151,7 +151,6 @@ var PAGE_JS = '(' + function(){
         (isNew ? '<div class="field"><label for="fName">Nombre</label><input id="fName" autocomplete="name" placeholder="Tu nombre"></div>' : '')+
         '<div class="field"><label for="fPhone">Teléfono / WhatsApp</label><input id="fPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="5555 1234"></div>'+
         '<div class="field"><label for="fBirth">Fecha de nacimiento</label>'+birthInputHtml('fBirth')+'</div>'+
-        (isNew && P.ask_email ? '<div class="field"><label for="fEmail">Correo (opcional)</label><input id="fEmail" type="email" autocomplete="email" placeholder="tu@correo.com"></div>' : '')+
         (isNew ? '<label class="check"><input type="checkbox" id="fMkt"> Acepto recibir promociones de '+esc(P.name || 'este negocio')+'.</label>' : '')+
         '<button class="btn btn-primary" id="fSend" type="button">'+(isNew ? 'Crear mi tarjeta' : 'Recuperar mi tarjeta')+'</button>'+
         '<button class="link" id="fSwitch" type="button">'+(isNew ? '¿Ya tienes tarjeta? Entra aquí' : 'Soy nuevo, crear tarjeta')+'</button>'+
@@ -161,13 +160,13 @@ var PAGE_JS = '(' + function(){
     $('fSwitch').onclick = function(){ renderRegister(isNew ? 'recover' : 'new'); };
     birthMask($('fBirth'));
     // Keep what the person already typed when we show an error
-    if(prefill){ ['fName','fPhone','fBirth','fEmail'].forEach(function(id){ if($(id) && prefill[id]) $(id).value = prefill[id]; }); }
-    function typed(){ var o = {}; ['fName','fPhone','fBirth','fEmail'].forEach(function(id){ if($(id)) o[id] = $(id).value; }); return o; }
+    if(prefill){ ['fName','fPhone','fBirth'].forEach(function(id){ if($(id) && prefill[id]) $(id).value = prefill[id]; }); }
+    function typed(){ var o = {}; ['fName','fPhone','fBirth'].forEach(function(id){ if($(id)) o[id] = $(id).value; }); return o; }
     $('fSend').onclick = function(){
       var btn = this;
       var body = isNew ? {
         action:'register', name:$('fName').value, phone:$('fPhone').value, birthday:birthToIso($('fBirth').value),
-        email: $('fEmail') ? $('fEmail').value : '', marketing: $('fMkt').checked
+        marketing: $('fMkt').checked
       } : { action:'recover', phone:$('fPhone').value, birthday:birthToIso($('fBirth').value) };
       if(isNew && !body.name.trim()){ $('fName').focus(); return; }
       if(!body.phone.trim()){ $('fPhone').focus(); return; }
