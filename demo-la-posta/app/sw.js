@@ -13,7 +13,7 @@ self.addEventListener("push", function(e){
   e.waitUntil(self.registration.showNotification(d.title || "La Posta", {
     body: d.body || "",
     icon: d.icon || "/demo-la-posta/app/icon-192.png",
-    badge: "/demo-la-posta/app/icon-192.png",
+    badge: "/demo-la-posta/app/badge-96.png",   // Android status bar: white silhouette on transparent
     data: { url: d.url || "/la-posta/menu" }
   }));
 });
