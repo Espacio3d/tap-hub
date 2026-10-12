@@ -1173,7 +1173,11 @@
         '</div>'+
         (stats.suspicious.length ? '<p style="margin:0;color:var(--danger);font-size:13px;">⚠️ '+stats.suspicious.length+' sello(s) sospechoso(s) en los últimos 30.</p>' : '')+
         '<div class="field"><label>Últimos 30 sellos</label>'+recentHtml+'</div>'+
-        '<button class="btn btn-ghost btn-sm" id="l-export" type="button" style="align-self:flex-start;">📥 Exportar clientes (CSV)</button>'+
+        '<div style="display:flex;flex-wrap:wrap;gap:8px;">'+
+          '<button class="btn btn-ghost btn-sm" id="l-export" type="button">📥 Exportar clientes (CSV)</button>'+
+          (isNew ? '' : '<button class="btn btn-ghost btn-sm" id="l-reset" type="button">🔄 Reiniciar sellos</button>')+
+        '</div>'+
+        (isNew ? '' : '<p style="margin:0;font-size:12px;color:var(--text-dim);">Reiniciar deja a todos en 0 sellos y borra el historial de sellos y canjes. Los clientes siguen registrados. Se confirma con un segundo toque.</p>')+
       '</div>'+
 
       (isNew ? '' :
@@ -1507,6 +1511,30 @@
       document.getElementById('lc-search').addEventListener('input', function(){ lcShown = 50; lcRender(); });
       document.getElementById('lc-sort').addEventListener('change', function(){ lcShown = 50; lcRender(); });
       lcLoad();
+    }
+
+    // Reset stamps: first tap arms the button for 6 s, the second one does it.
+    var resetBtn = document.getElementById('l-reset');
+    if(resetBtn){
+      var armed = null;
+      resetBtn.onclick = async function(){
+        if(!armed){
+          resetBtn.className = 'btn btn-danger btn-sm';
+          resetBtn.textContent = '⚠️ Toca otra vez para borrar ' + stats.stamps + ' sello(s) y ' + stats.redemptions + ' canje(s)';
+          armed = setTimeout(function(){ armed = null; resetBtn.className = 'btn btn-ghost btn-sm'; resetBtn.textContent = '🔄 Reiniciar sellos'; }, 6000);
+          return;
+        }
+        clearTimeout(armed); armed = null;
+        resetBtn.disabled = true; resetBtn.textContent = 'Reiniciando...';
+        var res = await sb.rpc('loyalty_admin_reset_stamps', { p_slug: client.slug });
+        if(res.error){
+          console.error(res.error); toast('No se pudo reiniciar: ' + res.error.message);
+          resetBtn.disabled = false; resetBtn.className = 'btn btn-ghost btn-sm'; resetBtn.textContent = '🔄 Reiniciar sellos';
+          return;
+        }
+        toast('Sellos reiniciados: ' + res.data.stamps + ' sello(s) y ' + res.data.redemptions + ' canje(s) borrados');
+        renderLoyalty(client, clients, settings);
+      };
     }
 
     document.getElementById('l-export').onclick = async function(){
