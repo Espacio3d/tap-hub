@@ -54,7 +54,10 @@ module.exports = async function handler(req, res){
   var subs = await r.json();
   if(!Array.isArray(subs)) return res.status(403).json({error: 'admin'});
 
-  webpush.setVapidDetails(SITE, VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
+  // Tolerate spaces, line breaks or quotes pasted around the key in Vercel.
+  var priv = String(process.env.VAPID_PRIVATE_KEY).trim().replace(/^["']+|["']+$/g, '').trim();
+  try { webpush.setVapidDetails(SITE, VAPID_PUBLIC_KEY, priv); }
+  catch(e){ return res.status(500).json({ error: 'llave_invalida', length: priv.length }); }
   var payload = JSON.stringify({ title: title, body: body, url: url, icon: '/demo-la-posta/app/icon-192.png' });
 
   var sent = 0, failed = 0, gone = [];
