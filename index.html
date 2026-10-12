@@ -663,7 +663,7 @@
         '<div class="client-actions">'+
           '<button class="btn btn-ghost btn-sm" data-act="stats" data-slug="'+escapeHtml(c.slug)+'">📊</button>'+
           '<button class="btn btn-ghost btn-sm" data-act="loyalty" data-slug="'+escapeHtml(c.slug)+'" title="Tarjeta de sellos">🎟️</button>'+
-          (PUSH_CLIENTS[c.slug] ? '<button class="btn btn-ghost btn-sm" data-act="push" data-slug="'+escapeHtml(c.slug)+'" title="Notificaciones">🔔</button>' : '')+
+          (c.push_enabled === true ? '<button class="btn btn-ghost btn-sm" data-act="push" data-slug="'+escapeHtml(c.slug)+'" title="Notificaciones">🔔</button>' : '')+
           '<button class="btn btn-ghost btn-sm" data-act="edit" data-slug="'+escapeHtml(c.slug)+'">Editar</button>'+
         '</div>'+
       '</div>';
@@ -774,7 +774,8 @@
   /* ---------------- STATS VIEW ---------------- */
 
   /* ---------------- PUSH NOTIFICATIONS ("ofertas en el celular") ----------------
-     Clients whose menu app can receive offers, and where a notification may open.
+     Any client with "Notificaciones de ofertas" on (push_enabled) gets the 🔔 button.
+     PUSH_CLIENTS only lists extra places a notification may open (default: the client's page).
      Sending goes through api/push.js with the admin's session. */
   var PUSH_CLIENTS = {
     'la-posta': [
@@ -788,6 +789,33 @@
     ]
   };
 
+  /* Draws the client's app icon (logo inside a white circle on its brand color) at 192 and 512 px and uploads both. */
+  async function makeAppIcons(logo, accent, slug){
+    var img = null;
+    if(isImageUrl(logo)){
+      img = await new Promise(function(ok, fail){ var i = new Image(); i.crossOrigin = 'anonymous'; i.onload = function(){ ok(i); }; i.onerror = fail; i.src = logo + (logo.indexOf('?') < 0 ? '?' : '&') + 'icon=1'; });
+    }
+    var urls = [];
+    for(var k = 0; k < 2; k++){
+      var size = k ? 512 : 192, c = document.createElement('canvas'); c.width = c.height = size;
+      var g = c.getContext('2d');
+      g.fillStyle = /^#[0-9a-fA-F]{6}$/.test(accent || '') ? accent : '#0E7A5F'; g.fillRect(0, 0, size, size);
+      var d = size * 0.84, o = (size - d) / 2;
+      g.save(); g.beginPath(); g.arc(size/2, size/2, d/2, 0, Math.PI*2); g.closePath(); g.fillStyle = '#fff'; g.fill(); g.clip();
+      if(img){
+        var r = Math.min(d * 0.86 / img.width, d * 0.86 / img.height), w = img.width * r, h = img.height * r;
+        g.drawImage(img, (size - w)/2, (size - h)/2, w, h);
+      }else{
+        g.fillStyle = '#222'; g.font = 'bold ' + Math.round(size*0.42) + 'px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText(String(logo || '★').slice(0, 2), size/2, size/2 + size*0.02);
+      }
+      g.restore();
+      var blob = await new Promise(function(ok){ c.toBlob(ok, 'image/png'); });
+      urls.push(await Storage.uploadLogo(new File([blob], 'app-' + size + '.png', { type: 'image/png' }), slug + '-app' + size));
+    }
+    return urls;
+  }
+
   async function renderPush(client, clients, settings){
     var app = document.getElementById('app');
     app.innerHTML = '<div class="admin-header"><h1>Notificaciones</h1></div><p style="color:var(--text-dim);">Cargando...</p>';
@@ -800,7 +828,7 @@
       return;
     }
     var subs = cnt.count || 0;
-    var opts = (PUSH_CLIENTS[client.slug] || []).map(function(o){ return '<option value="'+escapeHtml(o[0])+'">'+escapeHtml(o[1])+'</option>'; }).join('');
+    var opts = (PUSH_CLIENTS[client.slug] || [['/' + client.slug, 'Su página']]).map(function(o){ return '<option value="'+escapeHtml(o[0])+'">'+escapeHtml(o[1])+'</option>'; }).join('');
     var rows = (hist.data || []).map(function(m){
       return '<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--surface-edge);font-size:13px;">'+
         '<span><b>'+escapeHtml(m.title)+'</b><br><span style="color:var(--text-dim);">'+escapeHtml(m.body||'')+'</span></span>'+
@@ -1685,6 +1713,10 @@
           '<input type="checkbox" id="f-active" style="width:18px;height:18px;"'+(draft.active === false ? '' : ' checked')+'>'+
           '<label for="f-active" style="margin:0;"><b>Cliente activo</b> (apagado: su página muestra "no disponible"; no se borra nada y se reactiva al encenderlo)</label>'+
         '</div>'+
+        '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
+          '<input type="checkbox" id="f-push" style="width:18px;height:18px;"'+(draft.push_enabled === true ? ' checked' : '')+'>'+
+          '<label for="f-push" style="margin:0;"><b>🔔 Notificaciones de ofertas</b> (sus visitantes pueden guardar la página en el celular con su logo y recibir avisos; aparece el botón 🔔 en la lista)</label>'+
+        '</div>'+
         '<div class="field"><label>Nombre del negocio</label><input type="text" id="f-name" value="'+escapeHtml(draft.name)+'" placeholder="Ej. Romano\'s Pizza"></div>'+
         '<div class="field"><label>Nombre de la persona (opcional — solo si es un profesional individual, ej. Ana López)</label><input type="text" id="f-contact-name" value="'+escapeHtml(draft.contact_name||'')+'" placeholder="Déjalo vacío si es un negocio, no una persona"></div>'+
         '<div class="field"><label>Frase corta (opcional)</label><input type="text" id="f-tagline" value="'+escapeHtml(draft.tagline||'')+'" placeholder="Ej. Pizza artesanal desde 1998"></div>'+
@@ -2029,6 +2061,19 @@
       if(installEl && (!installEl.checked || (existing && existing.menu_install_prompt !== undefined))){ newClient.menu_install_prompt = installEl.checked; }
       var pushEl = document.getElementById('f-menu-push');
       if(pushEl && (!pushEl.checked || (existing && existing.menu_push_prompt !== undefined))){ newClient.menu_push_prompt = pushEl.checked; }
+
+      var pushEl = document.getElementById('f-push');
+      if(pushEl && (pushEl.checked || (existing && existing.push_enabled !== undefined && existing.push_enabled !== null))){ newClient.push_enabled = pushEl.checked; }
+      if(pushEl && pushEl.checked){
+        // Home-screen icons with the client's logo; redone when the logo or brand color changes.
+        var iconKey = newClient.logo + '|' + newClient.accent;
+        if(!existing || !existing.push_icon_192 || existing.push_icon_key !== iconKey){
+          try{
+            var icons = await makeAppIcons(newClient.logo, newClient.accent, slug);
+            newClient.push_icon_192 = icons[0]; newClient.push_icon_512 = icons[1]; newClient.push_icon_key = iconKey;
+          }catch(e){ console.error(e); toast('No se pudo crear el ícono de la app; se usará el logo'); }
+        }
+      }
 
       try{
         await Storage.upsert(newClient);
