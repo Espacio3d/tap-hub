@@ -794,27 +794,58 @@
   var APP_PAGES = { home:'ℹ️ Info (página principal)', menu:'🍽️ Menú', recetas:'📖 Recetas', sello:'⭐ Tarjeta de sellos' };
   var APP_EXTRA_PAGES = { 'la-posta': ['menu', 'recetas'] };
 
-  /* Draws the client's app icon (logo inside a white circle on its brand color) at 192 and 512 px and uploads both. */
+  /* Looks at a logo: does it bring its own background (opaque along the edges, corners ignored so
+     rounded squares count), which color is that background, and is the drawing dark or light. */
+  function logoLook(img){
+    var w = 64, h = Math.max(1, Math.round(64 * img.height / img.width));
+    if(h > 64){ h = 64; w = Math.max(1, Math.round(64 * img.width / img.height)); }
+    var c = document.createElement('canvas'); c.width = w; c.height = h;
+    var g = c.getContext('2d'); g.drawImage(img, 0, 0, w, h);
+    var px = g.getImageData(0, 0, w, h).data;
+    function at(x, y){ var i = (y * w + x) * 4; return [px[i], px[i+1], px[i+2], px[i+3]]; }
+    var edge = [], cx = Math.round(w * 0.2), cy = Math.round(h * 0.2);
+    for(var x = cx; x < w - cx; x++){ edge.push(at(x, 0), at(x, h - 1)); }
+    for(var y = cy; y < h - cy; y++){ edge.push(at(0, y), at(w - 1, y)); }
+    var solid = edge.filter(function(p){ return p[3] > 200; });
+    var opaque = solid.length >= edge.length * 0.9;
+    var sum = [0, 0, 0];
+    solid.forEach(function(p){ sum[0] += p[0]; sum[1] += p[1]; sum[2] += p[2]; });
+    var n = Math.max(1, solid.length);
+    var edgeHex = '#' + sum.map(function(v){ return ('0' + Math.round(v / n).toString(16)).slice(-2); }).join('');
+    var lum = 0, cnt = 0;
+    for(var i = 0; i < px.length; i += 4){ if(px[i+3] > 128){ lum += (0.299*px[i] + 0.587*px[i+1] + 0.114*px[i+2]) / 255; cnt++; } }
+    return { opaque: opaque, edge: edgeHex, dark: cnt ? lum / cnt < 0.6 : true };
+  }
+  function hexLum(hex){ var v = parseInt(hex.slice(1), 16); return (0.299*(v>>16) + 0.587*((v>>8)&255) + 0.114*(v&255)) / 255; }
+
+  /* Draws the client's app icon at 192 and 512 px and uploads both. It adapts to the logo:
+     - logo with its own background: that color fills the whole icon and the logo sits in the middle;
+     - transparent logo: dark drawing on white, light drawing on the brand color (or dark gray if that is light too);
+     - emoji or letters: on the brand color. */
   async function makeAppIcons(logo, accent, slug){
-    var img = null;
+    var brand = /^#[0-9a-fA-F]{6}$/.test(accent || '') ? accent : '#0E7A5F';
+    var img = null, look = null;
     if(isImageUrl(logo)){
       img = await new Promise(function(ok, fail){ var i = new Image(); i.crossOrigin = 'anonymous'; i.onload = function(){ ok(i); }; i.onerror = fail; i.src = logo + (logo.indexOf('?') < 0 ? '?' : '&') + 'icon=1'; });
+      try{ look = logoLook(img); }catch(e){ look = null; }
     }
     var urls = [];
     for(var k = 0; k < 2; k++){
       var size = k ? 512 : 192, c = document.createElement('canvas'); c.width = c.height = size;
       var g = c.getContext('2d');
-      g.fillStyle = /^#[0-9a-fA-F]{6}$/.test(accent || '') ? accent : '#0E7A5F'; g.fillRect(0, 0, size, size);
-      var d = size * 0.84, o = (size - d) / 2;
-      g.save(); g.beginPath(); g.arc(size/2, size/2, d/2, 0, Math.PI*2); g.closePath(); g.fillStyle = '#fff'; g.fill(); g.clip();
       if(img){
-        var r = Math.min(d * 0.86 / img.width, d * 0.86 / img.height), w = img.width * r, h = img.height * r;
+        var bg = !look ? '#FFFFFF' : look.opaque ? look.edge : look.dark ? '#FFFFFF' : (hexLum(brand) < 0.6 ? brand : '#222222');
+        g.fillStyle = bg; g.fillRect(0, 0, size, size);
+        // Android crops app icons to a circle: keep the logo inside the middle ~80%.
+        var box = size * (look && look.opaque ? 0.8 : 0.66);
+        var r = Math.min(box / img.width, box / img.height), w = img.width * r, h = img.height * r;
         g.drawImage(img, (size - w)/2, (size - h)/2, w, h);
       }else{
-        g.fillStyle = '#222'; g.font = 'bold ' + Math.round(size*0.42) + 'px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillStyle = brand; g.fillRect(0, 0, size, size);
+        g.fillStyle = hexLum(brand) < 0.6 ? '#FFFFFF' : '#222222';
+        g.font = 'bold ' + Math.round(size*0.42) + 'px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
         g.fillText(String(logo || '★').slice(0, 2), size/2, size/2 + size*0.02);
       }
-      g.restore();
       var blob = await new Promise(function(ok){ c.toBlob(ok, 'image/png'); });
       urls.push(await Storage.uploadLogo(new File([blob], 'app-' + size + '.png', { type: 'image/png' }), slug + '-app' + size));
     }
@@ -2124,8 +2155,11 @@
       }
       if(appOn){
         // Home-screen icons with the client's logo; redone when the logo or brand color changes.
-        var iconKey = newClient.logo + '|' + newClient.accent;
-        if(!existing || !existing.push_icon_192 || existing.push_icon_key !== iconKey){
+        // "v2|": icons that adapt to the logo; older ones are redone on the next save.
+        // Hand-made icons (La Posta's, under /demo-la-posta/) are kept.
+        var iconKey = 'v2|' + newClient.logo + '|' + newClient.accent;
+        var handMade = existing && /\/demo-la-posta\//.test(existing.push_icon_192 || '');
+        if(!handMade && (!existing || !existing.push_icon_192 || existing.push_icon_key !== iconKey)){
           try{
             var icons = await makeAppIcons(newClient.logo, newClient.accent, slug);
             newClient.push_icon_192 = icons[0]; newClient.push_icon_512 = icons[1]; newClient.push_icon_key = iconKey;
