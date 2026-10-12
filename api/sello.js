@@ -48,6 +48,7 @@ function renderPage(state){
     '<script>window.__STATE__ = ' + L.jsonForScript(state) + ';<\/script>\n' +
     '<script>' + L.BIRTH_JS + '<\/script>\n' +
     '<script>' + PAGE_JS + '<\/script>\n' +
+    '<script src="/app-tabs.js" data-slug="' + L.escapeHtml(state.slug) + '"><\/script>\n' +
     '</body></html>';
 }
 
