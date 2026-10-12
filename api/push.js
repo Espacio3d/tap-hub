@@ -49,9 +49,11 @@ module.exports = async function handler(req, res){
   if(url.charAt(0) !== '/') url = '/' + slug;   // only links inside this site
 
   // A client switched off in the panel ("Cliente activo") gets no notifications.
-  var cr = await db('clients?select=active&slug=eq.' + slug, token);
+  var cr = await db('clients?select=active,push_enabled,push_icon_192,logo&slug=eq.' + slug, token);
   var crow = (await cr.json().catch(function(){ return []; }))[0];
-  if(crow && crow.active === false) return res.status(409).json({ error: 'cliente_inactivo' });
+  if(!crow) return res.status(404).json({ error: 'cliente' });
+  if(crow.active === false) return res.status(409).json({ error: 'cliente_inactivo' });
+  if(crow.push_enabled !== true) return res.status(409).json({ error: 'notificaciones_apagadas' });
 
   // The admin's own token: RLS returns rows only if this user is an administrator.
   var r = await db('push_subscriptions?select=id,endpoint,p256dh,auth&client_slug=eq.' + slug, token);
@@ -63,7 +65,9 @@ module.exports = async function handler(req, res){
   var priv = String(process.env.VAPID_PRIVATE_KEY).trim().replace(/^["']+|["']+$/g, '').trim();
   try { webpush.setVapidDetails(SITE, VAPID_PUBLIC_KEY, priv); }
   catch(e){ return res.status(500).json({ error: 'llave_invalida', length: priv.length }); }
-  var payload = JSON.stringify({ title: title, body: body, url: url, icon: '/demo-la-posta/app/icon-192.png' });
+  var icon = crow.push_icon_192 || (/^https?:\/\//.test(crow.logo || '') ? crow.logo : '');
+  var payload = JSON.stringify({ title: title, body: body, url: url, icon: icon,
+    badge: slug === 'la-posta' ? '/demo-la-posta/app/badge-96.png' : undefined });
 
   var sent = 0, failed = 0, gone = [];
   await Promise.all(subs.map(function(s){
