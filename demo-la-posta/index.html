@@ -602,6 +602,11 @@ function refreshOrder(){
     .catch(function(){});
 })();
 
+/* Panel switches (Editar La Posta) for the two bottom boxes. Missing/null = shown. */
+var LP_AVISOS = fetch('https://oifgcicvnrodipjfjkso.supabase.co/rest/v1/clients?slug=eq.la-posta&select=menu_install_prompt,menu_push_prompt',
+  { headers: { apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pZmdjaWN2bnJvZGlwamZqa3NvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyOTQ3OTksImV4cCI6MjEwNTg3MDc5OX0.rkGZ2UQhgqcFns4KpHocYXFbh5o5cgFhOV68OIwyNBQ' } })
+  .then(function(r){ return r.json(); }).then(function(rows){ return (rows && rows[0]) || {}; }).catch(function(){ return {}; });
+
 /* ---------- "Guardar en tu celular" (installable app) ---------- */
 (function(){
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("/la-posta/sw.js", {scope:"/la-posta/"}).catch(function(){});
@@ -613,7 +618,8 @@ function refreshOrder(){
   var inApp = /FBAN|FBAV|Instagram|WhatsApp|Line\/|GSA\//.test(ua) || (ios && !/Safari\//.test(ua));
   var deferred = null;
   var box = document.createElement("div"); box.className = "install";
-  function show(text, btn){
+  function show(text, btn){ LP_AVISOS.then(function(cfg){ if (cfg.menu_install_prompt !== false) reallyShow(text, btn); }); }
+  function reallyShow(text, btn){
     box.innerHTML = '<img src="/demo-la-posta/app/icon-192.png" alt=""><div class="t"><b>Guarda el menú en tu celular</b>'+text+'</div>'+
       (btn ? '<button class="go2" type="button">'+btn+'</button>' : '')+'<button class="x" type="button" aria-label="Cerrar">×</button>';
     document.body.appendChild(box); setTimeout(function(){ box.classList.add("on"); }, 50);
@@ -663,7 +669,10 @@ function refreshOrder(){
       var box = document.createElement("div"); box.className = "install";
       box.innerHTML = '<img src="/demo-la-posta/app/icon-192.png" alt=""><div class="t"><b>🔔 ¿Te avisamos de las ofertas?</b>Recibe las promociones de La Posta en tu celular.</div>'+
         '<button class="go2" type="button">Sí, avísame</button><button class="x" type="button" aria-label="Ahora no">×</button>';
-      setTimeout(function(){ if (document.querySelector(".install.on")) return; document.body.appendChild(box); setTimeout(function(){ box.classList.add("on"); }, 50); }, force ? 800 : 4000);
+      setTimeout(function(){ LP_AVISOS.then(function(cfg){
+        if (cfg.menu_push_prompt === false || document.querySelector(".install.on")) return;
+        document.body.appendChild(box); setTimeout(function(){ box.classList.add("on"); }, 50);
+      }); }, force ? 800 : 4000);
       box.addEventListener("click", function(e){
         if (e.target.closest(".x")){ box.classList.remove("on"); try { localStorage.setItem("laposta-push-despues", Date.now() + 14*864e5); } catch(err){} return; }
         if (!e.target.closest(".go2")) return;
