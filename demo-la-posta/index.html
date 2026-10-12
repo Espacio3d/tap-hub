@@ -651,8 +651,10 @@ function refreshOrder(){
   function b64(s){ s = s.replace(/-/g,"+").replace(/_/g,"/"); var raw = atob(s + "===".slice((s.length+3)%4)); var a = new Uint8Array(raw.length); for (var i=0;i<raw.length;i++) a[i]=raw.charCodeAt(i); return a; }
   function save(sub){
     var j = sub.toJSON();
-    return fetch(SB + "/rest/v1/push_subscriptions?on_conflict=endpoint", { method:"POST",
-      headers:{ apikey:KEY, Authorization:"Bearer "+KEY, "Content-Type":"application/json", Prefer:"resolution=ignore-duplicates,return=minimal" },
+    /* Plain insert: "on conflict do nothing" is rejected by row-level security for the public key.
+       If this phone is already stored, the database answers 409 (duplicate), which is fine. */
+    return fetch(SB + "/rest/v1/push_subscriptions", { method:"POST",
+      headers:{ apikey:KEY, Authorization:"Bearer "+KEY, "Content-Type":"application/json", Prefer:"return=minimal" },
       body: JSON.stringify({ client_slug:SLUG, endpoint:j.endpoint, p256dh:j.keys.p256dh, auth:j.keys.auth, user_agent:navigator.userAgent.slice(0,200) }) });
   }
   navigator.serviceWorker.ready.then(function(reg){
