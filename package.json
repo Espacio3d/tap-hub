@@ -1,0 +1,8 @@
+{
+  "name": "tap-hub",
+  "private": true,
+  "description": "Espacio3d.gt — panel y páginas de clientes (Vercel)",
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}

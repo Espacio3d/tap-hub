@@ -663,6 +663,7 @@
         '<div class="client-actions">'+
           '<button class="btn btn-ghost btn-sm" data-act="stats" data-slug="'+escapeHtml(c.slug)+'">📊</button>'+
           '<button class="btn btn-ghost btn-sm" data-act="loyalty" data-slug="'+escapeHtml(c.slug)+'" title="Tarjeta de sellos">🎟️</button>'+
+          (PUSH_CLIENTS[c.slug] ? '<button class="btn btn-ghost btn-sm" data-act="push" data-slug="'+escapeHtml(c.slug)+'" title="Notificaciones">🔔</button>' : '')+
           '<button class="btn btn-ghost btn-sm" data-act="edit" data-slug="'+escapeHtml(c.slug)+'">Editar</button>'+
         '</div>'+
       '</div>';
@@ -735,6 +736,13 @@
           renderForm(c, clients, settings);
         };
       });
+      app.querySelectorAll('[data-act="push"]').forEach(function(btn){
+        btn.onclick = function(){
+          var slug = btn.getAttribute('data-slug');
+          var c = clients.find(function(x){ return x.slug===slug; });
+          renderPush(c, clients, settings);
+        };
+      });
       app.querySelectorAll('[data-act="loyalty"]').forEach(function(btn){
         btn.onclick = function(){
           var slug = btn.getAttribute('data-slug');
@@ -764,6 +772,77 @@
   }
 
   /* ---------------- STATS VIEW ---------------- */
+
+  /* ---------------- PUSH NOTIFICATIONS ("ofertas en el celular") ----------------
+     Clients whose menu app can receive offers, and where a notification may open.
+     Sending goes through api/push.js with the admin's session. */
+  var PUSH_CLIENTS = {
+    'la-posta': [
+      ['/la-posta/menu', 'Menú'],
+      ['/la-posta/recetas', 'Recetario'],
+      ['/la-posta/menu?p=costilla-fresca', 'Menú → Costilla fresca'],
+      ['/la-posta/menu?p=chuleta-fresca', 'Menú → Chuleta fresca'],
+      ['/la-posta/menu?p=lomo-de-cinta', 'Menú → Lomo de cinta'],
+      ['/la-posta/menu?p=chicharrones', 'Menú → Chicharrones'],
+      ['/la-posta/menu?p=adobado', 'Menú → Adobado']
+    ]
+  };
+
+  async function renderPush(client, clients, settings){
+    var app = document.getElementById('app');
+    app.innerHTML = '<div class="admin-header"><h1>Notificaciones</h1></div><p style="color:var(--text-dim);">Cargando...</p>';
+    var cnt = await sb.from('push_subscriptions').select('id', { count: 'exact', head: true }).eq('client_slug', client.slug);
+    var hist = await sb.from('push_messages').select('*').eq('client_slug', client.slug).order('created_at', { ascending: false }).limit(15);
+    if(cnt.error || hist.error){
+      app.innerHTML = '<div class="admin-header"><h1>Notificaciones</h1></div><div class="form-card"><p>No se pudo cargar. ¿Ya corriste <b>docs/supabase/04-notificaciones.sql</b>?</p>'+
+        '<div class="form-actions"><button class="btn btn-ghost" id="pushBack" type="button">Volver</button></div></div>';
+      document.getElementById('pushBack').onclick = function(){ renderAdmin(clients, settings); };
+      return;
+    }
+    var subs = cnt.count || 0;
+    var opts = (PUSH_CLIENTS[client.slug] || []).map(function(o){ return '<option value="'+escapeHtml(o[0])+'">'+escapeHtml(o[1])+'</option>'; }).join('');
+    var rows = (hist.data || []).map(function(m){
+      return '<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--surface-edge);font-size:13px;">'+
+        '<span><b>'+escapeHtml(m.title)+'</b><br><span style="color:var(--text-dim);">'+escapeHtml(m.body||'')+'</span></span>'+
+        '<span style="color:var(--text-dim);white-space:nowrap;text-align:right;">'+new Date(m.created_at).toLocaleDateString('es-GT',{day:'numeric',month:'short'})+'<br>'+m.sent+' recibidas</span></div>';
+    }).join('') || '<p style="color:var(--text-dim);font-size:13px;">Todavía no se ha enviado ninguna.</p>';
+    app.innerHTML =
+      '<div class="admin-header"><div><h1>🔔 Notificaciones</h1><p>'+escapeHtml(client.name)+'</p></div></div>'+
+      '<div class="form-card">'+
+        '<div style="font-size:15px;"><b style="font-size:22px;">👥 '+subs+'</b> '+(subs===1?'celular suscrito':'celulares suscritos')+'</div>'+
+        '<div class="field"><label>Título</label><input type="text" id="pTitle" maxlength="80" placeholder="Ej. 🔥 Costillas a Q25 la libra"></div>'+
+        '<div class="field"><label>Mensaje</label><input type="text" id="pBody" maxlength="180" placeholder="Ej. Solo este fin de semana. ¡Pide ya!"></div>'+
+        '<div class="field"><label>Al tocarla, abrir</label><select id="pUrl" style="padding:10px 12px;font-size:15px;border:1px solid var(--surface-edge);border-radius:10px;background:var(--bg);color:var(--text);">'+opts+'</select></div>'+
+        '<div id="pPrev" style="background:var(--bg);border:1px solid var(--surface-edge);border-radius:14px;padding:10px 12px;font-size:13px;display:flex;gap:10px;align-items:center;">'+
+          '<img src="/demo-la-posta/app/icon-192.png" alt="" style="width:36px;height:36px;border-radius:9px;"><span><b>'+escapeHtml(client.name)+'</b> · ahora<br><span id="pPrevT">Título</span><br><span id="pPrevB" style="color:var(--text-dim);">Mensaje</span></span></div>'+
+        '<p style="font-size:12px;color:var(--text-dim);margin:0;">Recomendado: máximo 2 o 3 por semana para que no las desactiven.</p>'+
+        '<div class="form-actions"><button class="btn btn-ghost" id="pushBack" type="button">Volver</button><button class="btn btn-primary" id="pushSend" type="button">📤 Enviar</button></div>'+
+      '</div>'+
+      '<div class="form-card"><h3 style="font-size:16px;">Enviadas</h3>'+rows+'</div>';
+    var t = document.getElementById('pTitle'), b = document.getElementById('pBody');
+    function prev(){ document.getElementById('pPrevT').textContent = t.value || 'Título'; document.getElementById('pPrevB').textContent = b.value || 'Mensaje'; }
+    t.oninput = prev; b.oninput = prev;
+    document.getElementById('pushBack').onclick = function(){ renderAdmin(clients, settings); };
+    document.getElementById('pushSend').onclick = async function(){
+      var title = t.value.trim(); if(!title){ toast('Escribe un título'); return; }
+      if(!subs){ toast('Todavía no hay celulares suscritos'); return; }
+      if(!confirm('¿Enviar esta notificación a '+subs+(subs===1?' celular':' celulares')+'?')) return;
+      var btn = this; btn.disabled = true; btn.textContent = 'Enviando...';
+      try{
+        var session = await Auth.getSession();
+        var r = await fetch('/api/push', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+(session && session.access_token) },
+          body: JSON.stringify({ slug: client.slug, title: title, body: b.value.trim(), url: document.getElementById('pUrl').value }) });
+        var j = await r.json().catch(function(){ return {}; });
+        if(!r.ok) throw new Error(j.error || r.status);
+        toast('Enviada a '+j.sent+' de '+j.total+(j.removed ? ' · '+j.removed+' ya no estaban' : ''));
+        renderPush(client, clients, settings);
+      }catch(e){
+        toast('No se pudo enviar: '+(e && e.message ? e.message : 'error'));
+        btn.disabled = false; btn.textContent = '📤 Enviar';
+      }
+    };
+  }
+
   async function renderStats(client, clients, settings){
     var app = document.getElementById('app');
     app.innerHTML = '<div class="admin-header"><h1>Estadísticas</h1></div><p style="color:var(--text-dim);">Cargando...</p>';
