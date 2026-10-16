@@ -192,7 +192,18 @@ var PAGE_JS = '(' + function(){
 
   function firstName(){ return esc(((card && card.name) || '').split(' ')[0]); }
 
+  // If this phone also gets the business's 🔔 offers, tell the server whose phone it is
+  // (once per visit) so the panel can show the person's name in the subscribers list.
+  var pushLinked = false;
+  function linkPush(){
+    if(pushLinked || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    pushLinked = true;
+    navigator.serviceWorker.getRegistration().then(function(reg){ return reg && reg.pushManager.getSubscription(); })
+      .then(function(sub){ if(sub) post({ action:'link_push', endpoint: sub.endpoint }); }).catch(function(){});
+  }
+
   function renderCard(flash, justStamped){
+    linkPush();
     var need = P.stamps_needed, bal = card.balance;
     var dots = '';
     for(var i = 0; i < need; i++){
@@ -316,6 +327,11 @@ module.exports = async function handler(req, res){
         var lat = typeof b.lat === 'number' ? b.lat : null;
         var lng = typeof b.lng === 'number' ? b.lng : null;
         r = await L.rpc('loyalty_stamp', { p_slug: slug, p_token: token, p_via: via, p_uid: mm.uid, p_ctr: mm.ctr, p_lat: lat, p_lng: lng });
+        L.sendJson(res, 200, r);
+        return;
+      }
+      if(b.action === 'link_push'){
+        r = await L.rpc('loyalty_link_push', { p_slug: slug, p_token: token, p_endpoint: String(b.endpoint || '').slice(0, 1000) });
         L.sendJson(res, 200, r);
         return;
       }
