@@ -10,12 +10,30 @@
   var me = document.currentScript; if (!me) return;
   var SLUG = me.getAttribute("data-slug") || "";
   if (!/^[a-z0-9-]{1,60}$/.test(SLUG)) return;
+  var SB = "https://oifgcicvnrodipjfjkso.supabase.co";
+  var KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pZmdjaWN2bnJvZGlwamZqa3NvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyOTQ3OTksImV4cCI6MjEwNTg3MDc5OX0.rkGZ2UQhgqcFns4KpHocYXFbh5o5cgFhOV68OIwyNBQ";
+
+  // A saved app (and a browser tab) keeps the page in memory. If the business was switched off
+  // in the panel ("Cliente activo") meanwhile, reload when the person comes back so it shows
+  // "No disponible". Pages already showing it don't load this script (or set LP_OFF).
+  var hiddenAt = 0;
+  function recheck(){
+    if (window.LP_OFF) return;
+    fetch(SB + "/rest/v1/clients?slug=eq." + SLUG + "&select=active", { headers: { apikey: KEY }, cache: "no-store" })
+      .then(function(r){ return r.json(); })
+      .then(function(rows){ if (rows && rows[0] && rows[0].active === false) location.reload(); })
+      .catch(function(){});
+  }
+  document.addEventListener("visibilitychange", function(){
+    if (document.hidden){ hiddenAt = Date.now(); return; }
+    if (hiddenAt && Date.now() - hiddenAt > 15000) recheck();
+  });
+  window.addEventListener("pageshow", function(e){ if (e.persisted) recheck(); });
+
   var q = location.search;
   var standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
   if (!standalone && !/[?&]pestanas\b/.test(q)) return;
 
-  var SB = "https://oifgcicvnrodipjfjkso.supabase.co";
-  var KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pZmdjaWN2bnJvZGlwamZqa3NvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyOTQ3OTksImV4cCI6MjEwNTg3MDc5OX0.rkGZ2UQhgqcFns4KpHocYXFbh5o5cgFhOV68OIwyNBQ";
   var PAGES = { home: ["", "ℹ️", "Info"], menu: ["/menu", "🍽️", "Menú"], recetas: ["/recetas", "📖", "Recetas"], sello: ["/sello", "⭐", "Sellos"] };
   var base = "/" + SLUG;
 
