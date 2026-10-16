@@ -900,11 +900,17 @@
         '<div class="field"><label>Mensaje</label><input type="text" id="pBody" maxlength="180" placeholder="Ej. Solo este fin de semana. ¡Pide ya!"></div>'+
         '<div class="field"><label>Al tocarla, abrir</label><select id="pUrl" style="padding:10px 12px;font-size:15px;border:1px solid var(--surface-edge);border-radius:10px;background:var(--bg);color:var(--text);">'+opts+'</select></div>'+
         '<div id="pPrev" style="background:var(--bg);border:1px solid var(--surface-edge);border-radius:14px;padding:10px 12px;font-size:13px;display:flex;gap:10px;align-items:center;">'+
-          '<img src="/demo-la-posta/app/icon-192.png" alt="" style="width:36px;height:36px;border-radius:9px;"><span><b>'+escapeHtml(client.name)+'</b> · ahora<br><span id="pPrevT">Título</span><br><span id="pPrevB" style="color:var(--text-dim);">Mensaje</span></span></div>'+
+          '<img src="'+escapeHtml(client.push_icon_192 || (isImageUrl(client.logo) ? client.logo : '/demo-la-posta/app/icon-192.png'))+'" alt="" style="width:36px;height:36px;border-radius:9px;"><span><b>'+escapeHtml(client.name)+'</b> · ahora<br><span id="pPrevT">Título</span><br><span id="pPrevB" style="color:var(--text-dim);">Mensaje</span></span></div>'+
         '<p style="font-size:12px;color:var(--text-dim);margin:0;">Recomendado: máximo 2 o 3 por semana para que no las desactiven.</p>'+
         '<div class="form-actions"><button class="btn btn-ghost" id="pushBack" type="button">Volver</button><button class="btn btn-primary" id="pushSend" type="button">📤 Enviar</button></div>'+
       '</div>'+
-      '<div class="form-card"><h3 style="font-size:16px;">Enviadas</h3>'+rows+'</div>';
+      '<div class="form-card"><h3 style="font-size:16px;">Enviadas</h3>'+rows+'</div>'+
+      '<div class="form-card"><h3 style="font-size:16px;">Celulares suscritos</h3>'+
+        '<p style="margin:0;font-size:12px;color:var(--text-dim);">Sale el nombre cuando la persona también abrió la cuponera de este negocio en el mismo celular. '+
+        '"Quitar" lo borra y lo bloquea: ese celular ya no recibe ni se puede volver a suscribir, hasta que lo desbloquees.</p>'+
+        '<div id="pSubs"><p style="color:var(--text-dim);font-size:13px;">Cargando...</p></div>'+
+      '</div>';
+    loadPushSubs(client, clients, settings);
     var t = document.getElementById('pTitle'), b = document.getElementById('pBody');
     function prev(){ document.getElementById('pPrevT').textContent = t.value || 'Título'; document.getElementById('pPrevB').textContent = b.value || 'Mensaje'; }
     t.oninput = prev; b.oninput = prev;
@@ -927,6 +933,62 @@
         btn.disabled = false; btn.textContent = '📤 Enviar';
       }
     };
+  }
+
+  /* "iPhone · app guardada", "Android · Chrome"... from the browser's user agent. */
+  function pushDevice(ua){
+    ua = ua || '';
+    var d = /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : /Android/.test(ua) ? 'Android' : /Macintosh/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : 'Celular';
+    if(d === 'iPhone' || d === 'iPad') return d + ' · app guardada';   // iPhone only allows offers from the saved app
+    var b = /SamsungBrowser/.test(ua) ? 'Samsung Internet' : /Edg\//.test(ua) ? 'Edge' : /Firefox/.test(ua) ? 'Firefox' : /Chrome/.test(ua) ? 'Chrome' : /Safari/.test(ua) ? 'Safari' : '';
+    return d + (b ? ' · ' + b : '');
+  }
+
+  /* Subscribers list on the 🔔 screen: name (from the stamp card, if linked), device, date;
+     "Quitar" blocks the device (two taps), blocked ones can be unblocked. */
+  async function loadPushSubs(client, clients, settings){
+    var box = document.getElementById('pSubs'); if(!box) return;
+    var res = await sb.from('push_subscriptions').select('id,user_agent,created_at,loyalty_customers(name,phone)').eq('client_slug', client.slug).order('created_at', { ascending:false }).limit(2000);
+    var blk = await sb.from('push_blocked').select('endpoint,user_agent,created_at,loyalty_customers(name)').eq('client_slug', client.slug).order('created_at', { ascending:false }).limit(500);
+    if(res.error){ box.innerHTML = '<p style="color:var(--danger);font-size:13px;">No se pudo cargar la lista. ¿Ya corriste <b>docs/supabase/12-suscritos-campanita.sql</b>?</p>'; return; }
+    function day(d){ return new Date(d).toLocaleDateString('es-GT', { day:'numeric', month:'short', year:'numeric' }); }
+    var subs = res.data || [], blocked = blk.data || [];
+    var named = subs.filter(function(x){ return x.loyalty_customers; }).length;
+    box.innerHTML =
+      (subs.length ? '<p style="margin:6px 0;font-size:12px;color:var(--text-dim);">'+subs.length+' suscrito(s) · '+named+' con nombre</p>'+subs.map(function(x){
+        var who = x.loyalty_customers ? '<b>'+escapeHtml(x.loyalty_customers.name)+'</b> · ' : '';
+        return '<div class="stat-row" style="align-items:center;">'+
+          '<span style="font-size:13px;">📱 '+who+escapeHtml(pushDevice(x.user_agent))+' <span style="color:var(--text-dim);">· desde '+day(x.created_at)+'</span></span>'+
+          '<button class="btn btn-ghost btn-sm p-block" data-id="'+x.id+'" type="button">Quitar</button></div>';
+      }).join('') : '<p style="color:var(--text-dim);font-size:13px;">Todavía no hay celulares suscritos.</p>')+
+      (blocked.length ? '<p style="margin:14px 0 6px;font-size:12px;color:var(--text-dim);">🚫 Bloqueados ('+blocked.length+')</p>'+blocked.map(function(x, i){
+        var who = x.loyalty_customers ? '<b>'+escapeHtml(x.loyalty_customers.name)+'</b> · ' : '';
+        return '<div class="stat-row" style="align-items:center;">'+
+          '<span style="font-size:13px;color:var(--text-dim);">🚫 '+who+escapeHtml(pushDevice(x.user_agent))+' · bloqueado el '+day(x.created_at)+'</span>'+
+          '<button class="btn btn-ghost btn-sm p-unblock" data-i="'+i+'" type="button">Desbloquear</button></div>';
+      }).join('') : '');
+    // Two taps: the first arms the button for 5 s.
+    function twoTaps(btn, armedText, run){
+      var label = btn.textContent, armed = null;
+      btn.onclick = async function(){
+        if(!armed){
+          btn.className = 'btn btn-danger btn-sm'; btn.textContent = armedText;
+          armed = setTimeout(function(){ armed = null; btn.className = 'btn btn-ghost btn-sm'; btn.textContent = label; }, 5000);
+          return;
+        }
+        clearTimeout(armed); armed = null; btn.disabled = true; btn.textContent = '...';
+        var r = await run();
+        if(r.error){ toast('No se pudo: ' + r.error.message); btn.disabled = false; btn.className = 'btn btn-ghost btn-sm'; btn.textContent = label; return; }
+        renderPush(client, clients, settings);
+      };
+    }
+    box.querySelectorAll('.p-block').forEach(function(btn){
+      twoTaps(btn, 'Toca otra vez para quitar', function(){ return sb.rpc('push_admin_block', { p_id: +btn.getAttribute('data-id') }); });
+    });
+    box.querySelectorAll('.p-unblock').forEach(function(btn){
+      var ep = blocked[+btn.getAttribute('data-i')].endpoint;
+      twoTaps(btn, 'Toca otra vez para desbloquear', function(){ return sb.from('push_blocked').delete().eq('endpoint', ep); });
+    });
   }
 
   async function renderStats(client, clients, settings){
