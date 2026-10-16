@@ -79,6 +79,27 @@ function sendHtml(res, status, html){
   res.status(status).send(html);
 }
 
+/* false only when the business is switched off in the panel ("Cliente activo").
+   If the check itself fails the page keeps working, like the menu does. */
+async function clientActive(slug){
+  try{
+    var r = await fetch(SUPABASE_URL + '/rest/v1/clients?slug=eq.' + encodeURIComponent(slug) + '&select=active', { headers: { apikey: SUPABASE_ANON_KEY } });
+    var rows = await r.json();
+    return !(rows && rows[0] && rows[0].active === false);
+  }catch(e){ return true; }
+}
+
+// Same "No disponible" page as the hub and the menu when the business is switched off.
+function offPage(){
+  return '<!doctype html>\n<html lang="es"><head><meta charset="utf-8">'+
+    '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex">'+
+    '<title>No disponible</title></head>'+
+    '<body style="margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;box-sizing:border-box;text-align:center;font-family:system-ui,-apple-system,sans-serif;background:#F6F5F1;color:#222;">'+
+    '<div style="font-size:18px;font-weight:700;">No disponible por el momento</div>'+
+    '<div style="font-size:14px;color:#666;max-width:300px;">Esta página está temporalmente fuera de servicio. Vuelve a intentarlo más tarde.</div>'+
+    '</body></html>';
+}
+
 // Turns a thrown rpc error into a JSON answer for the page
 function sendRpcError(res, e){
   console.error(e);
@@ -228,6 +249,8 @@ module.exports = {
   sendJson: sendJson,
   sendHtml: sendHtml,
   sendRpcError: sendRpcError,
+  clientActive: clientActive,
+  offPage: offPage,
   BASE_CSS: BASE_CSS,
   FONT_LINK: FONT_LINK,
   resolveDesign: resolveDesign,

@@ -320,6 +320,16 @@ module.exports = async function handler(req, res){
   if(!/^[A-Za-z0-9]{20,64}$/.test(token)){ L.sendHtml(res, 404, 'Enlace no encontrado'); return; }
   var device = L.readCookie(req, COOKIE);
 
+  // Business switched off in the panel ("Cliente activo"): the caja is paused too.
+  try{
+    var info = await L.rpc('loyalty_caja_info', { p_caja: token, p_device: null });
+    if(info.program && !(await L.clientActive(info.program.slug))){
+      if(req.method === 'POST') L.sendJson(res, 200, { ok:false, reason:'inactive' });
+      else L.sendHtml(res, 200, L.offPage());
+      return;
+    }
+  }catch(e){ /* the normal flow below reports the error */ }
+
   if(req.method === 'POST'){
     var b = req.body || {};
     if(typeof b === 'string'){ try{ b = JSON.parse(b); }catch(e){ b = {}; } }

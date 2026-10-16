@@ -178,8 +178,10 @@ function renderPage(client, pageUrl){
   var pushScript = appOn ? '<script>\n'+PUSH_CLIENT_JS
       .replace('__PUSH__', String(pushOn)).replace('__SLUG__', JSON.stringify(client.slug)).replace('__NAME__', JSON.stringify(escapeHtml(client.name)))
       .replace('__ICON__', JSON.stringify(appIcon)).replace('__SB__', JSON.stringify(SUPABASE_URL)).replace('__KEY__', JSON.stringify(SUPABASE_ANON_KEY))
-      .replace(/<\/script/gi, '<\\/script')+'\n<\/script>\n'+
-    '<script src="/app-tabs.js" data-slug="'+escapeHtml(client.slug)+'" data-tabs="'+escapeHtml(client.app_tabs || 'home')+'" data-accent="'+escapeHtml(client.accent || '')+'"><\/script>\n' : '';
+      .replace(/<\/script/gi, '<\\/script')+'\n<\/script>\n' : '';
+  // Bottom tabs of the saved app, and the "switched off while open" check (every client).
+  pushScript += '<script src="/app-tabs.js" data-slug="'+escapeHtml(client.slug)+'"'+
+    (appOn ? ' data-tabs="'+escapeHtml(client.app_tabs || 'home')+'" data-accent="'+escapeHtml(client.accent || '')+'"' : ' data-tabs=""')+'><\/script>\n';
 
   var ogTitle = client.name;
   var inactive = client.active === false;

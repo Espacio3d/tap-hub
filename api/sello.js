@@ -302,6 +302,13 @@ module.exports = async function handler(req, res){
   if(!/^[a-z0-9-]{1,48}$/.test(slug)){ L.sendHtml(res, 404, 'Enlace no encontrado'); return; }
   var token = L.readCookie(req, COOKIE);
 
+  // Business switched off in the panel: no card and no stamps, nothing is deleted.
+  if(!(await L.clientActive(slug))){
+    if(req.method === 'POST') L.sendJson(res, 200, { ok:false, reason:'inactive', message:'No disponible por el momento.' });
+    else L.sendHtml(res, 200, L.offPage());
+    return;
+  }
+
   if(req.method === 'POST'){
     var b = req.body || {};
     if(typeof b === 'string'){ try{ b = JSON.parse(b); }catch(e){ b = {}; } }
