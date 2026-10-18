@@ -661,7 +661,7 @@
       return '<div class="client-card"'+(c.active === false ? ' style="opacity:.6;"' : '')+'>'+
         '<div class="client-avatar" style="background:'+escapeHtml(c.accent||'#0E7A5F')+';color:#fff;">'+logoInner(c.logo)+'</div>'+
         '<div class="client-meta"><div class="name">'+escapeHtml(c.name)+'</div>'+
-          '<div class="slug">#'+escapeHtml(c.slug)+' · '+(c.buttons?c.buttons.length:0)+' enlaces'+(c.active === false ? ' · <b style="color:var(--danger);">inactivo</b>' : '')+'</div></div>'+
+          '<div class="slug">#'+escapeHtml(c.slug)+' · '+(c.page_type === 'directory' ? ((c.directory || []).length+' restaurantes') : ((c.buttons ? c.buttons.length : 0)+' enlaces'))+(c.active === false ? ' · <b style="color:var(--danger);">inactivo</b>' : '')+'</div></div>'+
         '<div class="client-actions">'+
           '<button class="btn btn-ghost btn-sm" data-act="stats" data-slug="'+escapeHtml(c.slug)+'">📊</button>'+
           '<button class="btn btn-ghost btn-sm" data-act="loyalty" data-slug="'+escapeHtml(c.slug)+'" title="Tarjeta de sellos">🎟️</button>'+
@@ -1997,6 +1997,12 @@
           '<input type="checkbox" id="f-active" style="width:18px;height:18px;"'+(draft.active === false ? '' : ' checked')+'>'+
           '<label for="f-active" style="margin:0;"><b>Cliente activo</b> (apagado: su página muestra "no disponible"; no se borra nada y se reactiva al encenderlo)</label>'+
         '</div>'+
+        '<div class="field"><label>Tipo de página</label>'+
+          '<select id="f-page-type">'+
+            '<option value="links"'+(draft.page_type === 'directory' ? '' : ' selected')+'>Botones normales (menú, WhatsApp, redes...)</option>'+
+            '<option value="directory"'+(draft.page_type === 'directory' ? ' selected' : '')+'>Directorio de restaurantes (food court)</option>'+
+          '</select>'+
+        '</div>'+
         '<div class="field" style="flex-direction:row;align-items:center;gap:8px;">'+
           '<input type="checkbox" id="f-app" onchange="if(!this.checked)document.getElementById(\'f-push\').checked=false" style="width:18px;height:18px;"'+(draft.app_enabled === true || draft.push_enabled === true ? ' checked' : '')+'>'+
           '<label for="f-app" style="margin:0;"><b>📲 Acceso directo</b> (sus visitantes pueden guardar la página en el celular, con su logo, como una app)</label>'+
@@ -2112,6 +2118,19 @@
           '<div class="qr-box">'+
             '<div id="qrCanvas" style="width:140px;height:140px;"></div>'+
             '<button class="btn btn-ghost btn-sm" id="downloadQrBtn" type="button">Descargar QR</button>'+
+          '</div>'+
+        '</div>'+
+        '<div class="field" id="dirField" style="display:none;"><label id="dirLabel">Restaurantes (en el orden en que se muestran)</label>'+
+          '<datalist id="dirCats"></datalist>'+
+          '<div class="buttons-editor" id="dirEditor"></div>'+
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
+            '<button class="btn btn-ghost btn-sm" id="dirAddBtn" type="button">+ Agregar restaurante</button>'+
+            '<button class="btn btn-ghost btn-sm" id="dirImportBtn" type="button">Pegar lista</button>'+
+          '</div>'+
+          '<div id="dirImportBox" style="display:none;flex-direction:column;gap:6px;">'+
+            '<textarea id="dirImportText" rows="6" placeholder="Una línea por restaurante:&#10;Nombre | Categoría | Link del menú&#10;Burger Norte | Comida rápida | https://..." style="background:var(--bg);border:1px solid var(--surface-edge);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--text);font-family:inherit;resize:vertical;"></textarea>'+
+            '<div style="display:flex;gap:8px;"><button class="btn btn-primary btn-sm" id="dirImportOk" type="button">Agregar estos</button>'+
+            '<button class="btn btn-ghost btn-sm" id="dirImportCancel" type="button">Cancelar</button></div>'+
           '</div>'+
         '</div>'+
         '<div class="field"><label>Opciones (botones que verá el cliente)</label>'+
@@ -2322,6 +2341,104 @@
     }
     document.querySelectorAll('.button-row').forEach(wireRow);
 
+    /* ---- Directorio de restaurantes (food court) ---- */
+    var DIR_INPUT = 'background:var(--surface);border:1px solid var(--surface-edge);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);min-width:0;';
+    var DIR_ICONBTN = 'flex:0 0 auto;width:30px;height:30px;border-radius:8px;border:1px solid var(--surface-edge);background:var(--surface);color:var(--text);font-size:14px;cursor:pointer;';
+    function dirRowHtml(e){
+      e = e || {};
+      var hasLogo = isImageUrl(e.logo);
+      return '<div class="dir-edit" style="display:flex;flex-direction:column;gap:6px;background:var(--bg);border:1px solid var(--surface-edge);border-radius:12px;padding:8px;">'+
+        '<div style="display:flex;gap:6px;align-items:center;">'+
+          '<input class="dir-name" type="text" maxlength="60" placeholder="Nombre del restaurante" value="'+escapeHtml(e.name || '')+'" style="'+DIR_INPUT+'flex:1.3;">'+
+          '<input class="dir-cat" type="text" maxlength="30" list="dirCats" placeholder="Categoría" value="'+escapeHtml(e.category || '')+'" style="'+DIR_INPUT+'flex:1;">'+
+          '<button class="dir-up" type="button" title="Subir" style="'+DIR_ICONBTN+'">&uarr;</button>'+
+          '<button class="dir-down" type="button" title="Bajar" style="'+DIR_ICONBTN+'">&darr;</button>'+
+          '<button class="row-remove dir-remove" type="button" title="Quitar">&times;</button>'+
+        '</div>'+
+        '<input class="dir-url" type="url" placeholder="https://... (link de su menú)" value="'+escapeHtml(e.url || '')+'" style="'+DIR_INPUT+'">'+
+        '<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-dim);flex-wrap:wrap;">'+
+          '<span class="dir-logo-status">'+(hasLogo ? 'Logo puesto ✓' : 'Logo (opcional):')+'</span>'+
+          '<input class="dir-logo-file" type="file" accept="image/png,image/jpeg,image/webp" style="font-size:11px;background:none;border:none;padding:0;color:var(--text-dim);">'+
+          '<button class="btn btn-danger btn-sm dir-logo-clear" type="button" style="'+(hasLogo ? '' : 'display:none;')+'">Quitar logo</button>'+
+          '<input class="dir-logo" type="hidden" value="'+escapeHtml(hasLogo ? e.logo : '')+'">'+
+        '</div>'+
+      '</div>';
+    }
+    function dirEditorEl(){ return document.getElementById('dirEditor'); }
+    function dirRefresh(){
+      var cats = [];
+      dirEditorEl().querySelectorAll('.dir-cat').forEach(function(i){ var v = i.value.trim(); if(v && cats.indexOf(v) === -1) cats.push(v); });
+      document.getElementById('dirCats').innerHTML = cats.map(function(c){ return '<option value="'+escapeHtml(c)+'">'; }).join('');
+      var n = dirEditorEl().querySelectorAll('.dir-edit').length;
+      document.getElementById('dirLabel').textContent = 'Restaurantes ('+n+') — en el orden en que se muestran';
+    }
+    function wireDirRow(row){
+      row.querySelector('.dir-remove').onclick = function(){ row.remove(); dirRefresh(); };
+      row.querySelector('.dir-up').onclick = function(){ var p = row.previousElementSibling; if(p) row.parentNode.insertBefore(row, p); };
+      row.querySelector('.dir-down').onclick = function(){ var n = row.nextElementSibling; if(n) row.parentNode.insertBefore(n, row); };
+      row.querySelector('.dir-cat').addEventListener('input', dirRefresh);
+      var fileEl = row.querySelector('.dir-logo-file'), clr = row.querySelector('.dir-logo-clear'), st = row.querySelector('.dir-logo-status');
+      fileEl.addEventListener('change', async function(ev){
+        var file = ev.target.files[0];
+        if(!file) return;
+        if(file.size > 10 * 1024 * 1024){ toast('La imagen debe pesar menos de 10MB'); return; }
+        toast('Subiendo logo...');
+        try{
+          var url = await Storage.uploadLogo(file, currentSlug()+'-r');
+          row.querySelector('.dir-logo').value = url;
+          st.textContent = 'Logo puesto ✓'; clr.style.display = '';
+          toast('Logo subido');
+        }catch(err){
+          toast('No se pudo subir: '+(err && err.message ? err.message : 'error'));
+        }
+      });
+      clr.onclick = function(){
+        row.querySelector('.dir-logo').value = '';
+        st.textContent = 'Logo (opcional):'; clr.style.display = 'none'; fileEl.value = '';
+      };
+    }
+    function addDirRow(entry){
+      if(dirEditorEl().querySelectorAll('.dir-edit').length >= 100){ toast('Máximo 100 restaurantes'); return null; }
+      dirEditorEl().insertAdjacentHTML('beforeend', dirRowHtml(entry));
+      var row = dirEditorEl().lastElementChild;
+      wireDirRow(row); dirRefresh();
+      return row;
+    }
+    (Array.isArray(draft.directory) ? draft.directory : []).forEach(function(e){ addDirRow(e); });
+    document.getElementById('dirAddBtn').onclick = function(){
+      var row = addDirRow({});
+      if(row){ row.scrollIntoView({ block:'center' }); row.querySelector('.dir-name').focus(); }
+    };
+    document.getElementById('dirImportBtn').onclick = function(){ document.getElementById('dirImportBox').style.display = 'flex'; };
+    document.getElementById('dirImportCancel').onclick = function(){ document.getElementById('dirImportBox').style.display = 'none'; };
+    document.getElementById('dirImportOk').onclick = function(){
+      var lines = document.getElementById('dirImportText').value.split(/\r?\n/);
+      var added = 0;
+      lines.forEach(function(line){
+        if(!line.trim()) return;
+        var p = line.split(/\||\t/).map(function(x){ return x.trim(); });
+        if(!p[0]) return;
+        var url = p[2] || '';
+        if(url && !/^https?:\/\//i.test(url)) url = 'https://' + url;
+        if(addDirRow({ name:p[0], category:p[1] || '', url:url })) added++;
+      });
+      document.getElementById('dirImportText').value = '';
+      document.getElementById('dirImportBox').style.display = 'none';
+      toast(added ? added+' restaurantes agregados' : 'No se encontraron líneas válidas');
+    };
+    function applyPageType(){
+      var dir = document.getElementById('f-page-type').value === 'directory';
+      document.getElementById('dirField').style.display = dir ? '' : 'none';
+      ['f-contact-name','f-phone','f-save-contact','f-whatsapp','f-capture','f-capture-type','buttonsEditor'].forEach(function(id){
+        var el = document.getElementById(id);
+        var box = el && el.closest('.field');
+        if(box) box.style.display = dir ? 'none' : '';
+      });
+      if(dir && !dirEditorEl().querySelector('.dir-edit')) addDirRow({});
+    }
+    document.getElementById('f-page-type').addEventListener('change', applyPageType);
+    applyPageType();
+
     document.getElementById('cancelBtn').onclick = function(){ renderAdmin(clients, settings); };
 
     if(isEdit){
@@ -2341,6 +2458,21 @@
     document.getElementById('saveBtn').onclick = async function(){
       var name = document.getElementById('f-name').value.trim();
       if(!name){ toast('Ponle un nombre al negocio'); return; }
+      var pageType = document.getElementById('f-page-type').value;
+      var directory = null;
+      var buttons = [];
+      if(pageType === 'directory'){
+        var dall = Array.from(document.querySelectorAll('#dirEditor .dir-edit')).map(function(r, i){
+          return { pos: i + 1, name: r.querySelector('.dir-name').value.trim(), category: r.querySelector('.dir-cat').value.trim(),
+                   url: r.querySelector('.dir-url').value.trim(), logo: r.querySelector('.dir-logo').value.trim() };
+        });
+        var dbad = dall.find(function(d){ return (d.name && !d.url) || (!d.name && d.url); });
+        if(dbad){ toast('Al restaurante '+dbad.pos+' le falta el '+(dbad.name ? 'link' : 'nombre')); return; }
+        var dnohttp = dall.find(function(d){ return d.url && !/^https?:\/\//i.test(d.url); });
+        if(dnohttp){ toast('El link del restaurante '+dnohttp.pos+' debe empezar con https://'); return; }
+        directory = dall.filter(function(d){ return d.name && d.url; }).map(function(d){ return { name:d.name, category:d.category, url:d.url, logo:d.logo }; });
+        if(!directory.length){ toast('Agrega al menos un restaurante con nombre y link'); return; }
+      } else {
       var rows = Array.from(document.querySelectorAll('.button-row'));
       var all = rows.map(function(r, i){
         return {
@@ -2358,8 +2490,9 @@
         toast('A la opción '+incomplete.pos+' le falta el '+(incomplete.label ? 'link' : 'texto'));
         return;
       }
-      var buttons = all.filter(function(b){ return b.label && b.url; });
+      buttons = all.filter(function(b){ return b.label && b.url; });
       if(!buttons.length){ toast('Agrega al menos una opción con texto y link'); return; }
+      }
 
       var slug = isEdit ? existing.slug : uniqueSlug(name, clients);
       var newClient = {
@@ -2380,6 +2513,10 @@
         card_color: document.getElementById('f-card-auto').checked ? '' : document.getElementById('f-card-color').value,
         buttons: buttons
       };
+      if(pageType === 'directory' || (existing && existing.page_type !== undefined)){
+        newClient.page_type = pageType;
+        newClient.directory = directory || (existing && existing.directory) || [];
+      }
       var bgTablet = document.getElementById('f-bgt-image').value.trim();
       var bgDesktop = document.getElementById('f-bgd-image').value.trim();
       if(bgTablet || (existing && existing.background_tablet !== undefined)){ newClient.background_tablet = bgTablet; }
