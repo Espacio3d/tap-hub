@@ -95,7 +95,6 @@ section h2{font-family:Allura,cursive;font-weight:400;font-size:38px;margin:22px
 .media .shine{position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.55) 50%,transparent 65%);transform:translateX(-120%);animation:shine 6s ease-in-out infinite}
 @keyframes float{0%,100%{transform:translateY(4px) rotate(-2deg) scale(1)}50%{transform:translateY(-6px) rotate(2deg) scale(1.04)}}
 @keyframes shine{0%,60%{transform:translateX(-120%)}85%,100%{transform:translateX(120%)}}
-.badge{position:absolute;top:10px;left:10px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--brown);color:#fff;padding:5px 8px;border-radius:99px;z-index:2}
 .info{padding:10px 12px 12px}
 .info h3{font-size:14px;font-weight:600;line-height:1.25}
 .price{font-size:13px;color:var(--brown-2);margin-top:4px}
@@ -296,7 +295,7 @@ $("#menu").innerHTML = cats.map(function(c,ci){
     if (p.c !== c) return "";
     var u = p.o[0][2];
     return '<button class="card" data-i="'+i+'" data-s="'+(p.n+' '+p.c).toLowerCase()+'">'+
-      '<div class="media">'+(p.video?'<span class="badge">▶ Video</span>':'')+mediaHtml(p,false)+'</div>'+
+      '<div class="media">'+mediaHtml(p,false)+'</div>'+
       '<div class="info"><h3>'+p.n+'</h3><div class="price">'+(p.o.length>1?'desde ':'')+'<b>'+money(minPrice(p))+'</b> / '+(u==="lb"?"lb":"unidad")+'</div></div>'+
     '</button>';
   }).join("");
