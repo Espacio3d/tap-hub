@@ -105,7 +105,41 @@ img{max-width:100%;}\
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:12px;padding:12px 18px;font-size:15px;font-weight:600;cursor:pointer;font-family:"Outfit",sans-serif;}\
 .btn-primary{background:var(--accent, var(--accent-default));color:var(--accent-ink);}\
 .not-found{text-align:center;padding-block:60px;color:var(--text-dim);}\
+.dir-search{width:100%;background:var(--hub-card, var(--surface));border:1px solid var(--surface-edge);border-radius:14px;padding:13px 16px;font-size:15px;color:var(--hub-card-text, var(--text));font-family:inherit;}\
+.dir-chips{width:100%;display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;}\
+.dir-chips::-webkit-scrollbar{display:none;}\
+.dir-chip{flex:0 0 auto;border:1px solid var(--surface-edge);background:var(--hub-card, var(--surface));color:var(--hub-card-text, var(--text));border-radius:99px;padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;}\
+.dir-chip.on{background:var(--accent, var(--accent-default));color:var(--accent-ink);border-color:transparent;}\
+.dir-row small{display:block;font-size:12px;font-weight:400;opacity:.7;}\
+.dir-empty{width:100%;text-align:center;color:var(--hub-text, var(--text-dim));font-size:14px;padding:12px 0;}\
 ';
+
+/* Búsqueda y categorías del directorio (se inyecta como script propio, no depende de Supabase). */
+function dirFilter(){
+  var rows = [].slice.call(document.querySelectorAll('#dirList .dir-row'));
+  if(!rows.length) return;
+  var q = document.getElementById('dirSearch'), chips = document.getElementById('dirChips'), empty = document.getElementById('dirEmpty');
+  var cat = '';
+  function norm(t){ return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+  function apply(){
+    var term = q ? norm(q.value.trim()) : '';
+    var shown = 0;
+    rows.forEach(function(r){
+      var ok = (!cat || r.getAttribute('data-cat') === cat) && (!term || r.getAttribute('data-search').indexOf(term) !== -1);
+      r.style.display = ok ? '' : 'none';
+      if(ok) shown++;
+    });
+    if(empty) empty.style.display = shown ? 'none' : '';
+  }
+  if(q) q.addEventListener('input', apply);
+  if(chips) chips.addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('.dir-chip') : null;
+    if(!b) return;
+    cat = b.getAttribute('data-cat') || '';
+    [].forEach.call(chips.querySelectorAll('.dir-chip'), function(c){ c.classList.toggle('on', c === b); });
+    apply();
+  });
+}
 
 var FONT_LINK = '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Work+Sans:wght@400;500;600&family=Poppins:wght@500;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@500;600;700&family=Bebas+Neue&family=Fraunces:wght@600;700&family=Quicksand:wght@500;600;700&family=Oswald:wght@500;600;700&family=Abril+Fatface&family=DM+Serif+Display&family=Righteous&family=Pacifico&family=Caveat:wght@600;700&display=swap">';
 
@@ -183,9 +217,34 @@ function renderPage(client, pageUrl){
   pushScript += '<script src="/app-tabs.js" data-slug="'+escapeHtml(client.slug)+'"'+
     (appOn ? ' data-tabs="'+escapeHtml(client.app_tabs || 'home')+'" data-accent="'+escapeHtml(client.accent || '')+'"' : ' data-tabs=""')+'><\/script>\n';
 
+  var isDirectory = client.page_type === 'directory';
+  var dirEntries = (isDirectory && Array.isArray(client.directory)) ? client.directory.filter(function(e){ return e && e.name && /^https?:\/\//i.test(e.url || ''); }) : [];
+  var dirCats = [];
+  dirEntries.forEach(function(e){ var c = String(e.category || '').trim(); if(c && dirCats.indexOf(c) === -1) dirCats.push(c); });
+  function dirNorm(t){ return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+  var directoryHtml = '';
+  if(isDirectory){
+    directoryHtml =
+      (dirEntries.length >= 5 ? '<input type="search" class="dir-search" id="dirSearch" placeholder="Buscar restaurante" autocomplete="off">' : '')+
+      (dirCats.length > 1 ? '<div class="dir-chips" id="dirChips"><button type="button" class="dir-chip on" data-cat="">Todos</button>'+
+        dirCats.map(function(c){ return '<button type="button" class="dir-chip" data-cat="'+escapeHtml(c)+'">'+escapeHtml(c)+'</button>'; }).join('')+'</div>' : '')+
+      '<div class="hub-links" id="dirList">'+dirEntries.map(function(e){
+        var cat = String(e.category || '').trim();
+        var badge = isImageUrl(e.logo)
+          ? '<img src="'+escapeHtml(e.logo)+'" alt="" style="width:100%;height:100%;object-fit:contain;">'
+          : escapeHtml(String(e.name).trim().charAt(0).toUpperCase());
+        return '<a class="hub-link dir-row" href="'+escapeHtml(e.url)+'" target="_blank" rel="noopener" data-label="'+escapeHtml(e.name)+'" data-cat="'+escapeHtml(cat)+'" data-search="'+escapeHtml(dirNorm(e.name+' '+cat))+'">'+
+          '<span class="icon-badge" style="font-weight:700;overflow:hidden;">'+badge+'</span>'+
+          '<span style="min-width:0;">'+escapeHtml(e.name)+(cat ? '<small>'+escapeHtml(cat)+'</small>' : '')+'</span>'+
+          '<svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
+        '</a>';
+      }).join('')+'</div>'+
+      '<div class="dir-empty" id="dirEmpty" style="display:none;">No encontramos ese restaurante.</div>';
+  }
+
   var ogTitle = client.name;
   var inactive = client.active === false;
-  var ogDesc = inactive ? 'Esta página no está disponible por el momento.' : (client.tagline || ('Contacta a '+client.name));
+  var ogDesc = inactive ? 'Esta página no está disponible por el momento.' : (client.tagline || (isDirectory ? 'Directorio de restaurantes' : 'Contacta a '+client.name));
   var ogImage = isImageUrl(client.logo) ? client.logo : '';
 
   var html = '<!doctype html>\n<html lang="es"><head>\n'+
@@ -209,9 +268,10 @@ function renderPage(client, pageUrl){
       '<div class="hub-avatar">'+logoInner(client.logo)+'</div>'+
       '<h1>'+escapeHtml(client.name)+'</h1>'+
       (inactive ? '<div class="tagline">Esta página no está disponible por el momento.</div>' : (client.tagline ? '<div class="tagline">'+escapeHtml(client.tagline)+'</div>' : ''))+
-      (inactive ? '' : '<div class="hub-links">'+contactHtml+whatsappHtml+linksHtml+'</div>'+captureHtml)+
+      (inactive ? '' : (isDirectory ? directoryHtml : '<div class="hub-links">'+contactHtml+whatsappHtml+linksHtml+'</div>'+captureHtml))+
       '<div class="hub-footer">Creado con Espacio3d.gt</div>'+
     '</div></div>\n'+
+    (isDirectory ? '<script>('+dirFilter.toString()+')();<\/script>\n' : '')+
     '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"><\/script>\n'+
     '<script>\n'+
     '(function(){\n'+
@@ -223,7 +283,7 @@ function renderPage(client, pageUrl){
     '  logEvent("view");\n'+
     '  var buttons = '+JSON.stringify((client.buttons||[]).map(function(b){ return b.label; }))+';\n'+
     '  document.querySelectorAll(".hub-links a[href]:not([download]):not([data-tap-extra])").forEach(function(a,i){\n'+
-    '    a.addEventListener("click", function(){ logEvent("click", buttons[i]); });\n'+
+    '    a.addEventListener("click", function(){ logEvent("click", a.getAttribute("data-label") || buttons[i]); });\n'+
     '  });\n'+
     '  var leadBtn = document.getElementById("leadSendBtn");\n'+
     '  if(leadBtn){\n'+
