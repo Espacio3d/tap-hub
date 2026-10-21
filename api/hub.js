@@ -112,7 +112,79 @@ img{max-width:100%;}\
 .dir-chip.on{background:var(--accent, var(--accent-default));color:var(--accent-ink);border-color:transparent;}\
 .dir-row small{display:block;font-size:12px;font-weight:400;opacity:.7;}\
 .dir-empty{width:100%;text-align:center;color:var(--hub-text, var(--text-dim));font-size:14px;padding:12px 0;}\
+.rv-box{width:100%;background:var(--hub-card, var(--surface));border:1px solid var(--surface-edge);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center;color:var(--hub-card-text, var(--text));}\
+.rv-title{font-weight:600;font-size:15px;}\
+.rv-sub{font-size:13px;opacity:.75;}\
+.rv-stars{display:flex;gap:4px;}\
+.rv-star{background:none;border:0;padding:2px 3px;font-size:34px;line-height:1;cursor:pointer;color:#c4c4c4;font-family:inherit;}\
+.rv-star.on{color:#f5b301;}\
+.rv-more{width:100%;display:flex;flex-direction:column;gap:8px;}\
+.rv-more textarea,.rv-more input{width:100%;background:var(--bg);border:1px solid var(--surface-edge);border-radius:10px;padding:10px 12px;font-size:16px;color:var(--text);font-family:inherit;}\
+.rv-more textarea{min-height:84px;resize:vertical;}\
+.rv-msg{font-size:12px;color:#d33;}\
+.rv-act{display:flex;flex-direction:column;gap:8px;width:100%;}\
+.rv-link{display:block;text-align:center;text-decoration:none;border-radius:12px;padding:12px 14px;font-weight:600;font-size:14px;border:1px solid var(--surface-edge);color:var(--hub-card-text, var(--text));}\
+.rv-link.main{background:var(--accent, var(--accent-default));color:var(--accent-ink);border-color:transparent;}\
 ';
+
+
+/* Calificación con estrellas (se inyecta dentro del script de la página; usa su cliente de Supabase). */
+function reviewsInit(sb, slug, cfg, logEvent){
+  var box = document.getElementById('rvBox');
+  if(!box) return;
+  var stars = [].slice.call(box.querySelectorAll('.rv-star'));
+  var more = document.getElementById('rvMore'), send = document.getElementById('rvSend'), msg = document.getElementById('rvMsg');
+  var rating = 0;
+  stars.forEach(function(s, i){
+    s.addEventListener('click', function(){
+      rating = i + 1;
+      stars.forEach(function(x, j){ x.classList.toggle('on', j < rating); });
+      more.style.display = '';
+    });
+  });
+  function add(parent, tag, cls, text){
+    var el = document.createElement(tag);
+    if(cls) el.className = cls;
+    if(text) el.textContent = text;
+    parent.appendChild(el);
+    return el;
+  }
+  function link(parent, href, text, main, label){
+    var a = add(parent, 'a', 'rv-link' + (main ? ' main' : ''), text);
+    a.href = href; a.target = '_blank'; a.rel = 'noopener';
+    a.addEventListener('click', function(){ logEvent('click', label); });
+  }
+  function done(comment, name){
+    var low = rating <= 3;
+    box.textContent = '';
+    add(box, 'div', 'rv-title', '¡Gracias por tu opinión!');
+    add(box, 'div', 'rv-sub', low ? 'Lamentamos que no haya sido perfecto. Si quieres, cuéntaselo directo al negocio.' : 'Nos alegra que te haya gustado.');
+    var act = add(box, 'div', 'rv-act');
+    var wa = '';
+    if(cfg.wa){
+      var text = 'Hola, ' + (name ? 'soy ' + name + '. ' : '') + 'califiqué ' + cfg.name + ' con ' + rating + ' de 5 estrellas' + (comment ? ': ' + comment : '.');
+      wa = 'https://wa.me/' + cfg.wa + '?text=' + encodeURIComponent(text);
+    }
+    // Las dos opciones salen siempre, sin importar las estrellas; solo cambia cuál va primero.
+    if(low){
+      if(wa) link(act, wa, '💬 Escribirle al negocio por WhatsApp', true, 'Comentario por WhatsApp');
+      if(cfg.google) link(act, cfg.google, '⭐ Publicar mi reseña en Google', !wa, 'Reseña en Google');
+    }else{
+      if(cfg.google) link(act, cfg.google, '⭐ Publicar mi reseña en Google', true, 'Reseña en Google');
+      if(wa) link(act, wa, '💬 Escribirle al negocio por WhatsApp', !cfg.google, 'Comentario por WhatsApp');
+    }
+  }
+  send.addEventListener('click', function(){
+    if(!rating || send.disabled) return;
+    var comment = document.getElementById('rvComment').value.trim().slice(0, 500);
+    var name = document.getElementById('rvName').value.trim().slice(0, 60);
+    send.disabled = true; send.textContent = 'Enviando...'; msg.textContent = '';
+    sb.rpc('submit_review', { p_slug: slug, p_rating: rating, p_comment: comment, p_name: name }).then(function(r){
+      if(r.error){ send.disabled = false; send.textContent = 'Enviar'; msg.textContent = 'No se pudo enviar. Intenta de nuevo en un momento.'; return; }
+      done(comment, name);
+    });
+  });
+}
 
 /* Búsqueda y categorías del directorio (se inyecta como script propio, no depende de Supabase). */
 function dirFilter(){
@@ -242,6 +314,29 @@ function renderPage(client, pageUrl){
       '<div class="dir-empty" id="dirEmpty" style="display:none;">No encontramos ese restaurante.</div>';
   }
 
+  /* Calificación con estrellas (encendida por cliente desde el panel). */
+  function rvScript(t){ return JSON.stringify(t).replace(/</g, '\\u003c'); }
+  var rvOn = client.reviews_enabled === true && client.active !== false;
+  var rvGoogle = String(client.reviews_google_url || '').trim();
+  if(!rvGoogle && Array.isArray(client.buttons)){
+    client.buttons.forEach(function(b){ if(!rvGoogle && b && b.icon === 'review' && b.url) rvGoogle = String(b.url).trim(); });
+  }
+  if(!/^https:\/\//i.test(rvGoogle)) rvGoogle = '';
+  var rvWa = (client.reviews_whatsapp !== false && client.phone) ? String(client.phone).replace(/[^0-9]/g, '') : '';
+  if(rvWa.length < 8) rvWa = '';
+  var reviewsHtml = rvOn ?
+    '<div class="rv-box" id="rvBox">'+
+      '<div class="rv-title">¿Cómo fue tu experiencia?</div>'+
+      '<div class="rv-stars">'+[1,2,3,4,5].map(function(n){ return '<button type="button" class="rv-star" aria-label="'+n+(n === 1 ? ' estrella' : ' estrellas')+'">★</button>'; }).join('')+'</div>'+
+      '<div class="rv-more" id="rvMore" style="display:none;">'+
+        '<textarea id="rvComment" maxlength="500" placeholder="Cuéntanos qué te pareció (opcional)"></textarea>'+
+        '<input type="text" id="rvName" maxlength="60" placeholder="Tu nombre (opcional)" autocomplete="given-name">'+
+        '<div class="rv-msg" id="rvMsg"></div>'+
+        '<button type="button" class="btn btn-primary" id="rvSend">Enviar</button>'+
+      '</div>'+
+    '</div>' : '';
+  var rvInit = rvOn ? '  ('+reviewsInit.toString()+')(sb, slug, '+rvScript({ name: client.name, google: rvGoogle, wa: rvWa })+', logEvent);\n' : '';
+
   var ogTitle = client.name;
   var inactive = client.active === false;
   var ogDesc = inactive ? 'Esta página no está disponible por el momento.' : (client.tagline || (isDirectory ? 'Directorio de restaurantes' : 'Contacta a '+client.name));
@@ -268,7 +363,7 @@ function renderPage(client, pageUrl){
       '<div class="hub-avatar">'+logoInner(client.logo)+'</div>'+
       '<h1>'+escapeHtml(client.name)+'</h1>'+
       (inactive ? '<div class="tagline">Esta página no está disponible por el momento.</div>' : (client.tagline ? '<div class="tagline">'+escapeHtml(client.tagline)+'</div>' : ''))+
-      (inactive ? '' : (isDirectory ? directoryHtml : '<div class="hub-links">'+contactHtml+whatsappHtml+linksHtml+'</div>'+captureHtml))+
+      (inactive ? '' : (isDirectory ? directoryHtml : '<div class="hub-links">'+contactHtml+whatsappHtml+linksHtml+'</div>'+captureHtml)+reviewsHtml)+
       '<div class="hub-footer">Creado con Espacio3d.gt</div>'+
     '</div></div>\n'+
     (isDirectory ? '<script>('+dirFilter.toString()+')();<\/script>\n' : '')+
@@ -295,6 +390,7 @@ function renderPage(client, pageUrl){
     '      });\n'+
     '    };\n'+
     '  }\n'+
+    rvInit+
     '})();\n'+
     '<\/script>\n'+
     pushScript+
