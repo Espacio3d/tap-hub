@@ -1154,7 +1154,9 @@
 
     app.innerHTML =
       '<div class="admin-header"><div><h1>Tarjeta de sellos</h1><p>'+escapeHtml(client.name)+'</p></div></div>'+
-      (isNew ? '' : '<button class="btn btn-primary" id="l-promos" type="button">📣 Promociones por WhatsApp</button>')+
+      (isNew ? '' : '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
+        '<button class="btn btn-primary" id="l-report" type="button" style="flex:1;">📊 Reporte</button>'+
+        '<button class="btn btn-primary" id="l-promos" type="button" style="flex:1;">📣 Promociones por WhatsApp</button></div>')+
 
       '<div class="form-card">'+
         chk('l-enabled', prog.enabled, '<b>Servicio de fidelización activo</b> (si lo apagas, la tarjeta y la caja se pausan; no se borra nada)')+
@@ -1468,6 +1470,7 @@
     if(isNew) return;
 
     document.getElementById('l-promos').onclick = function(){ renderPromos(client, clients, settings, prog); };
+    document.getElementById('l-report').onclick = function(){ renderReport(client, clients, settings, prog); };
 
     if(window.QRCode){
       new QRCode(document.getElementById('loyQr'), { text: qrUrl, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
@@ -1689,6 +1692,233 @@
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
     };
+  }
+
+  /* ---------------- REPORTE (TARJETA DE SELLOS) VIEW ----------------
+     Everything here is computed from data the card already records
+     (customers, stamps, redemptions) — nothing new is asked of anyone.
+     Times are bucketed in Guatemala time. Bars are one series each, so
+     one hue (the panel accent), no legend, value on hover + on the peak. */
+  async function renderReport(client, clients, settings, prog){
+    var app = document.getElementById('app');
+    app.innerHTML = '<div class="admin-header"><h1>Reporte</h1></div><p style="color:var(--text-dim);">Calculando...</p>';
+    var DAY = 864e5;
+    var yearAgo = new Date(Date.now() - 365 * DAY).toISOString();
+
+    async function fetchAll(table, cols, sinceIso){
+      var rows = [], from = 0;
+      while(true){
+        var q = sb.from(table).select(cols).eq('client_slug', client.slug);
+        if(sinceIso) q = q.gte('created_at', sinceIso);
+        var r = await q.order('created_at').range(from, from + 999);
+        if(r.error) throw r.error;
+        rows = rows.concat(r.data || []);
+        if(!r.data || r.data.length < 1000) break;
+        from += 1000;
+      }
+      return rows;
+    }
+    var customers, stamps, redemptions;
+    try{
+      customers = await fetchAll('loyalty_customers', 'id,name,phone,birthday,marketing_ok,total_stamps,last_stamp_at,created_at', null);
+      stamps = await fetchAll('loyalty_stamps', 'customer_id,via,created_at', yearAgo);
+      redemptions = await fetchAll('loyalty_redemptions', 'customer_id,created_at', yearAgo);
+    }catch(err){
+      console.error(err); toast('No se pudo cargar el reporte'); renderLoyalty(client, clients, settings); return;
+    }
+    var byId = {};
+    customers.forEach(function(c){ byId[c.id] = c; });
+
+    // Guatemala time parts (UTC-6, no daylight saving)
+    var GT_FMT = new Intl.DateTimeFormat('en-US', { timeZone:'America/Guatemala', weekday:'short', hour:'numeric', hourCycle:'h23', year:'numeric', month:'numeric', day:'numeric' });
+    function gtParts(iso){
+      var o = {};
+      GT_FMT.formatToParts(new Date(iso)).forEach(function(p){ o[p.type] = p.value; });
+      return { wd: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(o.weekday), h: +o.hour % 24, y: +o.year, m: +o.month, d: +o.day };
+    }
+    function gtMidnight(y, m, d){ return new Date(Date.UTC(y, m - 1, d, 6)); }   // 00:00 in Guatemala
+    var now = new Date(), t = gtParts(now.toISOString());
+    var MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    var PERIODS = {
+      mes:       { label:'Este mes ('+MONTHS[t.m-1]+')', from: gtMidnight(t.y, t.m, 1), to: now },
+      mespasado: { label:'Mes pasado ('+MONTHS[(t.m+10)%12]+')', from: gtMidnight(t.m === 1 ? t.y-1 : t.y, t.m === 1 ? 12 : t.m-1, 1), to: gtMidnight(t.y, t.m, 1) },
+      d15:       { label:'Últimos 15 días', from: new Date(now - 15*DAY), to: now },
+      d30:       { label:'Últimos 30 días', from: new Date(now - 30*DAY), to: now },
+      d90:       { label:'Últimos 90 días', from: new Date(now - 90*DAY), to: now }
+    };
+    var need = prog.stamps_needed;
+
+    // ---- Whole-year metrics (independent of the selected period) ----
+    var perCustomer = {};
+    stamps.forEach(function(s){ (perCustomer[s.customer_id] = perCustomer[s.customer_id] || []).push(new Date(s.created_at).getTime()); });
+    function median(a){ if(!a.length) return null; a = a.slice().sort(function(x, y){ return x - y; }); var m = Math.floor(a.length/2); return a.length % 2 ? a[m] : (a[m-1] + a[m]) / 2; }
+    var gaps = [], completeDays = [], completions = 0;
+    Object.keys(perCustomer).forEach(function(id){
+      var ts = perCustomer[id];
+      if(ts.length >= 2) gaps.push((ts[ts.length-1] - ts[0]) / (ts.length - 1) / DAY);
+      if(ts.length >= need) completeDays.push((ts[need-1] - ts[0]) / DAY);
+      completions += Math.floor(ts.length / need);
+    });
+    var freqDays = median(gaps);
+    var completeMedian = median(completeDays);
+    var redeemRate = completions ? Math.min(100, Math.round(redemptions.length / completions * 100)) : null;
+    var atRisk = customers.filter(function(c){
+      return c.total_stamps >= 2 && c.last_stamp_at && (now - new Date(c.last_stamp_at)) > 30 * DAY;
+    }).sort(function(a, b){ return new Date(a.last_stamp_at) - new Date(b.last_stamp_at); });
+    var optIn = customers.length ? Math.round(customers.filter(function(c){ return c.marketing_ok; }).length / customers.length * 100) : 0;
+    var bdayNext30 = customers.filter(function(c){
+      if(!c.birthday) return false;
+      var b = c.birthday.split('-'), next = gtMidnight(t.y, +b[1], +b[2]);
+      if(next < gtMidnight(t.y, t.m, t.d)) next = gtMidnight(t.y + 1, +b[1], +b[2]);
+      return (next - gtMidnight(t.y, t.m, t.d)) / DAY <= 30;
+    }).length;
+
+    function compute(key){
+      var P = PERIODS[key], from = P.from.getTime(), to = P.to.getTime();
+      var inP = stamps.filter(function(s){ var x = new Date(s.created_at).getTime(); return x >= from && x < to; });
+      var visitors = {}, wd = [0,0,0,0,0,0,0], hours = {}, via = { nfc:0, qr:0, pin:0, caja:0 };
+      inP.forEach(function(s){
+        visitors[s.customer_id] = (visitors[s.customer_id] || 0) + 1;
+        var g = gtParts(s.created_at);
+        wd[g.wd]++; hours[g.h] = (hours[g.h] || 0) + 1;
+        if(via[s.via] !== undefined) via[s.via]++;
+      });
+      var ids = Object.keys(visitors);
+      var returning = ids.filter(function(id){ return byId[id] && new Date(byId[id].created_at).getTime() < from; }).length;
+      var newOnes = customers.filter(function(c){ var x = new Date(c.created_at).getTime(); return x >= from && x < to; }).length;
+      var redeemed = redemptions.filter(function(r){ var x = new Date(r.created_at).getTime(); return x >= from && x < to; }).length;
+      var top = ids.map(function(id){ return { c: byId[id], n: visitors[id] }; })
+        .filter(function(x){ return x.c; }).sort(function(a, b){ return b.n - a.n; }).slice(0, 10);
+      return { P:P, visits: inP.length, visitors: ids.length, returning: returning, newOnes: newOnes, redeemed: redeemed, wd: wd, hours: hours, via: via, top: top };
+    }
+
+    // ---- small pieces ----
+    function tile(label, value, sub){
+      return '<div style="flex:1 1 130px;background:var(--bg);border:1px solid var(--surface-edge);border-radius:12px;padding:12px;">'+
+        '<div style="font-size:12px;color:var(--text-dim);">'+label+'</div>'+
+        '<div style="font-family:Outfit,sans-serif;font-size:26px;font-weight:700;line-height:1.2;">'+value+'</div>'+
+        (sub ? '<div style="font-size:12px;color:var(--text-dim);">'+sub+'</div>' : '')+
+      '</div>';
+    }
+    function bars(values, labels, unit){
+      var max = Math.max.apply(null, values.concat([1]));
+      var top = Math.max.apply(null, values);
+      return '<div style="display:flex;align-items:flex-end;gap:2px;height:130px;padding-top:18px;border-bottom:1px solid var(--surface-edge);">'+
+        values.map(function(v, i){
+          var h = v ? Math.max(4, Math.round(v / max * 92)) : 0;
+          var tip = labels[i] + ': ' + v + ' ' + unit;
+          return '<div title="'+escapeHtml(tip)+'" aria-label="'+escapeHtml(tip)+'" style="flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;cursor:default;">'+
+            (v && v === top ? '<span style="font-size:11px;color:var(--text);font-weight:600;margin-bottom:2px;flex-shrink:0;">'+v+'</span>' : '')+
+            '<div style="width:100%;max-width:28px;height:'+h+'px;flex-shrink:0;background:var(--accent-default);border-radius:4px 4px 0 0;"></div></div>';
+        }).join('')+'</div>'+
+        '<div style="display:flex;gap:2px;margin-top:4px;">'+labels.map(function(l){
+          return '<div style="flex:1;min-width:0;text-align:center;font-size:10px;color:var(--text-dim);overflow:hidden;">'+l+'</div>'; }).join('')+'</div>';
+    }
+    function fmtDays(d){ return d == null ? '—' : (d < 1 ? 'menos de 1' : Math.round(d)); }
+    function pct(a, b){ return b ? Math.round(a / b * 100) + '%' : '—'; }
+    var WD_LABELS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    var VIA_LABELS = { nfc:'NFC (sticker)', qr:'QR', pin:'PIN del cajero', caja:'Página Caja' };
+
+    function summaryText(R){
+      var bestDay = R.visits ? WD_LABELS[R.wd.indexOf(Math.max.apply(null, R.wd))] : null;
+      var hk = Object.keys(R.hours).sort(function(a, b){ return R.hours[b] - R.hours[a]; })[0];
+      return '📊 *Reporte de tarjeta de sellos · ' + client.name + '*\n' + R.P.label + '\n\n' +
+        '👥 Clientes nuevos: ' + R.newOnes + '\n' +
+        '🔁 Visitas: ' + R.visits + ' de ' + R.visitors + ' clientes (' + pct(R.returning, R.visitors) + ' ya eran clientes)\n' +
+        '🎁 Premios canjeados: ' + R.redeemed + '\n' +
+        (bestDay ? '📅 Día con más visitas: ' + bestDay + (hk !== undefined ? ' · hora pico: ' + hk + ':00' : '') + '\n' : '') +
+        '⏱️ Vuelven cada ' + fmtDays(freqDays) + ' días (promedio)\n' +
+        '⚠️ ' + atRisk.length + ' clientes no vienen hace más de 30 días\n' +
+        '🎂 ' + bdayNext30 + ' cumpleañeros en los próximos 30 días\n' +
+        '👥 Total de clientes registrados: ' + customers.length + '\n\n' +
+        'Espacio3d.gt';
+    }
+
+    function draw(key){
+      var R = compute(key);
+      var hourKeys = Object.keys(R.hours).map(Number);
+      var hMin = Math.min.apply(null, hourKeys.concat([8])), hMax = Math.max.apply(null, hourKeys.concat([20]));
+      var hVals = [], hLabels = [];
+      for(var h = hMin; h <= hMax; h++){ hVals.push(R.hours[h] || 0); hLabels.push(String(h)); }
+      var viaTotal = R.via.nfc + R.via.qr + R.via.pin + R.via.caja;
+
+      app.innerHTML =
+        '<div class="admin-header"><div><h1>Reporte</h1><p>'+escapeHtml(client.name)+' · tarjeta de sellos</p></div></div>'+
+        '<div class="form-card">'+
+          '<div class="field"><label>Periodo</label><select id="r-period">'+
+            Object.keys(PERIODS).map(function(k){ return '<option value="'+k+'"'+(k===key?' selected':'')+'>'+PERIODS[k].label+'</option>'; }).join('')+
+          '</select></div>'+
+          '<div style="display:flex;flex-wrap:wrap;gap:8px;">'+
+            tile('Clientes nuevos', R.newOnes)+
+            tile('Visitas (sellos)', R.visits, R.visitors+' clientes distintos')+
+            tile('Ya eran clientes', pct(R.returning, R.visitors), R.returning+' de '+R.visitors+' que vinieron')+
+            tile('Premios canjeados', R.redeemed)+
+          '</div>'+
+        '</div>'+
+
+        '<div class="form-card">'+
+          '<h3 style="font-size:16px;">¿Qué días vienen más?</h3>'+
+          (R.visits ? bars(R.wd, WD_LABELS, 'visitas') : '<p style="margin:0;color:var(--text-dim);font-size:13px;">Sin visitas en este periodo.</p>')+
+          '<h3 style="font-size:16px;margin-top:8px;">¿A qué hora vienen más?</h3>'+
+          (R.visits ? bars(hVals, hLabels, 'visitas') : '<p style="margin:0;color:var(--text-dim);font-size:13px;">Sin visitas en este periodo.</p>')+
+          '<p style="margin:0;font-size:12px;color:var(--text-dim);">Hora de Guatemala. Pasa el dedo o el mouse sobre una barra para ver el número.</p>'+
+          '<h3 style="font-size:16px;margin-top:8px;">¿Cómo sellan?</h3>'+
+          (viaTotal ? Object.keys(VIA_LABELS).filter(function(k){ return R.via[k]; }).map(function(k){
+            return '<div class="stat-row"><span>'+VIA_LABELS[k]+'</span><b>'+pct(R.via[k], viaTotal)+' <span style="font-weight:400;color:var(--text-dim);font-size:12px;">('+R.via[k]+')</span></b></div>';
+          }).join('') : '<p style="margin:0;color:var(--text-dim);font-size:13px;">Sin sellos en este periodo.</p>')+
+        '</div>'+
+
+        '<div class="form-card">'+
+          '<h3 style="font-size:16px;">🏆 Mejores clientes del periodo</h3>'+
+          (R.top.length ? R.top.map(function(x, i){
+            return '<div class="stat-row"><span>'+(i+1)+'. '+escapeHtml(x.c.name)+'</span><b>'+x.n+' visita'+(x.n===1?'':'s')+'</b></div>'; }).join('')
+            : '<p style="margin:0;color:var(--text-dim);font-size:13px;">Todavía no hay visitas en este periodo.</p>')+
+        '</div>'+
+
+        '<div class="form-card">'+
+          '<h3 style="font-size:16px;">Últimos 12 meses</h3>'+
+          '<div style="display:flex;flex-wrap:wrap;gap:8px;">'+
+            tile('Vuelven cada', fmtDays(freqDays), 'días (promedio)')+
+            tile('Completan la tarjeta en', fmtDays(completeMedian), 'días (promedio)')+
+            tile('Canjean su premio', redeemRate == null ? '—' : redeemRate+'%', 'de las tarjetas completas')+
+            tile('Aceptan promociones', optIn+'%', customers.length+' clientes en total')+
+            tile('Cumpleaños', bdayNext30, 'en los próximos 30 días')+
+          '</div>'+
+        '</div>'+
+
+        '<div class="form-card">'+
+          '<h3 style="font-size:16px;">⚠️ Clientes en riesgo <span style="font-weight:400;color:var(--text-dim);font-size:13px;">('+atRisk.length+')</span></h3>'+
+          '<p style="margin:0;font-size:12px;color:var(--text-dim);">Venían (2 visitas o más) y no regresan hace más de 30 días. Buen momento para un "te extrañamos".</p>'+
+          (atRisk.length ? atRisk.slice(0, 15).map(function(c){
+            return '<div class="stat-row"><span>'+escapeHtml(c.name)+(c.marketing_ok ? '' : ' <span style="font-size:11px;color:var(--text-dim);">(no acepta promos)</span>')+'</span>'+
+              '<span style="color:var(--text-dim);font-size:13px;">hace '+Math.floor((now - new Date(c.last_stamp_at)) / DAY)+' días</span></div>'; }).join('')+
+            (atRisk.length > 15 ? '<p style="margin:0;font-size:12px;color:var(--text-dim);">y '+(atRisk.length-15)+' más.</p>' : '')
+            : '<p style="margin:0;color:var(--text-dim);font-size:13px;">Nadie en riesgo por ahora. 🎉</p>')+
+        '</div>'+
+
+        '<div class="form-card">'+
+          '<h3 style="font-size:16px;">Mandar el resumen al negocio</h3>'+
+          '<pre id="r-text" style="margin:0;white-space:pre-wrap;font-family:inherit;font-size:13px;background:var(--bg);border:1px solid var(--surface-edge);border-radius:10px;padding:12px;">'+escapeHtml(summaryText(R))+'</pre>'+
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
+            '<button class="btn btn-primary btn-sm" id="r-wa" type="button">📲 Mandar por WhatsApp</button>'+
+            '<button class="btn btn-ghost btn-sm" id="r-copy" type="button">Copiar texto</button>'+
+          '</div>'+
+        '</div>'+
+        '<div class="form-actions" style="border-top:none;"><button class="btn btn-ghost" id="r-back" type="button">Volver</button></div>';
+
+      document.getElementById('r-period').onchange = function(){ draw(this.value); };
+      document.getElementById('r-back').onclick = function(){ renderLoyalty(client, clients, settings); };
+      document.getElementById('r-wa').onclick = function(){
+        var phone = (client.phone || '').replace(/[^0-9]/g, '');
+        window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(summaryText(R)), '_blank');
+      };
+      document.getElementById('r-copy').onclick = function(){
+        var text = summaryText(R);
+        (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
+          .then(function(){ toast('Copiado'); }, function(){ prompt('Copia el resumen:', text); });
+      };
+    }
+    draw('mes');
   }
 
   /* ---------------- PROMOCIONES (WHATSAPP) VIEW ----------------
